@@ -1,0 +1,52 @@
+<Window x:Class="SysDeck.AddVoicemodTileWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="SysDeck — Voicemod"
+        Width="440" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize" ShowInTaskbar="False"
+        FontFamily="Segoe UI" Foreground="#E7E8EB" Background="#1A1B1F">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Themes/SettingsStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+    <StackPanel Margin="20">
+        <TextBlock x:Name="TitleText" Text="Ajouter une tuile Voicemod" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,4"/>
+        <TextBlock Text="Toucher la tuile agit sur Voicemod. Le changeur de voix, la voix chargée et le micro s'affichent en direct sur la tuile."
+                   FontSize="11.5" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,10"/>
+        <TextBlock x:Name="StatusText" FontSize="11.5" TextWrapping="Wrap" Margin="0,0,0,14"/>
+
+        <TextBlock Text="Action" Style="{StaticResource FieldLabel}"/>
+        <ComboBox x:Name="ActionBox" Margin="0,0,0,14" SelectionChanged="Action_Changed"/>
+
+        <StackPanel x:Name="TargetRow">
+            <TextBlock x:Name="TargetLabel" Text="Voix" Style="{StaticResource FieldLabel}"/>
+            <WrapPanel x:Name="CategoryChips" Margin="0,0,0,4"/>
+            <TextBox x:Name="SearchBox" Margin="0,0,0,6" TextChanged="Search_TextChanged" ToolTip="Rechercher par nom"/>
+            <ComboBox x:Name="TargetBox" Margin="0,0,0,4" SelectionChanged="Target_Changed" MaxDropDownHeight="420"/>
+            <TextBlock x:Name="TargetHint" FontSize="11" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,14"/>
+        </StackPanel>
+
+        <TextBlock Text="Nom" Style="{StaticResource FieldLabel}"/>
+        <TextBox x:Name="NameBox" Margin="0,0,0,14" TextChanged="NameBox_TextChanged"/>
+
+        <CheckBox x:Name="ConfirmCheck" Style="{StaticResource ToggleSwitch}" Content="Confirmer par un second appui" Margin="0,0,0,2"/>
+        <TextBlock Text="Premier appui : la tuile devient rouge pendant 3 s ; il faut toucher une seconde fois pour agir."
+                   FontSize="11" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,14"/>
+
+        <TextBlock Text="Icône" Style="{StaticResource FieldLabel}"/>
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+            <ContentControl x:Name="IconHost" Width="32" Height="32" VerticalAlignment="Center" Margin="0,0,12,0"/>
+            <Button Content="Icône…" Click="Icon_Click"/>
+        </StackPanel>
+        <TextBlock FontSize="11" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,20"
+                   Text="Sans choix, une voix ou un son prend son image dans Voicemod ; les autres tuiles prennent un symbole selon l'action."/>
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="Annuler" Margin="0,0,8,0" Click="Cancel_Click"/>
+            <Button x:Name="AddButton" Content="Ajouter" Style="{StaticResource PrimaryButton}" Click="Add_Click"/>
+        </StackPanel>
+    </StackPanel>
+</Window>

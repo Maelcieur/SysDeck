@@ -212,6 +212,9 @@ public partial class SettingsWindow
         TileKind.Command => (tile.Command ?? "") + (tile.RunAsAdmin ? " · admin" : "") + (tile.ConfirmTap ? " · confirmation" : ""),
         TileKind.MicMute => string.IsNullOrEmpty(tile.DeviceId) ? "micro par défaut" : "micro choisi",
         TileKind.OutputMute => string.IsNullOrEmpty(tile.DeviceId) ? "sortie par défaut" : "sortie choisie",
+        TileKind.Obs => AddObsTileWindow.Describe(tile),
+        TileKind.Twitch => AddTwitchTileWindow.Describe(tile),
+        TileKind.Voicemod => AddVoicemodTileWindow.Describe(tile),
         _ => tile.Arguments
     };
 
@@ -262,6 +265,9 @@ public partial class SettingsWindow
             NewTileType.Command => EditTile(new AddCommandTileWindow(this, CreateEmojiPickerForChoice), w => w.Result),
             NewTileType.Hotkey => EditTile(new AddHotkeyShortcutWindow(this, CreateEmojiPickerForChoice), w => w.Result),
             NewTileType.MicMute => EditTile(new AddMuteTileWindow(this, CreateEmojiPickerForChoice, output: false), w => w.Result),
+            NewTileType.Obs => EditTile(new AddObsTileWindow(this, CreateEmojiPickerForChoice, _widgetManager.Obs), w => w.Result),
+            NewTileType.Twitch => EditTile(new AddTwitchTileWindow(this, CreateEmojiPickerForChoice, _widgetManager.Twitch), w => w.Result),
+            NewTileType.Voicemod => EditTile(new AddVoicemodTileWindow(this, CreateEmojiPickerForChoice, _widgetManager.Voicemod), w => w.Result),
             _ => EditTile(new AddMuteTileWindow(this, CreateEmojiPickerForChoice, output: true), w => w.Result)
         };
         if (item is not null) AddDeckTile(item);
@@ -312,6 +318,9 @@ public partial class SettingsWindow
             TileKind.Command => EditTile(new AddCommandTileWindow(this, CreateEmojiPickerForChoice, app), w => w.Result),
             TileKind.MicMute => EditTile(new AddMuteTileWindow(this, CreateEmojiPickerForChoice, output: false, app), w => w.Result),
             TileKind.OutputMute => EditTile(new AddMuteTileWindow(this, CreateEmojiPickerForChoice, output: true, app), w => w.Result),
+            TileKind.Obs => EditTile(new AddObsTileWindow(this, CreateEmojiPickerForChoice, _widgetManager.Obs, app), w => w.Result),
+            TileKind.Twitch => EditTile(new AddTwitchTileWindow(this, CreateEmojiPickerForChoice, _widgetManager.Twitch, app), w => w.Result),
+            TileKind.Voicemod => EditTile(new AddVoicemodTileWindow(this, CreateEmojiPickerForChoice, _widgetManager.Voicemod, app), w => w.Result),
             _ => EditTile(new AddCustomShortcutWindow(this, CreateEmojiPickerForChoice, app), w => w.Result)
         };
         if (edited is null) return;
@@ -326,6 +335,16 @@ public partial class SettingsWindow
         app.RunAsAdmin = edited.RunAsAdmin;
         app.ConfirmTap = edited.ConfirmTap;
         app.DeviceId = edited.DeviceId;
+        app.ObsAction = edited.ObsAction;
+        app.ObsTarget = edited.ObsTarget;
+        app.ObsScene = edited.ObsScene;
+        app.TwitchAction = edited.TwitchAction;
+        app.TwitchText = edited.TwitchText;
+        app.TwitchId = edited.TwitchId;
+        app.TwitchAsk = edited.TwitchAsk;
+        app.VoicemodAction = edited.VoicemodAction;
+        app.VoicemodTarget = edited.VoicemodTarget;
+        app.VoicemodTargetName = edited.VoicemodTargetName;
         app.IconGlyph = edited.IconGlyph;
         app.CustomIconPath = edited.CustomIconPath;
         app.IconColor = edited.IconColor;

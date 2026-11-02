@@ -15,6 +15,7 @@ and AI text correction. Everything can be customized from the Settings window.
 
 With the **SwitchDeck payload**, a Nintendo Switch plugged in over USB-C becomes a second 1280×720
 touch screen: the PC renders the modules and tiles, the Switch displays them and sends touch input back.
+Tiles can also control **OBS Studio**, **Twitch** and **Voicemod**, like a stream deck.
 
 > The user interface is in French.
 
@@ -43,7 +44,7 @@ touch screen: the PC renders the modules and tiles, the Switch displays them and
 - [Modules](#modules)
 - [Compatibility](#compatibility)
 - [Switch module (SwitchDeck)](#switch-module-switchdeck)
-- [Roadmap](#roadmap)
+- [Connected apps (stream deck)](#connected-apps-stream-deck)
 - [Building](#building)
 - [Repository layout](#repository-layout)
 - [Data](#data)
@@ -92,7 +93,8 @@ Most readings work on any Windows 10/11 PC with no setup: CPU load, memory, netw
 The [`payload/`](payload) folder contains a bare-metal payload launched from
 [hekate](https://github.com/CTCaer/hekate). Once running, the Switch waits for SysDeck on its USB-C port.
 
-- Pages of modules and tiles (apps, links, keyboard shortcuts, commands, speaker/mic mute).
+- Pages of modules and tiles (apps, links, keyboard shortcuts, commands, speaker/mic mute,
+  OBS Studio, Twitch, Voicemod).
 - Swipe between pages, touch sliders, VOL± buttons control the Windows volume.
 - **Night mode**: with the PC off, the Switch shows a picture and the time (internal clock synced by the PC).
 - Menu (VOL+ and VOL- while waiting): power off, reboot, return to hekate.
@@ -107,13 +109,24 @@ hekate (*Payloads*). Windows installs the WinUSB driver automatically (Microsoft
 > The payload runs directly on the hardware. It does not touch the console's NAND or system software,
 > but use it at your own risk.
 
-## Roadmap
+## Connected apps (stream deck)
 
-The Switch is going to become a real **stream deck** for streamers:
+In **Settings → Applications connectées** (connected apps), **+ Ajouter une application** enables OBS Studio,
+Twitch or Voicemod. You then create tiles of that type on the Switch page (*Nouvelle tuile*). Tiles show the
+live state (active scene, streaming or recording, mode on, mic muted…) and are dimmed while the app is not
+connected.
 
-- **OBS Studio**: switch scenes, mute/unmute a source or the mic, start/stop streaming and recording.
-- **Twitch**: chat actions, markers, clips, and live stream info.
-- More stream-deck-style integrations.
+| App | Connection | Tile actions |
+|---|---|---|
+| **OBS Studio** | OBS 28+ WebSocket server (*Tools → WebSocket Server Settings*): host, port, password | Switch scene, stream, record and pause, virtual camera, replay buffer and save, mute an audio input, show/hide a source, Studio Mode transition |
+| **Twitch** | "Se connecter à Twitch": confirm a code on twitch.tv, no password in SysDeck | Clip (link copied), marker, chat message, ad, chat modes (slow, emote-only, followers, subscribers), Shield Mode, title, category |
+| **Voicemod** | Voicemod running on the PC; allow SysDeck in Voicemod the first time | Voice changer, load a voice, random voice, play a soundboard sound, stop sounds, mic, Hear Myself, background effect |
+
+- **Typing on the Switch**: a Twitch *message*, *title* or *category* tile can ask for its text when pressed.
+  An AZERTY keyboard then opens on the Switch, with the account's Twitch emotes, emojis and a category search
+  with box art. From the desktop, a small input window opens on the PC instead.
+- **Voicemod**: voices and sounds are picked from Voicemod's own lists and use their picture as the tile icon.
+  Sounds are grouped by soundboard, your own first.
 
 ## Building
 
@@ -133,6 +146,11 @@ dotnet publish SysDeck\SysDeck.csproj -c Release -o SysDeck\bin\publish
 
 The version is set in `SysDeck.csproj` (`<Version>`) and must be mirrored in
 `installer\SysDeck.iss` (`MyAppVersion`).
+
+The Voicemod Control API key is not in the repository: it is embedded at build time from
+`SysDeck\Secrets\voicemod.key`, an untracked file. Without it everything builds, but the Voicemod integration
+reports a missing key. Keys are issued by Voicemod. The Twitch application client ID is public and lives
+in the code.
 
 Command-line arguments: `--settings` opens Settings, `--edit-layout` starts in layout edit mode.
 Launching SysDeck while it is already running opens its Settings.
@@ -161,8 +179,9 @@ The USB protocol is defined twice and both copies must stay identical:
 │   ├── Windows/             Windows: module frame, Settings, shortcut/tile dialogs
 │   ├── Widgets/             Each module's content (XAML + display, no business logic)
 │   ├── Controls/            Reusable controls: gauges, graph, theme editor, free layout
-│   ├── Deck/                Switch module: protocol and USB link, screen rendering, tiles, night mode
-│   ├── Services/            Business logic and system access (sensors, audio, media, power, profiles)
+│   ├── Deck/                Switch module: protocol and USB link, screen rendering, tiles, keyboard, night mode
+│   ├── Services/            Business logic and system access (sensors, audio, media, power, profiles,
+│   │                        OBS, Twitch, Voicemod)
 │   ├── Infrastructure/      Cross-cutting: paths, logging, safe JSON files, single instance
 │   ├── Interop/             Win32/COM calls (desktop, global hotkey, simulated input, audio output)
 │   ├── Converters/, Models/, Themes/, Assets/
@@ -187,7 +206,7 @@ Everything lives in `%AppData%\SysDeck`:
 
 | File / folder | Content |
 |---|---|
-| `config.json` | Settings, theme, module appearance, positions, Switch. The Gemini key is encrypted (DPAPI, current Windows account). |
+| `config.json` | Settings, theme, module appearance, positions, Switch, connected apps. The Gemini key, the OBS password and the Twitch tokens are encrypted (DPAPI, current Windows account) and never exported in profiles. |
 | `shortcuts.json` | Shortcut bar entries |
 | `power-usage.json` | Power usage history |
 | `Icons/`, `Backgrounds/`, `Fonts/` | Copies of imported icons, background images and fonts |
@@ -203,6 +222,9 @@ one instance runs per data folder.
   "CPU temperature" option in the installer (requires the AMD Ryzen Master SDK).
 - **Ctrl+Space does nothing**: another application owns the hotkey (see the log).
 - **Switch not detected**: make sure the payload shows "En attente du PC" and use a USB-C data cable.
+- **Connected app in error**: the app's card (Settings → Applications connectées) shows the reason. Make sure
+  OBS or Voicemod is running. For Twitch, sign out and back in after an update that asks for new permissions
+  (emotes).
 
 ## Licenses and credits
 
@@ -215,4 +237,5 @@ one instance runs per data folder.
 - [PresentMon](https://github.com/GameTechDev/PresentMon) (Intel, MIT) for FPS measurement.
 - Brand logos: [Simple Icons](https://simpleicons.org) (CC0) — trademarks belong to their owners.
 
-Nintendo Switch is a trademark of Nintendo. This project is not affiliated with or endorsed by Nintendo.
+Nintendo Switch is a trademark of Nintendo. OBS Studio, Twitch and Voicemod are trademarks of their
+respective owners. This project is not affiliated with or endorsed by Nintendo, OBS, Twitch or Voicemod.

@@ -142,6 +142,7 @@ public sealed partial class DeckScreen
     {
         var clockFrame = clock is null ? null : _elements["clock"].Frame;
         var hidden = _elements.Values.Select(e => e.Frame).Where(f => f != clockFrame).Append(_dots)
+            .Concat(_overlay is null ? Array.Empty<FrameworkElement>() : new[] { _overlay })
             .Select(f => (Element: f, Visibility: f.Visibility)).ToList();
 
         foreach (var h in hidden) h.Element.Visibility = Visibility.Hidden;

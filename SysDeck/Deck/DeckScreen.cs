@@ -78,6 +78,18 @@ public sealed partial class DeckScreen : Grid
 
     public bool Contains(string id) => _elements.ContainsKey(id);
 
+    private FrameworkElement? _overlay;
+
+    /// <summary>Panneau modal (saisie de texte) posé au-dessus de tout, absent de l'écran de nuit ; null le retire.</summary>
+    public void SetOverlay(FrameworkElement? overlay)
+    {
+        if (_overlay is not null) Children.Remove(_overlay);
+        _overlay = overlay;
+        if (overlay is null) return;
+        Panel.SetZIndex(overlay, int.MaxValue);
+        Children.Add(overlay);
+    }
+
     public void ApplyBackground()
     {
         Background = new SolidColorBrush(ThemeService.Parse(_settings.BackgroundColor, Color.FromRgb(0x0B, 0x0C, 0x10)));
@@ -364,12 +376,20 @@ public sealed class DeckShortcutsPanel : Panel
         // Pas de fond sur la tuile elle-même : son opacité s'appliquerait aussi à l'icône et au nom.
         var background = new Border { CornerRadius = new CornerRadius(size * 0.16), Opacity = BackgroundOpacity };
         var armed = TileRuntime.Confirm.IsArmed(item);
-        var muted = item.IsMuteTile && TileRuntime.IsMuted(item);
+        var look = TileRuntime.IntegrationLookOf(item);
+        var muted = (item.IsMuteTile && TileRuntime.IsMuted(item)) || look == IntegrationLook.Alert;
+        var highlighted = look == IntegrationLook.Highlight;
         var alert = Color.FromRgb(0xE5, 0x48, 0x3E);
         if (muted)
         {
             // Micro / sortie coupé : fond rouge, bien visible de loin.
             background.Background = new LinearGradientBrush(Color.FromRgb(0xC6, 0x3A, 0x32), Color.FromRgb(0x8E, 0x24, 0x1F), 90);
+            background.Opacity = 1;
+        }
+        else if (highlighted)
+        {
+            // Scène OBS active, mode du tchat Twitch actif : fond d'accent du thème.
+            background.SetResourceReference(Border.BackgroundProperty, "AccentBrush");
             background.Opacity = 1;
         }
         else if (!string.IsNullOrWhiteSpace(item.TileColor))
@@ -396,10 +416,10 @@ public sealed class DeckShortcutsPanel : Panel
             name.FontWeight = FontWeights.SemiBold;
             name.Foreground = new SolidColorBrush(alert);
         }
-        else if (muted) name.Foreground = Brushes.White;
+        else if (muted || highlighted) name.Foreground = Brushes.White;
         else name.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush");
         var display = TileRuntime.ForDisplay(item);
-        if (muted && string.IsNullOrWhiteSpace(display.IconColor) && display != item) display.IconColor = "#FFFFFFFF";
+        if ((muted || highlighted) && string.IsNullOrWhiteSpace(display.IconColor) && display != item) display.IconColor = "#FFFFFFFF";
 
         var tile = new Border
         {
@@ -429,6 +449,7 @@ public sealed class DeckShortcutsPanel : Panel
             tile.BorderThickness = new Thickness(3);
         }
         else tile.SetResourceReference(Border.BorderBrushProperty, "BorderBrush2");
+        if (TileRuntime.IntegrationOffline(item)) tile.Opacity = 0.4; // OBS, Twitch ou Voicemod déconnecté : tuile atténuée
         RenderOptions.SetBitmapScalingMode(tile, BitmapScalingMode.HighQuality);
         return tile;
     }

@@ -31,6 +31,14 @@ public sealed partial class DeckController
     {
         WakeRender();
         var point = new Point(e.X, e.Y);
+        if (_textEntry is { } entry)
+        {
+            // Saisie ouverte : elle reçoit tout (ni page, ni tuile, ni module derrière elle).
+            if (e.Type == DeckProtocol.TouchType.Down) entry.FingerDown(point);
+            else if (e.Type == DeckProtocol.TouchType.Move) entry.FingerMove(point);
+            else entry.FingerUp(point);
+            return;
+        }
         switch (e.Type)
         {
             case DeckProtocol.TouchType.Down:

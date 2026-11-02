@@ -83,6 +83,7 @@ public partial class SettingsWindow
             [NavTheme] = ("Apparence", "Thème", "thème global couleurs polices carte jauges animations"),
             [NavProfiles] = ("Apparence", "Profils", "profils thèmes prêts préréglages"),
             [NavSwitch] = ("Appareils", "Switch", "écran câble usb"),
+            [NavIntegrations] = ("Applications", "Applications connectées", "applications connectées intégrations obs studio websocket stream enregistrement twitch clip marqueur tchat bouclier compte voicemod voix soundboard"),
             [NavAlerts] = ("Notifications", "Alertes", "notifications seuils température batterie quota"),
             [NavCorrection] = ("Outils", "Correction de texte", "correction ia gemini orthographe"),
             [NavEmoji] = ("Outils", "Émojis", "emoji sélecteur"),
@@ -195,6 +196,7 @@ public partial class SettingsWindow
         Walk(PageModules, new SearchContext(NavModules, "Modules"));
         Walk(PageDock, new SearchContext(NavDock, "Barre de raccourcis"));
         Walk(PageSwitch, new SearchContext(NavSwitch, "Switch"));
+        Walk(PageIntegrations, new SearchContext(NavIntegrations, "Applications connectées"));
         Walk(PageCorrection, new SearchContext(NavCorrection, "Correction de texte"));
         Walk(PageEmoji, new SearchContext(NavEmoji, "Émojis"));
         Walk(PageAlerts, new SearchContext(NavAlerts, "Alertes"));

@@ -20,3 +20,6 @@ third_party/
 .claude/
 NOTES.md
 CODE.md
+
+# Clés privées intégrées à la compilation / private keys embedded at build time
+SysDeck/Secrets/

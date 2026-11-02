@@ -15,6 +15,7 @@ quota Claude et correction de texte par IA. Tout est personnalisable depuis les 
 
 Avec le **payload SwitchDeck**, une Nintendo Switch branchée en USB-C devient un second écran tactile
 1280×720 : le PC dessine les modules et les tuiles, la Switch les affiche et renvoie le tactile.
+Les tuiles pilotent aussi **OBS Studio**, **Twitch** et **Voicemod**, comme un stream deck.
 
 ## Aperçu
 
@@ -40,7 +41,7 @@ Avec le **payload SwitchDeck**, une Nintendo Switch branchée en USB-C devient u
 - [Modules](#modules)
 - [Compatibilité](#compatibilité)
 - [Module Switch (SwitchDeck)](#module-switch-switchdeck)
-- [Prochainement](#prochainement)
+- [Applications connectées (stream deck)](#applications-connectées-stream-deck)
 - [Compiler](#compiler)
 - [Organisation du dépôt](#organisation-du-dépôt)
 - [Données](#données)
@@ -89,7 +90,8 @@ mémoire, réseau, disques et carte graphique (NVIDIA, AMD ou Intel). Quelques e
 Le dossier [`payload/`](payload) contient un payload bare-metal lancé depuis
 [hekate](https://github.com/CTCaer/hekate). Une fois lancé, la Switch attend SysDeck sur le port USB-C.
 
-- Pages de modules et de tuiles (applications, liens, raccourcis clavier, commandes, son/micro muet).
+- Pages de modules et de tuiles (applications, liens, raccourcis clavier, commandes, son/micro muet,
+  OBS Studio, Twitch, Voicemod).
 - Glissement entre pages, curseurs au doigt, boutons VOL± = volume de Windows.
 - **Mode nuit** : PC éteint, la Switch affiche une image et l'heure (horloge interne recalée par le PC).
 - Menu (VOL+ et VOL- en attente) : éteindre, redémarrer, revenir à hekate.
@@ -104,13 +106,24 @@ depuis hekate (*Payloads*). Le pilote WinUSB est choisi automatiquement par Wind
 > Le payload s'exécute directement sur le matériel. Il ne modifie ni la NAND ni le système de la console,
 > mais vous l'utilisez à vos risques.
 
-## Prochainement
+## Applications connectées (stream deck)
 
-La Switch va devenir un vrai **stream deck** pour les streamers :
+Dans **Paramètres → Applications connectées**, **+ Ajouter une application** active OBS Studio, Twitch ou
+Voicemod. On crée ensuite des tuiles de ce type dans la page Switch (*Nouvelle tuile*). Les tuiles
+affichent l'état en direct (scène active, live ou enregistrement en cours, mode actif, micro coupé…) et
+s'atténuent quand l'application n'est pas connectée.
 
-- **OBS Studio** : changer de scène, couper/rétablir une source ou le micro, lancer/arrêter le stream et l'enregistrement.
-- **Twitch** : actions de chat, marqueurs, clips, et affichage des infos du live.
-- D'autres intégrations façon stream deck.
+| Application | Connexion | Actions des tuiles |
+|---|---|---|
+| **OBS Studio** | Serveur WebSocket d'OBS 28+ (*Outils → Paramètres du serveur WebSocket*) : hôte, port, mot de passe | Changer de scène, stream, enregistrement et pause, caméra virtuelle, tampon de relecture et sauvegarde, couper une entrée audio, afficher/masquer une source, transition du mode Studio |
+| **Twitch** | « Se connecter à Twitch » : code à valider sur twitch.tv, sans mot de passe dans SysDeck | Clip (lien copié), marqueur, message dans le chat, pub, modes du chat (lent, émotes, followers, abonnés), mode bouclier, titre, catégorie |
+| **Voicemod** | Voicemod lancé sur le PC ; autoriser SysDeck dans Voicemod la première fois | Changeur de voix, charger une voix, voix au hasard, jouer un son du soundboard, arrêter les sons, micro, « M'entendre », ambiance |
+
+- **Saisie sur la Switch** : une tuile Twitch *message*, *titre* ou *catégorie* peut demander son texte à
+  l'appui. Un clavier AZERTY s'ouvre alors sur la Switch, avec les émotes Twitch du compte, les émojis et une
+  recherche de catégories avec jaquettes. Depuis le bureau, une petite fenêtre de saisie s'ouvre sur le PC.
+- **Voicemod** : voix et sons choisis dans les listes de Voicemod, avec leur image comme icône. Les sons
+  sont classés par soundboard, les vôtres en tête.
 
 ## Compiler
 
@@ -130,6 +143,11 @@ dotnet publish SysDeck\SysDeck.csproj -c Release -o SysDeck\bin\publish
 
 La version est définie dans `SysDeck.csproj` (`<Version>`) et doit être reportée dans
 `installer\SysDeck.iss` (`MyAppVersion`).
+
+La clé de la Control API de Voicemod n'est pas dans le dépôt : elle est intégrée à la compilation depuis
+`SysDeck\Secrets\voicemod.key`, un fichier non versionné. Sans ce fichier, tout compile, mais l'intégration
+Voicemod indique « clé absente ». Les clés sont délivrées par Voicemod. L'identifiant de l'application
+Twitch est public et figure dans le code.
 
 Arguments de lancement : `--settings` ouvre les Paramètres, `--edit-layout` démarre en mode édition
 de la disposition. Lancer SysDeck alors qu'il tourne déjà ouvre ses Paramètres.
@@ -158,8 +176,9 @@ Le protocole USB est défini deux fois et doit rester identique :
 │   ├── Windows/             Fenêtres : cadre d'un module, Paramètres, ajout de raccourci/tuile
 │   ├── Widgets/             Contenu de chaque module (XAML + affichage, sans logique métier)
 │   ├── Controls/            Contrôles réutilisables : jauges, graphe, éditeur de thème, disposition libre
-│   ├── Deck/                Module Switch : protocole et lien USB, rendu de l'écran, tuiles, mode nuit
-│   ├── Services/            Logique métier et accès système (capteurs, audio, médias, consommation, profils)
+│   ├── Deck/                Module Switch : protocole et lien USB, rendu de l'écran, tuiles, clavier, mode nuit
+│   ├── Services/            Logique métier et accès système (capteurs, audio, médias, consommation, profils,
+│   │                        OBS, Twitch, Voicemod)
 │   ├── Infrastructure/      Transversal : chemins, journal, fichiers JSON sûrs, instance unique
 │   ├── Interop/             Appels Win32/COM (bureau, raccourci global, clavier simulé, sortie audio)
 │   ├── Converters/, Models/, Themes/, Assets/
@@ -184,7 +203,7 @@ Tout est dans `%AppData%\SysDeck` :
 
 | Fichier / dossier | Contenu |
 |---|---|
-| `config.json` | Réglages, thème, apparence des modules, positions, Switch. La clé Gemini y est chiffrée (DPAPI, compte Windows courant). |
+| `config.json` | Réglages, thème, apparence des modules, positions, Switch, applications connectées. La clé Gemini, le mot de passe OBS et les jetons Twitch y sont chiffrés (DPAPI, compte Windows courant) et ne sont jamais exportés dans les profils. |
 | `shortcuts.json` | Raccourcis de la barre |
 | `power-usage.json` | Historique de consommation |
 | `Icons/`, `Backgrounds/`, `Fonts/` | Copies des icônes, images de fond et polices importées |
@@ -200,6 +219,9 @@ portable) ; une instance par dossier de données.
   activer l'option « Température du processeur » de l'installateur (SDK AMD Ryzen Master requis).
 - **Ctrl+Espace sans effet** : le raccourci est pris par une autre application (voir le journal).
 - **Switch non détectée** : vérifier que le payload affiche « En attente du PC » et utiliser un câble USB-C de données.
+- **Application connectée en erreur** : la carte de l'application (Paramètres → Applications connectées)
+  indique la raison. Vérifier qu'OBS ou Voicemod est lancé. Pour Twitch, se déconnecter puis se reconnecter
+  après une mise à jour qui demande de nouveaux droits (émotes).
 
 ## Licences et crédits
 
@@ -212,4 +234,5 @@ portable) ; une instance par dossier de données.
 - [PresentMon](https://github.com/GameTechDev/PresentMon) (Intel, MIT) pour la mesure des FPS.
 - Logos de marques : [Simple Icons](https://simpleicons.org) (CC0) — les marques appartiennent à leurs propriétaires.
 
-Nintendo Switch est une marque de Nintendo. Ce projet n'est ni affilié ni approuvé par Nintendo.
+Nintendo Switch est une marque de Nintendo. OBS Studio, Twitch et Voicemod sont des marques de leurs
+propriétaires respectifs. Ce projet n'est ni affilié ni approuvé par Nintendo, OBS, Twitch ou Voicemod.

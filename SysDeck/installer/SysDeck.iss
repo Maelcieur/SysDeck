@@ -1,5 +1,5 @@
 ﻿#define MyAppName "SysDeck"
-#define MyAppVersion "1.9.4"
+#define MyAppVersion "1.10.0"
 #define MyAppPublisher "Fenix"
 #define MyAppExeName "SysDeck.exe"
 

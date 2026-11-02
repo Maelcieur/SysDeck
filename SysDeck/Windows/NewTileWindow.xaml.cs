@@ -6,7 +6,7 @@ using VerticalAlignment = System.Windows.VerticalAlignment;
 namespace SysDeck;
 
 /// <summary>Type de tuile à créer, choisi dans <see cref="NewTileWindow"/>.</summary>
-public enum NewTileType { InstalledApps, Link, Command, Hotkey, MicMute, OutputMute }
+public enum NewTileType { InstalledApps, Link, Command, Hotkey, MicMute, OutputMute, Obs, Twitch, Voicemod }
 
 /// <summary>Fenêtre « Nouvelle tuile » : choix du type de tuile à ajouter à la page de la Switch.</summary>
 public partial class NewTileWindow : Window
@@ -18,7 +18,10 @@ public partial class NewTileWindow : Window
         (NewTileType.Command, "Commande", "Ligne de commande exécutée sans fenêtre : éteindre, redémarrer, veille, verrouiller…"),
         (NewTileType.Hotkey, "Raccourci clavier", "Envoie une combinaison de touches au PC."),
         (NewTileType.MicMute, "Micro muet", "Coupe ou rétablit un micro ; la tuile devient rouge quand il est coupé."),
-        (NewTileType.OutputMute, "Son muet", "Coupe ou rétablit le son d'un périphérique de sortie.")
+        (NewTileType.OutputMute, "Son muet", "Coupe ou rétablit le son d'un périphérique de sortie."),
+        (NewTileType.Obs, "OBS Studio", "Change de scène, lance le stream ou l'enregistrement, coupe une entrée, masque une source…"),
+        (NewTileType.Twitch, "Twitch", "Crée un clip, pose un marqueur, écrit dans le tchat, lance une pub, règle les modes du tchat, change le titre ou la catégorie…"),
+        (NewTileType.Voicemod, "Voicemod", "Active le changeur de voix, charge une voix, joue un son du soundboard, coupe le micro ; la tuile s'allume selon l'état.")
     };
 
     private static readonly Dictionary<NewTileType, string> Icons = new()
@@ -28,7 +31,10 @@ public partial class NewTileWindow : Window
         [NewTileType.Command] = "",
         [NewTileType.Hotkey] = "",
         [NewTileType.MicMute] = "",
-        [NewTileType.OutputMute] = ""
+        [NewTileType.OutputMute] = "",
+        [NewTileType.Twitch] = "",
+        [NewTileType.Voicemod] = "",
+        [NewTileType.Obs] = ""
     };
 
     /// <summary>Type choisi ; null si annulé.</summary>

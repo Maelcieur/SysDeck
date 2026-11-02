@@ -52,7 +52,7 @@ internal sealed class ImageSlot
 
 /// <summary>
 /// Instantané nommé de la personnalisation : thème global, apparences des modules (bureau et Switch),
-/// barre de raccourcis, sélecteur d'émojis et disposition. Ne contient jamais la clé Gemini, les
+/// barre de raccourcis, sélecteur d'émojis et disposition. Ne contient jamais la clé Gemini, le mot de passe OBS, les jetons Twitch, les
 /// raccourcis clavier, l'historique d'énergie ni le prix de l'électricité.
 /// </summary>
 public sealed class Profile

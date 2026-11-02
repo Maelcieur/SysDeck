@@ -50,6 +50,111 @@ public sealed class AppIconCustom
     public string? DisplayName { get; set; }
 }
 
+/// <summary>
+/// Réglages de l'intégration OBS Studio (obs-websocket v5). Le mot de passe est chiffré pour le compte Windows
+/// courant (DPAPI) et jamais écrit en clair ; il ne fait pas partie des profils exportés.
+/// </summary>
+public sealed class ObsSettings
+{
+    public const int DefaultPort = 4455;
+
+    /// <summary>Vrai : SysDeck se connecte à OBS (et se reconnecte tout seul).</summary>
+    public bool Enabled { get; set; }
+
+    public string Host { get; set; } = "127.0.0.1";
+
+    public int Port { get; set; } = DefaultPort;
+
+    /// <summary>Mot de passe du serveur WebSocket d'OBS ; vide = aucun.</summary>
+    [JsonIgnore]
+    public string? Password
+    {
+        get => Unprotect(PasswordProtected);
+        set => PasswordProtected = Protect(value);
+    }
+
+    /// <summary>Mot de passe chiffré (DPAPI, portée utilisateur) puis encodé en base64.</summary>
+    public string? PasswordProtected { get; set; }
+
+    public static string? Protect(string? secret) => Secrets.Protect(secret);
+
+    public static string? Unprotect(string? protectedValue)
+        => Secrets.Unprotect(protectedValue, "obs-password", "Mot de passe OBS illisible (copié depuis un autre compte ou PC ?) : à ressaisir.");
+}
+
+/// <summary>Chiffrement DPAPI (portée utilisateur) des secrets de la configuration, encodés en base64.</summary>
+public static class Secrets
+{
+    public static string? Protect(string? secret)
+        => string.IsNullOrEmpty(secret)
+            ? null
+            : Convert.ToBase64String(ProtectedData.Protect(Encoding.UTF8.GetBytes(secret), null, DataProtectionScope.CurrentUser));
+
+    /// <summary>Déchiffre un secret ; null s'il est absent ou illisible (copié depuis un autre compte ou PC), signalé une fois dans le journal.</summary>
+    public static string? Unprotect(string? protectedValue, string logKey, string unreadableMessage)
+    {
+        if (string.IsNullOrEmpty(protectedValue)) return null;
+        try
+        {
+            return Encoding.UTF8.GetString(ProtectedData.Unprotect(Convert.FromBase64String(protectedValue), null, DataProtectionScope.CurrentUser));
+        }
+        catch (Exception ex) when (ex is CryptographicException or FormatException)
+        {
+            Log.WarnOnce(logKey, unreadableMessage, ex);
+            return null;
+        }
+    }
+}
+
+/// <summary>Intégration Voicemod : la clé de la Control API est intégrée à l'application, rien d'autre à régler.</summary>
+public sealed class VoicemodSettings
+{
+    public bool Enabled { get; set; }
+}
+
+/// <summary>
+/// Compte Twitch connecté (Device Code Flow, client public). Les jetons sont chiffrés pour le compte Windows
+/// courant (DPAPI), jamais écrits en clair ni dans le journal, et ne font pas partie des profils exportés.
+/// </summary>
+public sealed class TwitchSettings
+{
+    /// <summary>Vrai tant qu'un compte est connecté (mis à faux par la déconnexion ou un jeton révoqué).</summary>
+    public bool Enabled { get; set; }
+
+    public string? Login { get; set; }
+
+    public string? UserId { get; set; }
+
+    [JsonIgnore]
+    public string? AccessToken
+    {
+        get => Secrets.Unprotect(AccessTokenProtected, "twitch-access", "Jeton Twitch illisible (copié depuis un autre compte ou PC ?) : à reconnecter.");
+        set => AccessTokenProtected = Secrets.Protect(value);
+    }
+
+    [JsonIgnore]
+    public string? RefreshToken
+    {
+        get => Secrets.Unprotect(RefreshTokenProtected, "twitch-refresh", "Jeton Twitch illisible (copié depuis un autre compte ou PC ?) : à reconnecter.");
+        set => RefreshTokenProtected = Secrets.Protect(value);
+    }
+
+    public string? AccessTokenProtected { get; set; }
+
+    public string? RefreshTokenProtected { get; set; }
+
+    /// <summary>Fin de validité du jeton d'accès.</summary>
+    public DateTimeOffset? ExpiresAt { get; set; }
+
+    /// <summary>Efface le compte et les jetons.</summary>
+    public void Clear()
+    {
+        Enabled = false;
+        Login = UserId = AccessTokenProtected = RefreshTokenProtected = null;
+        ExpiresAt = null;
+    }
+}
+
 public sealed class AppConfig
 {
     /// <summary>Clé API Gemini, chiffrée pour le compte Windows courant (DPAPI) : illisible copiée ailleurs.</summary>
@@ -150,6 +255,21 @@ public sealed class AppConfig
     /// <summary>Écran de la Switch (payload SwitchDeck) : disposition des éléments, fond, luminosité.</summary>
     public DeckSettings Deck { get; set; } = new();
 
+    /// <summary>Intégration OBS Studio (désactivée par défaut).</summary>
+    public ObsSettings Obs { get; set; } = new();
+
+    /// <summary>Compte Twitch connecté (aucun par défaut).</summary>
+    public TwitchSettings Twitch { get; set; } = new();
+
+    /// <summary>Intégration Voicemod (désactivée par défaut).</summary>
+    public VoicemodSettings Voicemod { get; set; } = new();
+
+    /// <summary>
+    /// Applications affichées dans la page « Applications connectées », dans l'ordre d'ajout (voir <see cref="ConnectedApps"/>).
+    /// Absente des anciens fichiers : déduite des réglages OBS et Twitch par <see cref="MigrateLegacySettings"/>.
+    /// </summary>
+    public List<string>? ConnectedApps { get; set; }
+
     /// <summary>
     /// Migre les anciens réglages (thème, clé en clair) et remplace les listes absentes (« null »
     /// dans un fichier modifié à la main) par des vides. Renvoie vrai si le fichier doit être réécrit.
@@ -169,6 +289,16 @@ public sealed class AppConfig
         Power ??= new();
         Alerts ??= new();
         Deck ??= new();
+        Obs ??= new();
+        Twitch ??= new();
+        Voicemod ??= new();
+        if (string.IsNullOrWhiteSpace(Obs.Host)) Obs.Host = "127.0.0.1";
+        if (Obs.Port is < 1 or > 65535) Obs.Port = ObsSettings.DefaultPort;
+        if (ConnectedApps is null)
+        {
+            ConnectedApps = Services.ConnectedApps.FromSettings(Obs, Twitch, Voicemod);
+            changed = true;
+        }
         Deck.Migrate();
 
         if (!string.IsNullOrWhiteSpace(LegacyGeminiApiKey))

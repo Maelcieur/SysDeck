@@ -52,6 +52,9 @@ public sealed partial class WidgetManager : IDisposable, IProfileHost
     private readonly LogitechBatteryService _mouseBattery = new();
     private readonly PowerUsageService _power;
     private readonly ClaudeUsageService _claude = new();
+    private readonly ObsService _obs = new();
+    private readonly TwitchService _twitch = new();
+    private readonly VoicemodService _voicemod = new(VoicemodService.LoadEmbeddedKey());
     private readonly FpsService _fps = new();
     // Les FPS bougent vite : rafraîchis plus souvent que les autres capteurs, seulement si le module est affiché.
     private readonly DispatcherTimer _fpsTimer = new() { Interval = TimeSpan.FromMilliseconds(500) };
@@ -124,6 +127,12 @@ public sealed partial class WidgetManager : IDisposable, IProfileHost
             if (s.State == ClaudeUsageState.Ok && !s.NetworkError) ShowAlerts(Alerts.CheckClaude(s.SessionPercent, s.WeekPercent));
         };
         _config.Alerts.PropertyChanged += (_, _) => OnAlertSettingsChanged();
+        TileRuntime.Obs = _obs;
+        _obs.StateChanged += OnObsStateChanged;
+        TileRuntime.Twitch = _twitch;
+        _twitch.StateChanged += OnTwitchStateChanged;
+        TileRuntime.Voicemod = _voicemod;
+        _voicemod.StateChanged += OnVoicemodStateChanged;
 
         _hiddenOwner = new Window
         {
@@ -178,6 +187,9 @@ public sealed partial class WidgetManager : IDisposable, IProfileHost
 
         _mouseTimer.Tick += (_, _) => RefreshMouseBattery();
         _mouseTimer.Start();
+        ApplyObsSettings();
+        ApplyTwitchSettings();
+        ApplyVoicemodSettings();
         StartTileTimers();
         RefreshMouseBattery();
     }
@@ -547,8 +559,8 @@ public sealed partial class WidgetManager : IDisposable, IProfileHost
 
     private void LaunchShortcut(ShortcutItem item) => LaunchTile(item, fromDesktop: false);
 
-    /// <summary>Action d'une tuile hors raccourci clavier et application : commande ou bascule muet. Faux si ce n'en est pas une.</summary>
-    private bool TryRunSpecialTile(ShortcutItem item)
+    /// <summary>Action d'une tuile hors raccourci clavier et application : commande, bascule muet, action OBS, Twitch ou Voicemod. Faux si ce n'en est pas une.</summary>
+    private bool TryRunSpecialTile(ShortcutItem item, bool fromDesktop)
     {
         switch (item.Kind)
         {
@@ -559,6 +571,15 @@ public sealed partial class WidgetManager : IDisposable, IProfileHost
             case TileKind.MicMute:
             case TileKind.OutputMute:
                 ToggleMute(item);
+                return true;
+            case TileKind.Obs:
+                RunObsTile(item);
+                return true;
+            case TileKind.Twitch:
+                RunTwitchTile(item, fromDesktop);
+                return true;
+            case TileKind.Voicemod:
+                RunVoicemodTile(item);
                 return true;
             default:
                 return false;
@@ -573,7 +594,7 @@ public sealed partial class WidgetManager : IDisposable, IProfileHost
             OnTileArmed(item, fromDesktop);
             return;
         }
-        if (TryRunSpecialTile(item)) return;
+        if (TryRunSpecialTile(item, fromDesktop)) return;
 
         // Raccourci clavier : la combinaison part vers la fenêtre au premier plan, rien n'est lancé.
         if (item.IsHotkey)
@@ -992,6 +1013,15 @@ public sealed partial class WidgetManager : IDisposable, IProfileHost
 
     public AppConfig Config => _config;
 
+    /// <summary>Service OBS (état de connexion, listes et test pour les Paramètres).</summary>
+    public ObsService Obs => _obs;
+
+    /// <summary>Service Twitch (connexion, recherche de catégories et état pour les Paramètres).</summary>
+    public TwitchService Twitch => _twitch;
+
+    /// <summary>Service Voicemod (état de connexion et listes de voix et de sons pour les Paramètres).</summary>
+    public VoicemodService Voicemod => _voicemod;
+
     public ThemeSettings Theme => _config.Theme!;
 
     /// <summary>Apparence du module ; créée (avec les valeurs par défaut) si elle n'existe pas encore.</summary>
@@ -1192,6 +1222,12 @@ public sealed partial class WidgetManager : IDisposable, IProfileHost
             _emojiPicker?.Close();
             _hardware.Dispose();
             _claude.Dispose();
+            TileRuntime.Obs = null;
+            _obs.Dispose();
+            TileRuntime.Twitch = null;
+            _twitch.Dispose();
+            TileRuntime.Voicemod = null;
+            _voicemod.Dispose();
         }
         catch (Exception ex)
         {

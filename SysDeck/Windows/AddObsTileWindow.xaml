@@ -1,0 +1,62 @@
+<Window x:Class="SysDeck.AddObsTileWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="SysDeck — OBS Studio"
+        Width="440" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize" ShowInTaskbar="False"
+        FontFamily="Segoe UI" Foreground="#E7E8EB" Background="#1A1B1F">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Themes/SettingsStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+    <StackPanel Margin="20">
+        <TextBlock x:Name="TitleText" Text="Ajouter une tuile OBS" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,4"/>
+        <TextBlock Text="Toucher la tuile pilote OBS Studio. Son état (scène active, stream, enregistrement, muet…) s'affiche en direct."
+                   FontSize="11.5" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,10"/>
+        <TextBlock x:Name="StatusText" FontSize="11.5" TextWrapping="Wrap" Margin="0,0,0,14"/>
+
+        <TextBlock Text="Action" Style="{StaticResource FieldLabel}"/>
+        <ComboBox x:Name="ActionBox" Margin="0,0,0,14" SelectionChanged="Action_Changed"/>
+
+        <StackPanel x:Name="SceneRow">
+            <TextBlock x:Name="SceneLabel" Text="Scène" Style="{StaticResource FieldLabel}"/>
+            <ComboBox x:Name="SceneBox" Margin="0,0,0,6" Visibility="Collapsed" SelectionChanged="SceneBox_Changed"/>
+            <TextBox x:Name="SceneText" Margin="0,0,0,14" TextChanged="Target_TextChanged" LostFocus="SceneText_LostFocus"/>
+        </StackPanel>
+
+        <StackPanel x:Name="InputRow">
+            <TextBlock Text="Entrée audio" Style="{StaticResource FieldLabel}"/>
+            <ComboBox x:Name="InputBox" Margin="0,0,0,6" Visibility="Collapsed" SelectionChanged="InputBox_Changed"/>
+            <TextBox x:Name="InputText" Margin="0,0,0,14" TextChanged="Target_TextChanged"/>
+        </StackPanel>
+
+        <StackPanel x:Name="SourceRow">
+            <TextBlock Text="Source" Style="{StaticResource FieldLabel}"/>
+            <ComboBox x:Name="SourceBox" Margin="0,0,0,6" Visibility="Collapsed" SelectionChanged="SourceBox_Changed"/>
+            <TextBox x:Name="SourceText" Margin="0,0,0,14" TextChanged="Target_TextChanged"/>
+        </StackPanel>
+
+        <TextBlock Text="Nom" Style="{StaticResource FieldLabel}"/>
+        <TextBox x:Name="NameBox" Margin="0,0,0,14" TextChanged="NameBox_TextChanged"/>
+
+        <CheckBox x:Name="ConfirmCheck" Style="{StaticResource ToggleSwitch}" Content="Confirmer par un second appui" Margin="0,0,0,2"/>
+        <TextBlock Text="Premier appui : la tuile devient rouge pendant 3 s ; il faut toucher une seconde fois pour agir."
+                   FontSize="11" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,14"/>
+
+        <TextBlock Text="Icône" Style="{StaticResource FieldLabel}"/>
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+            <ContentControl x:Name="IconHost" Width="32" Height="32" VerticalAlignment="Center" Margin="0,0,12,0"/>
+            <Button Content="Icône…" Click="Icon_Click"/>
+        </StackPanel>
+        <TextBlock x:Name="IconHint" FontSize="11" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,20"
+                   Text="Sans choix, l'icône suit l'action et l'état (micro barré quand l'entrée est coupée, œil barré quand la source est masquée)."/>
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="Annuler" Margin="0,0,8,0" Click="Cancel_Click"/>
+            <Button x:Name="AddButton" Content="Ajouter" Style="{StaticResource PrimaryButton}" Click="Add_Click"/>
+        </StackPanel>
+    </StackPanel>
+</Window>

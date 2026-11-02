@@ -284,6 +284,8 @@
                                 <RadioButton Style="{StaticResource NavButton}" Tag="&#xE77B;" Content="Profils" x:Name="NavProfiles" GroupName="SettingsNav" Checked="Nav_Checked"/>
                                 <TextBlock Text="APPAREILS" Style="{StaticResource NavSection}"/>
                                 <RadioButton Style="{StaticResource NavButton}" Tag="&#xE7FC;" Content="Switch" x:Name="NavSwitch" GroupName="SettingsNav" Checked="Nav_Checked"/>
+                                <TextBlock Text="APPLICATIONS" Style="{StaticResource NavSection}"/>
+                                <RadioButton Style="{StaticResource NavButton}" Tag="&#xE71B;" Content="Applications connectées" x:Name="NavIntegrations" GroupName="SettingsNav" Checked="Nav_Checked"/>
                                 <TextBlock Text="NOTIFICATIONS" Style="{StaticResource NavSection}"/>
                                 <RadioButton Style="{StaticResource NavButton}" Tag="&#xEA8F;" Content="Alertes" x:Name="NavAlerts" GroupName="SettingsNav" Checked="Nav_Checked"/>
                                 <TextBlock Text="OUTILS" Style="{StaticResource NavSection}"/>
@@ -1647,6 +1649,134 @@
                                         <Button Content="Enregistrer la clé" Style="{StaticResource PrimaryButton}" Margin="10,0,0,0" Click="SaveGeminiKey_Click"/>
                                     </StackPanel>
                                 </controls:SettingRow>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- ===== Page : Applications connectées (noms de code « Integrations ») ===== -->
+                <ScrollViewer x:Name="PageIntegrations" Grid.Row="1" Style="{StaticResource PageScroller}" Visibility="Collapsed">
+                    <StackPanel>
+                        <TextBlock Text="Applications connectées" Style="{StaticResource PageTitle}"/>
+                        <TextBlock Text="Pilote d'autres logiciels depuis les tuiles de la Switch et affiche leur état en direct."
+                                   Style="{StaticResource PageSubtitle}"/>
+
+                        <Button x:Name="AddAppButton" Content="+ Ajouter une application" Style="{StaticResource PrimaryButton}"
+                                HorizontalAlignment="Left" Margin="0,14,0,0" Click="AddApp_Click"/>
+
+                        <Border x:Name="AppsEmptyCard" Style="{StaticResource Card}" Margin="0,16,0,0" Padding="20,28">
+                            <StackPanel HorizontalAlignment="Center">
+                                <TextBlock Text="&#xE71B;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="30"
+                                           Foreground="{StaticResource Muted}" HorizontalAlignment="Center"/>
+                                <TextBlock Text="Aucune application connectée" Foreground="{StaticResource UiText}" FontSize="14"
+                                           FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,10,0,0"/>
+                                <TextBlock Text="Ajoute OBS Studio, Twitch ou Voicemod pour créer des tuiles qui les pilotent depuis la Switch."
+                                           Style="{StaticResource PageSubtitle}" TextAlignment="Center" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Border x:Name="ObsCard" Style="{StaticResource RowCard}" Margin="0,16,0,0" local:SettingsSearch.Title="OBS Studio"
+                                local:SettingsSearch.Keywords="obs studio websocket stream streaming enregistrement scène application connectée intégration mot de passe port">
+                            <StackPanel Style="{StaticResource RowsPanel}">
+                                <Border Style="{StaticResource RowBorder}" Padding="0,14">
+                                    <DockPanel>
+                                        <Button DockPanel.Dock="Right" Content="Retirer" Style="{StaticResource DangerButton}" VerticalAlignment="Center"
+                                                Tag="obs" Click="RemoveApp_Click"/>
+                                        <ContentControl x:Name="ObsLogo" Width="30" Height="30" VerticalAlignment="Center" Focusable="False"/>
+                                        <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
+                                            <TextBlock Text="OBS Studio" Foreground="{StaticResource UiText}" FontSize="15" FontWeight="SemiBold"/>
+                                            <Border x:Name="ObsPill" CornerRadius="9" Padding="8,2" Margin="0,4,0,0" HorizontalAlignment="Left">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Ellipse x:Name="ObsPillDot" Width="7" Height="7" VerticalAlignment="Center"/>
+                                                    <TextBlock x:Name="ObsPillText" FontSize="11" FontWeight="SemiBold" Margin="6,0,0,0"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </StackPanel>
+                                    </DockPanel>
+                                </Border>
+                                <controls:SettingRow Label="Activer OBS"
+                                                     Description="SysDeck se connecte au serveur WebSocket d'OBS et se reconnecte tout seul. Dans OBS : Outils → Paramètres du serveur WebSocket.">
+                                    <CheckBox x:Name="ObsEnabledCheck" Style="{StaticResource ToggleSwitch}" Margin="0"
+                                              Checked="ObsEnabled_Changed" Unchecked="ObsEnabled_Changed"/>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Hôte" Description="127.0.0.1 si OBS tourne sur ce PC.">
+                                    <TextBox x:Name="ObsHostBox" Width="200" MaxLength="253" LostFocus="ObsField_LostFocus"/>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Port" Description="4455 par défaut.">
+                                    <TextBox x:Name="ObsPortBox" Width="80" MaxLength="5" LostFocus="ObsField_LostFocus"/>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Mot de passe" Description="Enregistré chiffré pour ton compte Windows, jamais en clair ni dans les profils exportés.">
+                                    <PasswordBox x:Name="ObsPasswordBox" Width="240" LostFocus="ObsField_LostFocus"/>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Connexion" Description="Teste les valeurs saisies ci-dessus.">
+                                    <Button x:Name="ObsTestButton" Content="Tester la connexion" Click="ObsTest_Click"/>
+                                </controls:SettingRow>
+                                <Border Style="{StaticResource RowBorder}" BorderThickness="0">
+                                    <TextBlock x:Name="ObsStatusText" Style="{StaticResource FieldLabel}" TextWrapping="Wrap" Margin="0"/>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+
+                        <Border x:Name="TwitchCard" Style="{StaticResource RowCard}" Margin="0,16,0,0" local:SettingsSearch.Title="Twitch"
+                                local:SettingsSearch.Keywords="twitch compte connexion connecter déconnecter application connectée clip marqueur tchat chat pub mode lent bouclier titre catégorie émotes live stream">
+                            <StackPanel Style="{StaticResource RowsPanel}">
+                                <Border Style="{StaticResource RowBorder}" Padding="0,14">
+                                    <DockPanel>
+                                        <Button DockPanel.Dock="Right" Content="Retirer" Style="{StaticResource DangerButton}" VerticalAlignment="Center"
+                                                Tag="twitch" Click="RemoveApp_Click"/>
+                                        <ContentControl x:Name="TwitchLogo" Width="30" Height="30" VerticalAlignment="Center" Focusable="False"/>
+                                        <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
+                                            <TextBlock Text="Twitch" Foreground="{StaticResource UiText}" FontSize="15" FontWeight="SemiBold"/>
+                                            <Border x:Name="TwitchPill" CornerRadius="9" Padding="8,2" Margin="0,4,0,0" HorizontalAlignment="Left">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Ellipse x:Name="TwitchPillDot" Width="7" Height="7" VerticalAlignment="Center"/>
+                                                    <TextBlock x:Name="TwitchPillText" FontSize="11" FontWeight="SemiBold" Margin="6,0,0,0"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </StackPanel>
+                                    </DockPanel>
+                                </Border>
+                                <controls:SettingRow Label="Compte Twitch"
+                                                     Description="Crée des clips, pose des marqueurs, écrit dans le tchat, lance une pub, règle les modes du tchat et change le titre ou la catégorie depuis les tuiles. L'autorisation se fait sur twitch.tv : SysDeck ne voit jamais ton mot de passe, et les jetons sont enregistrés chiffrés pour ton compte Windows.">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button x:Name="TwitchConnectButton" Content="Se connecter à Twitch" Click="TwitchConnect_Click"/>
+                                        <Button x:Name="TwitchCancelButton" Content="Annuler" Visibility="Collapsed" Click="TwitchCancel_Click"/>
+                                        <Button x:Name="TwitchDisconnectButton" Content="Se déconnecter" Visibility="Collapsed" Click="TwitchDisconnect_Click"/>
+                                    </StackPanel>
+                                </controls:SettingRow>
+                                <Border Style="{StaticResource RowBorder}" BorderThickness="0">
+                                    <TextBlock x:Name="TwitchStatusText" Style="{StaticResource FieldLabel}" TextWrapping="Wrap" Margin="0"/>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+
+                        <Border x:Name="VoicemodCard" Style="{StaticResource RowCard}" Margin="0,16,0,0" local:SettingsSearch.Title="Voicemod"
+                                local:SettingsSearch.Keywords="voicemod voix changeur soundboard son meme micro application connectée">
+                            <StackPanel Style="{StaticResource RowsPanel}">
+                                <Border Style="{StaticResource RowBorder}" Padding="0,14">
+                                    <DockPanel>
+                                        <Button DockPanel.Dock="Right" Content="Retirer" Style="{StaticResource DangerButton}" VerticalAlignment="Center"
+                                                Tag="voicemod" Click="RemoveApp_Click"/>
+                                        <ContentControl x:Name="VoicemodLogo" Width="30" Height="30" VerticalAlignment="Center" Focusable="False"/>
+                                        <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
+                                            <TextBlock Text="Voicemod" Foreground="{StaticResource UiText}" FontSize="15" FontWeight="SemiBold"/>
+                                            <Border x:Name="VoicemodPill" CornerRadius="9" Padding="8,2" Margin="0,4,0,0" HorizontalAlignment="Left">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Ellipse x:Name="VoicemodPillDot" Width="7" Height="7" VerticalAlignment="Center"/>
+                                                    <TextBlock x:Name="VoicemodPillText" FontSize="11" FontWeight="SemiBold" Margin="6,0,0,0"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </StackPanel>
+                                    </DockPanel>
+                                </Border>
+                                <controls:SettingRow Label="Activer Voicemod"
+                                                     Description="SysDeck se connecte à Voicemod lancé sur ce PC et se reconnecte tout seul. La première fois, Voicemod demande d'autoriser SysDeck : accepte dans sa fenêtre.">
+                                    <CheckBox x:Name="VoicemodEnabledCheck" Style="{StaticResource ToggleSwitch}" Margin="0"
+                                              Checked="VoicemodEnabled_Changed" Unchecked="VoicemodEnabled_Changed"/>
+                                </controls:SettingRow>
+                                <Border Style="{StaticResource RowBorder}" BorderThickness="0">
+                                    <TextBlock x:Name="VoicemodStatusText" Style="{StaticResource FieldLabel}" TextWrapping="Wrap" Margin="0"/>
+                                </Border>
                             </StackPanel>
                         </Border>
                     </StackPanel>

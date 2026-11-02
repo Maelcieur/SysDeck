@@ -15,7 +15,7 @@
     <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
 
     <!-- Version unique de l'application : reprise dans le journal ; à garder alignée avec installer\SysDeck.iss. -->
-    <Version>1.9.4</Version>
+    <Version>1.10.0</Version>
     <Product>SysDeck</Product>
     <Company>Fenix</Company>
     <Description>Widgets de bureau : surveillance matérielle, audio, médias, consommation et raccourcis.</Description>
@@ -36,6 +36,8 @@
     <None Include="Assets\AppIcon.ico" CopyToOutputDirectory="PreserveNewest" />
     <!-- Logos de marques (Simple Icons, CC0) : lus une seule fois par BrandIcons. -->
     <EmbeddedResource Include="Assets\brand-icons.json" LogicalName="brand-icons.json" />
+    <!-- Clé de la Control API Voicemod, brouillée (Secrets\ est exclu de git) : absente, l'intégration Voicemod l'indique. -->
+    <EmbeddedResource Include="Secrets\voicemod.key" LogicalName="voicemod.key" Condition="Exists('Secrets\voicemod.key')" />
     <!-- PresentMon (Intel, licence MIT, binaire officiel signé v2.6.0) : mesure des FPS des jeux. -->
     <None Include="Tools\PresentMon\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>

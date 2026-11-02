@@ -84,7 +84,11 @@ public sealed partial class DeckController : IDisposable
         _link.StatusChanged += status =>
         {
             Status = status;
-            if (!status.Connected) ResetTouch(); // un Up perdu avec la liaison ne doit pas laisser tuile ou curseur « tenus »
+            if (!status.Connected)
+            {
+                ResetTouch(); // un Up perdu avec la liaison ne doit pas laisser tuile ou curseur « tenus »
+                CloseTextEntry();
+            }
             StatusChanged?.Invoke(status);
         };
         _link.Touch += OnTouch;
@@ -119,6 +123,29 @@ public sealed partial class DeckController : IDisposable
     private void SetPressed(Border? tile)
     {
         foreach (var panel in Screen.TilePanels) panel.SetPressed(tile);
+    }
+
+    public bool IsConnected => _link.IsConnected;
+
+    private DeckTextEntry? _textEntry;
+
+    /// <summary>Ouvre la saisie de texte sur la Switch (remplace celle déjà ouverte).</summary>
+    public void ShowTextEntry(TextEntryRequest request, TwitchService twitch)
+    {
+        CloseTextEntry();
+        ResetTouch();
+        _textEntry = new DeckTextEntry(request, twitch, WakeRender, CloseTextEntry);
+        Screen.SetOverlay(_textEntry);
+        WakeRender();
+    }
+
+    public void CloseTextEntry()
+    {
+        if (_textEntry is null) return;
+        _textEntry.Dispose();
+        _textEntry = null;
+        Screen.SetOverlay(null);
+        WakeRender();
     }
 
     public void SetBrightness(int percent)

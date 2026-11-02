@@ -105,6 +105,7 @@ public partial class SettingsWindow : Window
 
         InitDeckPage();
         InitProfilesPage();
+        InitIntegrationsPage();
 
         // Divers
         GeminiApiKeyBox.Password = config.GeminiApiKey ?? "";
@@ -132,6 +133,11 @@ public partial class SettingsWindow : Window
             _widgetManager.Config.EmojiPicker.PropertyChanged -= OnEmojiPickerSettingsChanged;
             _widgetManager.Config.Alerts.PropertyChanged -= OnAlertSettingsChanged;
             _widgetManager.SuspendHotkeys(false); // fermeture en pleine saisie : les raccourcis reviennent
+            _integrationsTimer.Stop();
+            _twitchLoginCts?.Cancel();
+            _widgetManager.Obs.StateChanged -= UpdateObsStatus;
+            _widgetManager.Twitch.StateChanged -= UpdateTwitchStatus;
+            _widgetManager.Voicemod.StateChanged -= UpdateVoicemodStatus;
             foreach (var (appearance, handler) in _moduleSubscriptions)
                 appearance.PropertyChanged -= handler;
             foreach (var (style, handler) in _textSubscriptions)
@@ -212,6 +218,7 @@ public partial class SettingsWindow : Window
             [NavProfiles] = PageProfiles,
             [NavDock] = PageDock,
             [NavSwitch] = PageSwitch,
+            [NavIntegrations] = PageIntegrations,
             [NavCorrection] = PageCorrection,
             [NavEmoji] = PageEmoji,
             [NavAlerts] = PageAlerts,
@@ -225,6 +232,7 @@ public partial class SettingsWindow : Window
         if (target == PageProfiles) RefreshProfilesList(); // un profil a pu être ajouté ou retiré depuis la dernière visite
         if (target == PageEnergy) UpdateLifetimeDetails();
         if (target == PageGeneral) UpdateFpsStatus();
+        SetIntegrationsTimer(target == PageIntegrations);
         if (target is ScrollViewer scroller) scroller.ScrollToTop();
         else CustomizeScroller.ScrollToTop(); // Personnaliser : en-tête fixe, seul l'onglet défile
     }

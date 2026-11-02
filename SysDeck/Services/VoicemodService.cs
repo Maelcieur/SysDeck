@@ -33,12 +33,18 @@ public sealed class VoicemodState
         CurrentVoice = null;
     }
 
-    /// <summary>Applique un évènement (<c>…EnabledEvent</c>, <c>voiceLoadedEvent</c>) ou une réponse d'état ; vrai si une valeur a changé.</summary>
+    /// <summary>
+    /// Applique un évènement (<c>…EnabledEvent</c>, voix changée) ou une réponse d'état ; vrai si une valeur a changé.
+    /// Le nom de l'évènement arrive dans <c>action</c> ou, depuis Voicemod 3.17, dans <c>actionType</c>.
+    /// </summary>
     public bool Apply(VoicemodMessage message)
     {
-        if (message.Action is { } action && action.EndsWith("Event", StringComparison.Ordinal))
+        var eventName = message.Action is { } a && a.EndsWith("Event", StringComparison.Ordinal) ? a
+            : message.ActionType is { } t && t.EndsWith("Event", StringComparison.Ordinal) ? t : null;
+        if (eventName is { } action)
         {
-            if (action == "voiceLoadedEvent") return Set(CurrentVoice, Str(message.Object, "voiceID"), v => CurrentVoice = v);
+            if (action is "voiceLoadedEvent" or "voiceChangedEvent")
+                return Str(message.Object, "voiceID") is { } voice && Set(CurrentVoice, voice, v => CurrentVoice = v);
             var enabled = action.Contains("Enabled", StringComparison.Ordinal);
             if (!enabled && !action.Contains("Disabled", StringComparison.Ordinal)) return false;
             return action switch

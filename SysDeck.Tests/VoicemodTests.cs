@@ -123,6 +123,20 @@ public class VoicemodTests
     }
 
     [Fact]
+    public void State_FollowsVoiceChangedEvent_OfVoicemod317()
+    {
+        // Messages observés avec Voicemod 3.17.45 après loadVoice : nom de l'évènement dans actionType, clés en double.
+        var state = new VoicemodState();
+        Assert.False(state.Apply(VoicemodService.ParseMessage("""{"actionID":"1","actionId":"1","actionType":"loadVoice"}""")));
+        Assert.True(state.Apply(VoicemodService.ParseMessage(
+            """{"actionID":"2","actionId":"2","actionObject":{"voiceID":"db810392"},"actionType":"voiceChangedEvent","appVersion":"3.17.45"}""")));
+        Assert.True(state.IsOn(VoicemodAction.LoadVoice, "db810392"));
+        Assert.False(state.IsOn(VoicemodAction.LoadVoice, "ccb22b9f"));
+        state.Apply(VoicemodService.ParseMessage("""{"actionID":"3","actionId":"3","actionObject":{"value":true},"actionType":"toggleVoiceChanger"}"""));
+        Assert.True(state.IsOn(VoicemodAction.VoiceChanger, null));
+    }
+
+    [Fact]
     public void ParseVoices_SkipsBadEntries()
     {
         var root = JsonDocument.Parse("""{"voices":[{"id":"robot","friendlyName":"Robot","enabled":true,"favorited":true},{"id":"x","enabled":false},{"friendlyName":"sans id"}]}""").RootElement;

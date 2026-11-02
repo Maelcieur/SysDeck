@@ -1,0 +1,141 @@
+<Window x:Class="SysDeck.EmojiPickerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:emoji="clr-namespace:Emoji.Wpf;assembly=Emoji.Wpf"
+        Title="SysDeck — Émojis"
+        Width="380" Height="456"
+        WindowStyle="None" AllowsTransparency="True" Background="Transparent" ResizeMode="NoResize"
+        Topmost="True" ShowInTaskbar="False" ShowActivated="False"
+        SourceInitialized="Window_SourceInitialized" PreviewKeyDown="Window_PreviewKeyDown">
+    <Window.Resources>
+        <!-- Case d'émoji : fond discret au survol, rien sinon. -->
+        <Style x:Key="EmojiButton" TargetType="Button">
+            <Setter Property="Width" Value="38"/>
+            <Setter Property="Height" Value="38"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bg" CornerRadius="9" Background="Transparent">
+                            <ContentPresenter x:Name="Glyph" HorizontalAlignment="Center" VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="{DynamicResource TileStrongBrush}"/>
+                                <Setter TargetName="Glyph" Property="RenderTransform">
+                                    <Setter.Value>
+                                        <ScaleTransform ScaleX="1.18" ScaleY="1.18"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="{DynamicResource AccentBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Onglet de catégorie : icône, soulignée au dégradé quand elle est choisie. -->
+        <Style x:Key="CategoryTab" TargetType="RadioButton">
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <StackPanel Background="Transparent" Width="34">
+                            <Border x:Name="Bg" CornerRadius="8" Height="30" Background="Transparent">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <Border x:Name="Underline" Height="2.5" CornerRadius="1.5" Margin="6,3,6,0"
+                                    Background="{DynamicResource GaugeGradientBrush}" Opacity="0"/>
+                        </StackPanel>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bg" Property="Background" Value="{DynamicResource TileBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Underline" Property="Opacity" Value="1"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <!-- Fond transparent teinté, puis contour et contenu. -->
+    <Grid x:Name="Root">
+        <Border x:Name="Tint"/>
+        <Border x:Name="Chrome" BorderThickness="1" Padding="14,12,14,10">
+        <DockPanel>
+            <!-- En-tête : titre (sert de poignée pour déplacer la fenêtre) et croix -->
+            <Grid DockPanel.Dock="Top" Background="Transparent" MouseLeftButtonDown="Header_MouseLeftButtonDown" Cursor="SizeAll">
+                <TextBlock Text="ÉMOJIS" Style="{StaticResource WidgetCaption}" VerticalAlignment="Center"/>
+                <Button HorizontalAlignment="Right" Click="Close_Click" ToolTip="Fermer" Cursor="Hand" Focusable="False">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Bg" Width="26" Height="26" CornerRadius="13" Background="Transparent">
+                                <TextBlock Text="&#xE8BB;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="10"
+                                           Foreground="{DynamicResource SubTextBrush}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bg" Property="Background" Value="#CCE5484D"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+            </Grid>
+
+            <!-- Recherche (noms anglais) -->
+            <Grid DockPanel.Dock="Top" Margin="0,10,0,8">
+                <TextBox x:Name="SearchBox" Background="{DynamicResource TileStrongBrush}" Foreground="{DynamicResource TextBrush}"
+                         CaretBrush="{DynamicResource TextBrush}" BorderThickness="0" Padding="30,6,8,6" FontSize="12.5"
+                         PreviewMouseDown="SearchBox_PreviewMouseDown" TextChanged="SearchBox_TextChanged">
+                    <TextBox.Template>
+                        <ControlTemplate TargetType="TextBox">
+                            <Border Background="{TemplateBinding Background}" CornerRadius="9">
+                                <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" VerticalAlignment="Center"/>
+                            </Border>
+                        </ControlTemplate>
+                    </TextBox.Template>
+                </TextBox>
+                <TextBlock Text="&#xE721;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12" IsHitTestVisible="False"
+                           Foreground="{DynamicResource SubTextBrush}" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                <TextBlock x:Name="SearchHint" Text="Rechercher (en anglais : heart, smile, fire…)" IsHitTestVisible="False" FontSize="12"
+                           Foreground="{DynamicResource SubTextBrush}" VerticalAlignment="Center" Margin="32,0,0,0"/>
+            </Grid>
+
+            <!-- Catégories -->
+            <StackPanel x:Name="CategoriesPanel" DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,6"/>
+            <TextBlock x:Name="CategoryTitle" DockPanel.Dock="Top" Style="{StaticResource SubText}" FontSize="10.5" Margin="2,2,0,4"/>
+
+            <!-- Grille d'émojis -->
+            <!-- Défilement à la molette, sans barre visible -->
+            <ScrollViewer VerticalScrollBarVisibility="Hidden" HorizontalScrollBarVisibility="Disabled" Focusable="False">
+                <Grid>
+                    <ItemsControl x:Name="EmojiList">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Style="{StaticResource EmojiButton}" Tag="{Binding Text}" ToolTip="{Binding Name}" Click="Emoji_Click">
+                                    <Image Width="26" Height="26" emoji:Image.Source="{Binding Text}"/>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock x:Name="EmptyText" Style="{StaticResource SubText}" TextWrapping="Wrap" Margin="4,10,4,0" Visibility="Collapsed"/>
+                </Grid>
+            </ScrollViewer>
+        </DockPanel>
+        </Border>
+    </Grid>
+</Window>

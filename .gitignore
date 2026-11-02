@@ -1,0 +1,22 @@
+# Sorties de compilation / build outputs
+bin/
+obj/
+TestResults/
+SysDeck/installer/output/
+payload/build/
+payload/output/
+
+# Dépendance téléchargée par payload/build.sh / fetched by payload/build.sh
+third_party/
+
+# Éditeurs / editors
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+
+# Notes de travail locales / local working notes
+.claude/
+NOTES.md
+CODE.md

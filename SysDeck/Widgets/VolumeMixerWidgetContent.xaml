@@ -1,0 +1,74 @@
+<UserControl x:Class="SysDeck.Widgets.VolumeMixerWidgetContent"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:SysDeck.Controls"
+             xmlns:local="clr-namespace:SysDeck"
+             x:Name="Root"
+             Width="260">
+    <UserControl.Resources>
+        <local:PathToIconConverter x:Key="PathToIcon"/>
+        <local:MuteGlyphConverter x:Key="MuteGlyphConverter"/>
+        <local:MuteKeyConverter x:Key="MuteKeyConverter"/>
+        <local:BoolToVisibilityConverter x:Key="BoolToVis"/>
+    </UserControl.Resources>
+    <StackPanel>
+        <StackPanel controls:Movable.Key="title" Orientation="Horizontal">
+            <TextBlock controls:TextPart.Key="title" Text="VOLUME PAR APPLICATION" Style="{StaticResource WidgetCaption}"/>
+        </StackPanel>
+
+
+        <ItemsControl x:Name="SessionsList" controls:Movable.Key="list" Margin="0,12,0,0">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <WrapPanel Orientation="Horizontal"/>
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Border Background="{DynamicResource TileStrongBrush}" CornerRadius="8" Padding="8" Margin="0,0,8,8" Tag="{Binding}">
+                        <Border.ContextMenu>
+                            <ContextMenu>
+                                <MenuItem Header="Changer l'icône…" Click="ChangeIcon_Click"
+                                          Tag="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                            </ContextMenu>
+                        </Border.ContextMenu>
+                        <StackPanel HorizontalAlignment="Center">
+                            <!-- Logo de l'application, remplacé par l'icône choisie dans Paramètres s'il y en a une ;
+                                 glyphe générique (Segoe) quand aucun logo n'a pu être trouvé -->
+                            <Grid Width="18" Height="18" Margin="0,0,0,4">
+                                <Image Source="{Binding Icon}" RenderOptions.BitmapScalingMode="HighQuality"
+                                       Visibility="{Binding ShowAutoLogo, Converter={StaticResource BoolToVis}}"/>
+                                <TextBlock Text="&#xE71D;" FontFamily="Segoe MDL2 Assets, Segoe Fluent Icons" FontSize="16"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"
+                                           Foreground="{DynamicResource TextBrush}"
+                                           Visibility="{Binding ShowFallbackGlyph, Converter={StaticResource BoolToVis}}"/>
+                                <controls:CustomIconView Icon="{Binding CustomIcon}" IconColor="{Binding CustomIconColor}" Size="18"
+                                                         HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Grid>
+                            <TextBlock controls:TextPart.Key="app" Text="{Binding DisplayName}" FontSize="11" TextTrimming="CharacterEllipsis"
+                                       MaxWidth="60" TextAlignment="Center" Margin="0,0,0,8"/>
+
+                            <!-- Forme choisie dans Paramètres › Personnaliser › Volume par application -->
+                            <controls:VolumeControl Value="{Binding VolumePercent, Mode=OneWay}"
+                                                    Shape="{Binding VolumeShape, ElementName=Root}"
+                                                    HorizontalAlignment="Center" Tag="{Binding}"
+                                                    DragStarted="Volume_DragStarted"
+                                                    DragCompleted="Volume_DragCompleted"
+                                                    UserValueChanged="Volume_UserValueChanged"/>
+
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8,0,0">
+                                <Button Style="{StaticResource IconButtonStyle}" Margin="0,0,4,0"
+                                        controls:ButtonPart.Key="{Binding Muted, Converter={StaticResource MuteKeyConverter}}"
+                                        Click="Mute_Click" Tag="{Binding}" ToolTip="Couper/rétablir le son">
+                                    <TextBlock Text="{Binding Muted, Converter={StaticResource MuteGlyphConverter}}" FontSize="12"/>
+                                </Button>
+                                <Button Content="&#10005;" Style="{StaticResource IconButtonStyle}" controls:ButtonPart.Key="hide"
+                                        Click="Hide_Click" Tag="{Binding}" ToolTip="Masquer cette application"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </StackPanel>
+</UserControl>

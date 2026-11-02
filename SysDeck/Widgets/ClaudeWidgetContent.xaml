@@ -1,0 +1,44 @@
+<UserControl x:Class="SysDeck.Widgets.ClaudeWidgetContent"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:SysDeck.Controls"
+             Width="230">
+    <StackPanel>
+        <StackPanel controls:Movable.Key="title" Orientation="Horizontal">
+            <TextBlock controls:TextPart.Key="title" Text="CLAUDE" Style="{StaticResource WidgetCaption}"/>
+            <TextBlock controls:TextPart.Key="plan" x:Name="PlanText" Text="" Style="{StaticResource SubText}"
+                       FontSize="9.5" Margin="8,0,0,0" VerticalAlignment="Center"/>
+            <TextBlock x:Name="OfflineText" Text="●" Style="{StaticResource SubText}" FontSize="9" Margin="6,0,0,0"
+                       VerticalAlignment="Center" Visibility="Collapsed" ToolTip="Réseau indisponible : dernières valeurs connues."/>
+        </StackPanel>
+
+        <!-- Session de 5 heures -->
+        <StackPanel controls:Movable.Key="session" Margin="0,10,0,0">
+            <DockPanel Margin="0,0,0,4">
+                <TextBlock controls:TextPart.Key="sessionPercent" x:Name="SessionPercentText" DockPanel.Dock="Right" Text="--"
+                           Style="{StaticResource NumberText}" FontSize="13" VerticalAlignment="Bottom"/>
+                <TextBlock controls:TextPart.Key="sessionLabel" Text="Session 5 h" Style="{StaticResource GaugeLabelText}"
+                           HorizontalAlignment="Left" VerticalAlignment="Bottom"/>
+            </DockPanel>
+            <controls:LinearGauge x:Name="SessionGauge" Height="6"/>
+            <TextBlock controls:TextPart.Key="sessionReset" x:Name="SessionResetText" Text="" Style="{StaticResource SubText}"
+                       FontSize="9.5" Margin="0,3,0,0" TextTrimming="CharacterEllipsis"/>
+        </StackPanel>
+
+        <!-- Semaine (7 jours) -->
+        <StackPanel controls:Movable.Key="week" Margin="0,10,0,0">
+            <DockPanel Margin="0,0,0,4">
+                <TextBlock controls:TextPart.Key="weekPercent" x:Name="WeekPercentText" DockPanel.Dock="Right" Text="--"
+                           Style="{StaticResource NumberText}" FontSize="13" VerticalAlignment="Bottom"/>
+                <TextBlock controls:TextPart.Key="weekLabel" Text="Semaine" Style="{StaticResource GaugeLabelText}"
+                           HorizontalAlignment="Left" VerticalAlignment="Bottom"/>
+            </DockPanel>
+            <controls:LinearGauge x:Name="WeekGauge" Height="6"/>
+            <TextBlock controls:TextPart.Key="weekReset" x:Name="WeekResetText" Text="" Style="{StaticResource SubText}"
+                       FontSize="9.5" Margin="0,3,0,0" TextTrimming="CharacterEllipsis"/>
+        </StackPanel>
+
+        <TextBlock controls:TextPart.Key="status" x:Name="StatusText" controls:Movable.Key="status" Text="" Style="{StaticResource SubText}"
+                   FontSize="10" Margin="0,8,0,0" TextWrapping="Wrap" Visibility="Collapsed"/>
+    </StackPanel>
+</UserControl>

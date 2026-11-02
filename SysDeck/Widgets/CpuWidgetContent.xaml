@@ -1,0 +1,58 @@
+<UserControl x:Class="SysDeck.Widgets.CpuWidgetContent"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:SysDeck.Controls"
+             Width="230">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Charge : anneau 270° avec graduations -->
+        <Grid Width="82" Height="82" controls:Movable.Key="ring">
+            <controls:RadialGauge x:Name="LoadGauge" Thickness="7" ShowTicks="True"/>
+            <StackPanel VerticalAlignment="Center" Margin="0,2,0,0">
+                <TextBlock controls:TextPart.Key="load" Style="{StaticResource GaugeValueText}">
+                    <Run x:Name="LoadValueRun" Text="--" FontSize="22"/><Run Text="%" FontSize="11" Foreground="{DynamicResource SubTextBrush}"/>
+                </TextBlock>
+                <TextBlock controls:TextPart.Key="loadLabel" Text="CHARGE" Style="{StaticResource GaugeLabelText}"/>
+            </StackPanel>
+        </Grid>
+
+        <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+            <StackPanel controls:Movable.Key="title" Orientation="Horizontal">
+                <TextBlock controls:TextPart.Key="title" Text="PROCESSEUR" Style="{StaticResource WidgetCaption}"/>
+            </StackPanel>
+            <TextBlock controls:TextPart.Key="name" x:Name="CpuNameText" controls:Movable.Key="name" Text="CPU" FontWeight="SemiBold" FontSize="11.5" Margin="0,2,0,2"
+                       TextTrimming="CharacterEllipsis"/>
+
+            <!-- Température : demi-cercle, échelle 0–100 °C -->
+            <Grid controls:Movable.Key="temp" Width="96" Height="50" HorizontalAlignment="Left">
+                <controls:RadialGauge x:Name="TempGauge" SweepAngle="180" Thickness="5"/>
+                <StackPanel VerticalAlignment="Bottom" Margin="0,0,0,1">
+                    <TextBlock controls:TextPart.Key="temp" Style="{StaticResource GaugeValueText}">
+                        <Run x:Name="TempValueRun" Text="--" FontSize="16"/><Run Text="°C" FontSize="9" Foreground="{DynamicResource SubTextBrush}"/>
+                    </TextBlock>
+                    <TextBlock controls:TextPart.Key="tempLabel" Text="TEMP." Style="{StaticResource GaugeLabelText}"/>
+                </StackPanel>
+            </Grid>
+        </StackPanel>
+
+        <!-- Fréquence, masquable (Personnaliser → Éléments) -->
+        <UniformGrid Grid.Row="1" Grid.ColumnSpan="2" Columns="1" Margin="0,8,0,0">
+            <Border controls:Movable.Key="clock" Style="{StaticResource StatTile}">
+                <StackPanel>
+                    <TextBlock controls:TextPart.Key="clock" x:Name="ClockText" Text="--" Style="{StaticResource GaugeValueText}" FontSize="14"/>
+                    <!-- Libellé réduit automatiquement s'il est trop long pour la tuile -->
+                    <Viewbox StretchDirection="DownOnly" HorizontalAlignment="Center">
+                        <TextBlock controls:TextPart.Key="clockLabel" Text="Fréquence · MHz" Style="{StaticResource GaugeLabelText}" FontWeight="Normal" FontSize="9"/>
+                    </Viewbox>
+                </StackPanel>
+            </Border>        </UniformGrid>
+    </Grid>
+</UserControl>

@@ -1,0 +1,47 @@
+<UserControl x:Class="SysDeck.Widgets.AudioWidgetContent"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:SysDeck.Controls"
+             xmlns:local="clr-namespace:SysDeck"
+             MinWidth="150" MaxWidth="270">
+    <UserControl.Resources>
+        <local:BoolToVisibilityConverter x:Key="BoolToVis"/>
+        <local:InverseBooleanConverter x:Key="InverseBool"/>
+        <local:AudioUseKeyConverter x:Key="UseKey"/>
+    </UserControl.Resources>
+    <StackPanel>
+        <StackPanel controls:Movable.Key="title" Orientation="Horizontal">
+            <TextBlock controls:TextPart.Key="title" Text="SORTIE AUDIO" Style="{StaticResource WidgetCaption}"/>
+        </StackPanel>
+        <ItemsControl x:Name="DevicesList" controls:Movable.Key="list" Margin="0,12,0,0">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Border Background="{DynamicResource TileStrongBrush}" CornerRadius="8" Padding="8" Margin="0,0,0,6">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <!-- Icône choisie dans Paramètres › Personnaliser › Sortie audio › Éléments (absente par défaut) -->
+                            <DockPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,6,0">
+                                <controls:CustomIconView DockPanel.Dock="Left" Icon="{Binding Icon}" IconColor="{Binding IconColor}" Size="16"
+                                                         Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                <StackPanel VerticalAlignment="Center">
+                                    <TextBlock controls:TextPart.Key="device" Text="{Binding DisplayName}" TextTrimming="CharacterEllipsis" FontSize="12"/>
+                                    <TextBlock Text="Par défaut" Style="{StaticResource SubText}"
+                                               Visibility="{Binding IsDefault, Converter={StaticResource BoolToVis}}"/>
+                                </StackPanel>
+                            </DockPanel>
+                            <Button Grid.Column="1" Content="Utiliser" Margin="0,0,4,0" Padding="6,3" FontSize="11"
+                                    Click="SetDefault_Click" Tag="{Binding}" controls:ButtonPart.Key="{Binding IsDefault, Converter={StaticResource UseKey}}"
+                                    IsEnabled="{Binding IsDefault, Converter={StaticResource InverseBool}}"/>
+                            <Button Grid.Column="2" Content="&#10005;" Style="{StaticResource IconButtonStyle}"
+                                    Click="Hide_Click" Tag="{Binding}" ToolTip="Masquer ce périphérique" controls:ButtonPart.Key="hide"/>
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </StackPanel>
+</UserControl>

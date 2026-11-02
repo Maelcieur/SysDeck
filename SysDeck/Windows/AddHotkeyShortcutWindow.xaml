@@ -1,0 +1,69 @@
+﻿<Window x:Class="SysDeck.AddHotkeyShortcutWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="SysDeck — Raccourci clavier"
+        Width="440" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize" ShowInTaskbar="False"
+        FontFamily="Segoe UI" Foreground="#E7E8EB" Background="#1A1B1F">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Themes/SettingsStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+    <StackPanel Margin="20">
+        <TextBlock x:Name="TitleText" Text="Ajouter un raccourci clavier" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,4"/>
+        <TextBlock Text="Toucher la tuile sur la Switch envoie cette combinaison à la fenêtre au premier plan du PC."
+                   FontSize="11.5" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,14"/>
+
+        <TextBlock Text="Nom" Style="{StaticResource FieldLabel}"/>
+        <TextBox x:Name="NameBox" Margin="0,0,0,14"/>
+
+        <!-- Saisie touche par touche : Windows intercepte certaines combinaisons tapées d'un coup (Win+G, Alt+Tab…),
+             on les compose donc une touche après l'autre, puis « Terminer » valide. -->
+        <TextBlock Text="Combinaison" Style="{StaticResource FieldLabel}"/>
+        <Border Background="{StaticResource InputBg}" BorderBrush="{StaticResource InputBorder}" BorderThickness="1"
+                CornerRadius="6" Padding="12,10" Margin="0,0,0,10">
+            <DockPanel>
+                <TextBlock x:Name="ValidatedMark" DockPanel.Dock="Right" Text="✔ Validée" Foreground="{StaticResource UiSuccess}" FontWeight="SemiBold"
+                           VerticalAlignment="Center" Visibility="Collapsed"/>
+                <TextBlock x:Name="ComboText" Text="Aucune touche" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center"/>
+            </DockPanel>
+        </Border>
+
+        <TextBlock Text="Touches de modification (clic pour ajouter ou retirer)" Style="{StaticResource FieldLabel}"/>
+        <WrapPanel Margin="0,0,0,6">
+            <ToggleButton x:Name="CtrlToggle" Style="{StaticResource ChipToggle}" Content="Ctrl" Click="Modifier_Click"/>
+            <ToggleButton x:Name="AltToggle" Style="{StaticResource ChipToggle}" Content="Alt" Click="Modifier_Click"/>
+            <ToggleButton x:Name="ShiftToggle" Style="{StaticResource ChipToggle}" Content="Maj" Click="Modifier_Click"/>
+            <ToggleButton x:Name="WinToggle" Style="{StaticResource ChipToggle}" Content="Win" Click="Modifier_Click"/>
+        </WrapPanel>
+
+        <TextBlock Text="Touches (clique dans la zone, puis appuie sur les touches une par une)" Style="{StaticResource FieldLabel}"/>
+        <TextBox x:Name="KeyCapture" IsReadOnly="True" IsReadOnlyCaretVisible="False" Cursor="Hand" Margin="0,0,0,8"
+                 Text="Clique ici pour saisir les touches"
+                 GotKeyboardFocus="KeyCapture_GotKeyboardFocus" LostKeyboardFocus="KeyCapture_LostKeyboardFocus"
+                 PreviewKeyDown="KeyCapture_PreviewKeyDown" PreviewKeyUp="KeyCapture_PreviewKeyUp"/>
+
+        <DockPanel Margin="0,0,0,4">
+            <Button DockPanel.Dock="Right" x:Name="FinishButton" Content="Terminer" Style="{StaticResource PrimaryButton}"
+                    Margin="8,0,0,0" Click="Finish_Click"/>
+            <Button DockPanel.Dock="Right" Content="Effacer" Click="ClearKeys_Click"/>
+            <TextBlock x:Name="ComboHint" FontSize="11" Foreground="{StaticResource Muted}" TextWrapping="Wrap" VerticalAlignment="Center"
+                       Text="Ex. : Win puis G, ou Ctrl puis Maj puis M. Une touche seule est permise (F1 à F24, touches multimédia…)."/>
+        </DockPanel>
+        <Border Height="1" Margin="0,8,0,14"/>
+
+        <TextBlock Text="Icône" Style="{StaticResource FieldLabel}"/>
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
+            <ContentControl x:Name="IconHost" Width="32" Height="32" VerticalAlignment="Center" Margin="0,0,12,0"/>
+            <Button Content="Icône…" Click="Icon_Click"/>
+        </StackPanel>
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="Annuler" Margin="0,0,8,0" Click="Cancel_Click"/>
+            <Button x:Name="AddButton" Content="Ajouter" Style="{StaticResource PrimaryButton}" IsEnabled="False" Click="Add_Click"/>
+        </StackPanel>
+    </StackPanel>
+</Window>

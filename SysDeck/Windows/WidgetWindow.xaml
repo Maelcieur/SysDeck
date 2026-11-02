@@ -1,0 +1,17 @@
+<Window x:Class="SysDeck.WidgetWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="SysDeck"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="False"
+        ShowInTaskbar="False"
+        ResizeMode="NoResize"
+        SizeToContent="WidthAndHeight"
+        FontFamily="{DynamicResource TextFont}"
+        FontSize="13"
+        SourceInitialized="Window_SourceInitialized"
+        MouseLeftButtonDown="Window_MouseLeftButtonDown">
+    <!-- Contenu : une ModuleCard (cadre, fond, apparence du module), posée par le constructeur. -->
+</Window>

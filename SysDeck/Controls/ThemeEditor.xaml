@@ -1,0 +1,279 @@
+<UserControl x:Class="SysDeck.Controls.ThemeEditor"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:SysDeck.Controls"
+             xmlns:local="clr-namespace:SysDeck">
+    <!-- Édite un ThemeSettings (DataContext) : thème global, ou style propre d'un module. -->
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Themes/SettingsStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <StackPanel>
+        <!-- Couleurs -->
+        <Border x:Name="ColorsCard" Style="{StaticResource Card}"
+                local:SettingsSearch.Keywords="couleur dégradé accent préréglage texte bouton thème palette">
+            <StackPanel>
+                <ContentControl Style="{StaticResource CardTitle}" Content="Couleurs"/>
+                <TextBlock Style="{StaticResource FieldLabel}"
+                           Text="Le dégradé colore les jauges, les graphes et les boutons des modules."/>
+                <Border Height="14" CornerRadius="7" Margin="0,4,0,14">
+                    <Border.Background>
+                        <MultiBinding Converter="{StaticResource HexGradient}">
+                            <Binding Path="GaugeStartColor"/>
+                            <Binding Path="GaugeEndColor"/>
+                        </MultiBinding>
+                    </Border.Background>
+                </Border>
+
+                <TextBlock Text="Préréglages" Style="{StaticResource FieldLabel}"/>
+                <WrapPanel x:Name="PresetsPanel" Margin="0,0,0,10"/>
+
+                <TextBlock Text="Couleurs personnalisées" Style="{StaticResource FieldLabel}"/>
+                <WrapPanel>
+                    <controls:ColorSwatch Content="Début du dégradé" Hex="{Binding GaugeStartColor}"/>
+                    <controls:ColorSwatch Content="Fin du dégradé" Hex="{Binding GaugeEndColor}"/>
+                    <controls:ColorSwatch Content="Texte" Hex="{Binding TextColor}"/>
+                    <controls:ColorSwatch Content="Texte secondaire" Hex="{Binding SubTextColor}"/>
+                    <controls:ColorSwatch x:Name="ButtonColorPart" Content="Boutons" Hex="{Binding ButtonColor}"/>
+                </WrapPanel>
+            </StackPanel>
+        </Border>
+
+        <!-- Carte -->
+        <Border x:Name="PanelCard" Style="{StaticResource Card}"
+                local:SettingsSearch.Keywords="carte fond contour opacité transparence arrondi coins bulles tuiles dégradé angle seconde couleur bordure épaisseur trait accent ombre ombrage halo flou profondeur">
+            <StackPanel>
+                <ContentControl Style="{StaticResource CardTitle}" Content="Carte du module"/>
+
+                <TextBlock Text="Couleurs de la carte" Style="{StaticResource FieldLabel}"/>
+                <WrapPanel Margin="0,0,0,12">
+                    <controls:ColorSwatch Content="Fond de la carte" Hex="{Binding PanelColor}"/>
+                    <controls:ColorSwatch Content="Contour" Hex="{Binding BorderColor}"/>
+                    <Button Content="Couleurs d'origine" Click="ResetPanelColor_Click" VerticalAlignment="Center" Margin="0,0,0,10"/>
+                </WrapPanel>
+
+                <StackPanel x:Name="TilesPart">
+                <CheckBox Style="{StaticResource ToggleSwitch}" IsChecked="{Binding ShowTiles}">
+                    <StackPanel>
+                        <TextBlock Text="Bulles dans les modules"/>
+                        <TextBlock Text="Zones plus claires : tuiles (CPU, GPU, mémoire, consommation), lignes des sorties audio et du volume par application. Éteint = transparentes."
+                                   FontSize="11" Foreground="{StaticResource Muted}" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </CheckBox>
+                <DockPanel Margin="0,0,0,12" IsEnabled="{Binding ShowTiles}">
+                    <controls:ColorSwatch DockPanel.Dock="Left" Content="Couleur des bulles" Hex="{Binding TileColor}" Margin="0,0,16,0"/>
+                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding TileOpacity, Converter={StaticResource Percent}}"/>
+                    <Slider Minimum="0.02" Maximum="0.6" Value="{Binding TileOpacity}" VerticalAlignment="Center" ToolTip="Intensité des bulles"/>
+                </DockPanel>
+                </StackPanel>
+
+                <TextBlock Text="Opacité du fond" Style="{StaticResource FieldLabel}"/>
+                <DockPanel Margin="0,0,0,12">
+                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding PanelOpacity, Converter={StaticResource Percent}}"/>
+                    <Slider Minimum="0" Maximum="1" Value="{Binding PanelOpacity}"/>
+                </DockPanel>
+
+                <TextBlock Text="Opacité du contour" Style="{StaticResource FieldLabel}"/>
+                <DockPanel Margin="0,0,0,12">
+                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding BorderOpacity, Converter={StaticResource Percent}}"/>
+                    <Slider Minimum="0" Maximum="1" Value="{Binding BorderOpacity}"/>
+                </DockPanel>
+
+                <TextBlock Text="Arrondi des coins" Style="{StaticResource FieldLabel}"/>
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding CornerRadius, StringFormat={}{0:0} px}"/>
+                    <Slider Minimum="0" Maximum="36" Value="{Binding CornerRadius}" IsSnapToTickEnabled="True" TickFrequency="1"/>
+                </DockPanel>
+
+                <!-- Fond : dégradé -->
+                <Border Height="1" Background="#14FFFFFF" Margin="0,14,0,12"/>
+                <TextBlock Text="Fond" FontWeight="SemiBold" Foreground="White" Margin="0,0,0,8"/>
+                <CheckBox Style="{StaticResource ToggleSwitch}" Content="Fond en dégradé" IsChecked="{Binding PanelGradient}" Margin="0,0,0,8"/>
+                <StackPanel Visibility="{Binding PanelGradient, Converter={StaticResource BoolToVis}}">
+                    <WrapPanel Margin="0,0,0,8">
+                        <controls:ColorSwatch Content="Seconde couleur du fond" Hex="{Binding PanelColor2}"/>
+                    </WrapPanel>
+                    <TextBlock Text="Angle du dégradé" Style="{StaticResource FieldLabel}"/>
+                    <DockPanel Margin="0,0,0,4">
+                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding PanelGradientAngle, StringFormat={}{0:0}°}"/>
+                        <Slider Minimum="0" Maximum="360" Value="{Binding PanelGradientAngle}" IsSnapToTickEnabled="True" TickFrequency="5"/>
+                    </DockPanel>
+                </StackPanel>
+
+                <!-- Contour : épaisseur et style -->
+                <Border Height="1" Background="#14FFFFFF" Margin="0,10,0,12"/>
+                <TextBlock Text="Contour" FontWeight="SemiBold" Foreground="White" Margin="0,0,0,8"/>
+                <TextBlock Text="Épaisseur" Style="{StaticResource FieldLabel}"/>
+                <DockPanel Margin="0,0,0,12">
+                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding BorderThickness, StringFormat={}{0:0.#} px}"/>
+                    <Slider Minimum="0" Maximum="8" Value="{Binding BorderThickness}" IsSnapToTickEnabled="True" TickFrequency="0.5"/>
+                </DockPanel>
+                <TextBlock Text="Style du contour" Style="{StaticResource FieldLabel}"/>
+                <WrapPanel Margin="0,0,0,4">
+                    <RadioButton Style="{StaticResource Chip}" Content="Uni" IsChecked="{Binding BorderStyle, Converter={StaticResource Equals}, ConverterParameter=Solid}"/>
+                    <RadioButton Style="{StaticResource Chip}" Content="Couleurs d'accent" Click="BorderAccent_Click"
+                                 IsChecked="{Binding BorderStyle, Converter={StaticResource Equals}, ConverterParameter=Accent}"/>
+                </WrapPanel>
+
+                <!-- Ombre -->
+                <StackPanel x:Name="ShadowPart">
+                <Border Height="1" Background="#14FFFFFF" Margin="0,10,0,12"/>
+                <TextBlock Text="Ombre" FontWeight="SemiBold" Foreground="White" Margin="0,0,0,8"/>
+                <CheckBox Style="{StaticResource ToggleSwitch}" Content="Ombre portée" IsChecked="{Binding ShadowEnabled}" Margin="0,0,0,8"/>
+                <StackPanel Visibility="{Binding ShadowEnabled, Converter={StaticResource BoolToVis}}">
+                    <WrapPanel Margin="0,0,0,8">
+                        <controls:ColorSwatch Content="Couleur de l'ombre" Hex="{Binding ShadowColor}"/>
+                    </WrapPanel>
+                    <TextBlock Text="Taille" Style="{StaticResource FieldLabel}"/>
+                    <DockPanel Margin="0,0,0,12">
+                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding ShadowSize, StringFormat={}{0:0} px}"/>
+                        <Slider Minimum="4" Maximum="60" Value="{Binding ShadowSize}" IsSnapToTickEnabled="True" TickFrequency="1"/>
+                    </DockPanel>
+                    <TextBlock Text="Opacité de l'ombre" Style="{StaticResource FieldLabel}"/>
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding ShadowOpacity, Converter={StaticResource Percent}}"/>
+                        <Slider Minimum="0" Maximum="1" Value="{Binding ShadowOpacity}"/>
+                    </DockPanel>
+                </StackPanel>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <!-- Polices -->
+        <Border x:Name="FontsCard" Style="{StaticResource Card}"
+                local:SettingsSearch.Keywords="police police d'écriture typographie taille texte chiffres">
+            <StackPanel>
+                <ContentControl Style="{StaticResource CardTitle}" Content="Polices"/>
+                <TextBlock Text="Textes" Style="{StaticResource FieldLabel}"/>
+                <controls:FontPicker FontKey="{Binding TextFont}" Margin="0,0,0,12"/>
+                <TextBlock Text="Chiffres (valeurs des jauges, débits…)" Style="{StaticResource FieldLabel}"/>
+                <controls:FontPicker FontKey="{Binding NumberFont}" Margin="0,0,0,12"/>
+                <TextBlock Text="Taille du texte" Style="{StaticResource FieldLabel}"/>
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Content="Réinitialiser" Margin="8,0,0,0" Padding="10,0" Click="ResetFontScale_Click"/>
+                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding FontScale, Converter={StaticResource Percent}}"/>
+                    <Slider Minimum="0.5" Maximum="2" Value="{Binding FontScale}" IsSnapToTickEnabled="True" TickFrequency="0.05"/>
+                </DockPanel>
+            </StackPanel>
+        </Border>
+
+        <!-- Jauges -->
+        <Border x:Name="GaugesCard" Style="{StaticResource Card}"
+                local:SettingsSearch.Keywords="jauge anneau cercle arc graduations halo épaisseur forme">
+            <StackPanel>
+                <ContentControl Style="{StaticResource CardTitle}" Content="Jauges"/>
+
+                <StackPanel x:Name="GaugeShapePart">
+                    <TextBlock Text="Forme" Style="{StaticResource FieldLabel}"/>
+                    <WrapPanel Margin="0,0,0,8">
+                        <RadioButton Style="{StaticResource Chip}" Content="Arc 270°" IsChecked="{Binding GaugeShape, Converter={StaticResource Equals}, ConverterParameter=Arc}"/>
+                        <RadioButton Style="{StaticResource Chip}" Content="Cercle complet" IsChecked="{Binding GaugeShape, Converter={StaticResource Equals}, ConverterParameter=Full}"/>
+                        <RadioButton Style="{StaticResource Chip}" Content="Demi-cercle" IsChecked="{Binding GaugeShape, Converter={StaticResource Equals}, ConverterParameter=Half}"/>
+                    </WrapPanel>
+                </StackPanel>
+
+                <StackPanel x:Name="GaugeStylePart">
+                <TextBlock Text="Style" Style="{StaticResource FieldLabel}"/>
+                <WrapPanel x:Name="GaugeStyleChips" Margin="0,0,0,8">
+                    <RadioButton Style="{StaticResource Chip}" Content="Lisse" Tag="Smooth" IsChecked="{Binding GaugeStyle, Converter={StaticResource Equals}, ConverterParameter=Smooth}"/>
+                    <RadioButton Style="{StaticResource Chip}" Content="Segments" Tag="Segments" IsChecked="{Binding GaugeStyle, Converter={StaticResource Equals}, ConverterParameter=Segments}"/>
+                    <RadioButton Style="{StaticResource Chip}" Content="Fine" Tag="Thin" IsChecked="{Binding GaugeStyle, Converter={StaticResource Equals}, ConverterParameter=Thin}"/>
+                    <RadioButton Style="{StaticResource Chip}" Content="Pointillés" Tag="Dots" IsChecked="{Binding GaugeStyle, Converter={StaticResource Equals}, ConverterParameter=Dots}"/>
+                    <RadioButton Style="{StaticResource Chip}" Content="Compteur" Tag="Needle" IsChecked="{Binding GaugeStyle, Converter={StaticResource Equals}, ConverterParameter=Needle}"/>
+                    <RadioButton Style="{StaticResource Chip}" Content="Secteur" Tag="Pie" IsChecked="{Binding GaugeStyle, Converter={StaticResource Equals}, ConverterParameter=Pie}"/>
+                    <RadioButton Style="{StaticResource Chip}" Content="Néon" Tag="Neon" IsChecked="{Binding GaugeStyle, Converter={StaticResource Equals}, ConverterParameter=Neon}"/>
+                    <RadioButton Style="{StaticResource Chip}" Content="Rayons" Tag="Rays" IsChecked="{Binding GaugeStyle, Converter={StaticResource Equals}, ConverterParameter=Rays}"/>
+                    <RadioButton Style="{StaticResource Chip}" Content="Double" Tag="Double" IsChecked="{Binding GaugeStyle, Converter={StaticResource Equals}, ConverterParameter=Double}"/>
+                    <RadioButton Style="{StaticResource Chip}" Content="Capsule" Tag="Capsule" IsChecked="{Binding GaugeStyle, Converter={StaticResource Equals}, ConverterParameter=Capsule}"/>
+                </WrapPanel>
+                </StackPanel>
+
+                <StackPanel x:Name="GaugeRingPart">
+                <TextBlock Text="Épaisseur des anneaux" Style="{StaticResource FieldLabel}"/>
+                <DockPanel Margin="0,0,0,14">
+                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding GaugeThickness, Converter={StaticResource Multiplier}}"/>
+                    <Slider Minimum="0.4" Maximum="2.5" Value="{Binding GaugeThickness}"/>
+                </DockPanel>
+                </StackPanel>
+
+                <StackPanel x:Name="GaugeTicksPart">
+                <CheckBox Style="{StaticResource ToggleSwitch}" Content="Graduations autour des anneaux" IsChecked="{Binding ShowTicks}"/>
+                <WrapPanel Margin="0,0,0,10" IsEnabled="{Binding ShowTicks}">
+                    <RadioButton Style="{StaticResource Chip}" Content="Traits" IsChecked="{Binding TickStyle, Converter={StaticResource Equals}, ConverterParameter=Lines}"/>
+                    <RadioButton Style="{StaticResource Chip}" Content="Fines et serrées" IsChecked="{Binding TickStyle, Converter={StaticResource Equals}, ConverterParameter=Dense}"/>
+                    <RadioButton Style="{StaticResource Chip}" Content="Principales seules" IsChecked="{Binding TickStyle, Converter={StaticResource Equals}, ConverterParameter=Majors}"/>
+                    <RadioButton Style="{StaticResource Chip}" Content="Points" IsChecked="{Binding TickStyle, Converter={StaticResource Equals}, ConverterParameter=Dots}"/>
+                    <RadioButton Style="{StaticResource Chip}" Content="Intérieures" IsChecked="{Binding TickStyle, Converter={StaticResource Equals}, ConverterParameter=Inner}"/>
+                    <RadioButton Style="{StaticResource Chip}" Content="Avec valeurs" IsChecked="{Binding TickStyle, Converter={StaticResource Equals}, ConverterParameter=Numbers}"/>
+                </WrapPanel>
+                </StackPanel>
+                <CheckBox x:Name="GaugeGlowPart" Style="{StaticResource ToggleSwitch}" Content="Halo lumineux" IsChecked="{Binding Glow}" Margin="0"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Animations -->
+        <Border x:Name="AnimationsCard" Style="{StaticResource Card}"
+                local:SettingsSearch.Keywords="animation vitesse durée mouvement fondu apparition glissé zoom survol soulever lueur effet entrée">
+            <StackPanel>
+                <ContentControl Style="{StaticResource CardTitle}" Content="Animations"/>
+                <CheckBox Style="{StaticResource ToggleSwitch}" Content="Activer les animations" IsChecked="{Binding AnimationsEnabled}"/>
+
+                <StackPanel IsEnabled="{Binding AnimationsEnabled}">
+                    <TextBlock Text="Durée" Style="{StaticResource FieldLabel}" Margin="0,4,0,6"/>
+                    <DockPanel Margin="0,0,0,14">
+                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding AnimationSpeed, Converter={StaticResource Multiplier}}"/>
+                        <Slider Minimum="0.3" Maximum="3" Value="{Binding AnimationSpeed}"/>
+                    </DockPanel>
+
+                    <TextBlock x:Name="EasingLabelPart" Text="Style de mouvement" Style="{StaticResource FieldLabel}"/>
+                    <WrapPanel x:Name="EasingPart" Margin="0,0,0,8">
+                        <RadioButton Style="{StaticResource Chip}" Content="Douce" IsChecked="{Binding AnimationEasing, Converter={StaticResource Equals}, ConverterParameter=Smooth}"/>
+                        <RadioButton Style="{StaticResource Chip}" Content="Élastique" IsChecked="{Binding AnimationEasing, Converter={StaticResource Equals}, ConverterParameter=Elastic}"/>
+                        <RadioButton Style="{StaticResource Chip}" Content="Rebond" IsChecked="{Binding AnimationEasing, Converter={StaticResource Equals}, ConverterParameter=Bounce}"/>
+                        <RadioButton Style="{StaticResource Chip}" Content="Dépassement" IsChecked="{Binding AnimationEasing, Converter={StaticResource Equals}, ConverterParameter=Back}"/>
+                        <RadioButton Style="{StaticResource Chip}" Content="Très douce" IsChecked="{Binding AnimationEasing, Converter={StaticResource Equals}, ConverterParameter=Sine}"/>
+                        <RadioButton Style="{StaticResource Chip}" Content="Rapide" IsChecked="{Binding AnimationEasing, Converter={StaticResource Equals}, ConverterParameter=Snap}"/>
+                        <RadioButton Style="{StaticResource Chip}" Content="Linéaire" IsChecked="{Binding AnimationEasing, Converter={StaticResource Equals}, ConverterParameter=Linear}"/>
+                    </WrapPanel>
+
+                    <CheckBox x:Name="IntroPart" Style="{StaticResource ToggleSwitch}" Content="Remplissage des jauges à l'apparition" IsChecked="{Binding IntroAnimation}"/>
+
+                    <TextBlock Text="Apparition" Style="{StaticResource FieldLabel}" Margin="0,10,0,6"/>
+                    <WrapPanel Margin="0,0,0,8">
+                        <RadioButton Style="{StaticResource Chip}" Content="Glissé" IsChecked="{Binding EntranceStyle, Converter={StaticResource Equals}, ConverterParameter=Slide}"/>
+                        <RadioButton Style="{StaticResource Chip}" Content="Fondu" IsChecked="{Binding EntranceStyle, Converter={StaticResource Equals}, ConverterParameter=Fade}"/>
+                        <RadioButton Style="{StaticResource Chip}" Content="Zoom" IsChecked="{Binding EntranceStyle, Converter={StaticResource Equals}, ConverterParameter=Zoom}"/>
+                        <RadioButton Style="{StaticResource Chip}" Content="Chute" IsChecked="{Binding EntranceStyle, Converter={StaticResource Equals}, ConverterParameter=Drop}"/>
+                        <RadioButton Style="{StaticResource Chip}" Content="Surgir" IsChecked="{Binding EntranceStyle, Converter={StaticResource Equals}, ConverterParameter=Pop}"/>
+                        <RadioButton Style="{StaticResource Chip}" Content="Retourner" IsChecked="{Binding EntranceStyle, Converter={StaticResource Equals}, ConverterParameter=Flip}"/>
+                        <RadioButton Style="{StaticResource Chip}" Content="Aucune" IsChecked="{Binding EntranceStyle, Converter={StaticResource Equals}, ConverterParameter=None}"/>
+                    </WrapPanel>
+
+                    <StackPanel x:Name="HoverPart">
+                    <TextBlock Text="Au survol" Style="{StaticResource FieldLabel}"/>
+                    <WrapPanel>
+                        <RadioButton Style="{StaticResource Chip}" Content="Aucun" IsChecked="{Binding HoverEffect, Converter={StaticResource Equals}, ConverterParameter=None}"/>
+                        <RadioButton Style="{StaticResource Chip}" Content="Soulever" IsChecked="{Binding HoverEffect, Converter={StaticResource Equals}, ConverterParameter=Lift}"/>
+                        <RadioButton Style="{StaticResource Chip}" Content="Lueur" IsChecked="{Binding HoverEffect, Converter={StaticResource Equals}, ConverterParameter=Glow}"/>
+                        <RadioButton Style="{StaticResource Chip}" Content="Soulever + lueur" IsChecked="{Binding HoverEffect, Converter={StaticResource Equals}, ConverterParameter=LiftGlow}"/>
+                    </WrapPanel>
+                    </StackPanel>
+
+                    <StackPanel x:Name="IdlePart">
+                    <TextBlock Text="Au repos (en continu)" Style="{StaticResource FieldLabel}" Margin="0,10,0,6"/>
+                    <WrapPanel>
+                        <RadioButton Style="{StaticResource Chip}" Content="Aucune" IsChecked="{Binding IdleEffect, Converter={StaticResource Equals}, ConverterParameter=None}"/>
+                        <RadioButton Style="{StaticResource Chip}" Content="Respiration" IsChecked="{Binding IdleEffect, Converter={StaticResource Equals}, ConverterParameter=Breathe}"/>
+                        <RadioButton Style="{StaticResource Chip}" Content="Flottement" IsChecked="{Binding IdleEffect, Converter={StaticResource Equals}, ConverterParameter=Float}"/>
+                        <RadioButton Style="{StaticResource Chip}" Content="Contour pulsé" IsChecked="{Binding IdleEffect, Converter={StaticResource Equals}, ConverterParameter=Pulse}"/>
+                    </WrapPanel>
+                    </StackPanel>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+    </StackPanel>
+</UserControl>

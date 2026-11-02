@@ -1,0 +1,23 @@
+<UserControl x:Class="SysDeck.Controls.ModuleCard"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:SysDeck.Controls"
+             FontFamily="{DynamicResource TextFont}"
+             FontSize="13">
+    <!-- Root : ombre statique derrière la carte ; sa marge est réservée par ModuleCard selon les réglages. -->
+    <Grid x:Name="Root">
+    <local:CardShadow x:Name="Shadow" Visibility="Collapsed"/>
+    <Border x:Name="Chrome" Style="{StaticResource CardChromeStyle}">
+        <Grid>
+            <!-- Image de fond du module (facultative), arrondie comme la carte, puis voile sombre pour la lisibilité. -->
+            <Border x:Name="ImageLayer" CornerRadius="{DynamicResource CardCornerRadius}"/>
+            <Border x:Name="DimLayer" CornerRadius="{DynamicResource CardCornerRadius}"/>
+
+            <!-- Taille automatique : Stretch="None" (taille naturelle). Taille imposée : le contenu est mis à l'échelle. -->
+            <Viewbox x:Name="ContentScaler" Stretch="None" Margin="14">
+                <ContentControl x:Name="ContentHost"/>
+            </Viewbox>
+        </Grid>
+    </Border>
+    </Grid>
+</UserControl>

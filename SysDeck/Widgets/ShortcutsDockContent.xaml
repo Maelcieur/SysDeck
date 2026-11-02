@@ -1,0 +1,134 @@
+<UserControl x:Class="SysDeck.Widgets.ShortcutsDockContent"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:SysDeck"
+             xmlns:controls="clr-namespace:SysDeck.Controls"
+             x:Name="Root"
+             AllowDrop="True"
+             DragEnter="Dock_DragEnter"
+             DragLeave="Dock_DragLeave"
+             Drop="Dock_Drop">
+    <UserControl.Resources>
+        <local:PathToIconConverter x:Key="PathToIcon"/>
+        <local:ImageFallbackVisibilityConverter x:Key="ImageFallback"/>
+        <local:BoolToOrientationConverter x:Key="BoolToOrientation"/>
+        <local:SpacingToMarginConverter x:Key="SpacingToMargin"/>
+    </UserControl.Resources>
+
+    <!-- Marge tampon uniforme et transparente : laisse la place aux icônes agrandies au survol
+         (RenderTransform) pour qu'elles ne soient pas rognées par le bord de la fenêtre, quelle que
+         soit la direction de l'animation choisie. -->
+    <Grid Margin="170">
+        <Border x:Name="DropHighlight" CornerRadius="34" BorderThickness="2" BorderBrush="Transparent"
+                HorizontalAlignment="Center" VerticalAlignment="Center">
+            <Border x:Name="DockPill" CornerRadius="32" Background="{DynamicResource DockPanelBrush}"
+                    BorderBrush="{DynamicResource DockBorderBrush}" BorderThickness="1"
+                    Padding="10,8"
+                    MouseMove="Dock_MouseMove" MouseLeave="Dock_MouseLeave">
+                <Border.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="Ajouter un raccourci…" Click="AddContext_Click"/>
+                        <MenuItem Header="Ajouter un raccourci personnalisé…" Click="AddCustomContext_Click"/>
+                    </ContextMenu>
+                </Border.ContextMenu>
+
+                <Grid>
+                    <ItemsControl x:Name="ShortcutsList">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="{Binding IsVertical, ElementName=Root, Converter={StaticResource BoolToOrientation}}"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid RenderTransformOrigin="0.5,1"
+                                      Width="{Binding IconSize, ElementName=Root}"
+                                      Height="{Binding IconSize, ElementName=Root}">
+                                    <Grid.Margin>
+                                        <MultiBinding Converter="{StaticResource SpacingToMargin}">
+                                            <Binding Path="IconSpacing" ElementName="Root"/>
+                                            <Binding Path="IsVertical" ElementName="Root"/>
+                                        </MultiBinding>
+                                    </Grid.Margin>
+                                    <Grid.RenderTransform>
+                                        <TransformGroup>
+                                            <ScaleTransform x:Name="IconScale" ScaleX="1" ScaleY="1"/>
+                                            <TranslateTransform x:Name="IconLift" X="0" Y="0"/>
+                                            <TranslateTransform x:Name="IconDrag" X="0" Y="0"/>
+                                        </TransformGroup>
+                                    </Grid.RenderTransform>
+
+                                    <Button Click="Launch_Click" Tag="{Binding}" Background="Transparent" BorderThickness="0"
+                                            Padding="0"
+                                            PreviewMouseLeftButtonDown="Icon_PreviewMouseLeftButtonDown"
+                                            PreviewMouseMove="Icon_PreviewMouseMove"
+                                            PreviewMouseLeftButtonUp="Icon_PreviewMouseLeftButtonUp"
+                                            LostMouseCapture="Icon_LostMouseCapture">
+                                        <Button.ContextMenu>
+                                            <ContextMenu>
+                                                <MenuItem Header="Lancer" Click="LaunchContext_Click"
+                                                          Tag="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                                <MenuItem Header="Changer l'icône…" Click="ChangeIconContext_Click"
+                                                          Tag="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                                <MenuItem Header="Retirer du dock" Click="RemoveContext_Click"
+                                                          Tag="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                                                <Separator/>
+                                                <MenuItem Header="Ajouter un raccourci…" Click="AddContext_Click"/>
+                                                <MenuItem Header="Ajouter un raccourci personnalisé…" Click="AddCustomContext_Click"/>
+                                            </ContextMenu>
+                                        </Button.ContextMenu>
+                                        <Button.Template>
+                                            <ControlTemplate TargetType="Button">
+                                                <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+                                                    <ContentPresenter/>
+                                                </Border>
+                                            </ControlTemplate>
+                                        </Button.Template>
+                                        <Grid>
+                                            <!-- Icône du programme ou image choisie ; masquée quand un symbole, un émoji ou un logo de marque est choisi. -->
+                                            <Image Source="{Binding Converter={StaticResource PathToIcon}}"
+                                                   Visibility="{Binding IconGlyph, Converter={StaticResource ImageFallback}}"
+                                                   RenderOptions.BitmapScalingMode="HighQuality"/>
+                                            <controls:CustomIconView Icon="{Binding IconGlyph}" IconColor="{Binding IconColor}"
+                                                                     Size="{Binding IconSize, ElementName=Root}"
+                                                                     HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Grid>
+                                    </Button>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- Visible uniquement quand le dock est vide : sans ça, un dock sans raccourci
+                         n'a aucun indice visuel qu'un clic droit permet d'en ajouter un. -->
+                    <Button x:Name="EmptyAddButton" Click="AddContext_Click" Background="Transparent" BorderThickness="0"
+                            Padding="0" Visibility="Collapsed" ToolTip="Ajouter un raccourci…"
+                            Width="{Binding IconSize, ElementName=Root}" Height="{Binding IconSize, ElementName=Root}">
+                        <Button.Template>
+                            <ControlTemplate TargetType="Button">
+                                <Border Background="{TemplateBinding Background}">
+                                    <ContentPresenter/>
+                                </Border>
+                            </ControlTemplate>
+                        </Button.Template>
+                        <Path Data="M12,3 L12,21 M3,12 L21,12" Stretch="Uniform" Margin="8"
+                              Stroke="{DynamicResource SubTextBrush}" StrokeThickness="2.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                    </Button>
+                </Grid>
+            </Border>
+        </Border>
+
+        <!-- Canvas plutôt que placement direct dans le Grid : contrairement à un Grid, un Canvas
+             n'inclut jamais la position de ses enfants dans le calcul de sa propre taille. Une
+             étiquette positionnée via Margin dans le Grid pouvait, pour un nom long affiché vers
+             la droite/le bas, pousser le Grid (et donc la fenêtre en SizeToContent) à s'agrandir —
+             ce qui décale le pill (centré dans le Grid) et donne l'impression que le dock "saute". -->
+        <Canvas IsHitTestVisible="False">
+            <Border x:Name="NameLabel" Background="#EE111214" CornerRadius="6" Padding="9,5" MaxWidth="220"
+                    Visibility="Collapsed" IsHitTestVisible="False">
+                <TextBlock x:Name="NameLabelText" Foreground="White" FontSize="12" FontWeight="SemiBold"
+                           TextTrimming="CharacterEllipsis"/>
+            </Border>
+        </Canvas>
+    </Grid>
+</UserControl>

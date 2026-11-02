@@ -1,0 +1,43 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <!-- Version Windows requise pour l'API WinRT Windows.Media.Control (lecture en cours système),
+         disponible depuis Windows 10 1809 (build 17763). -->
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>false</SelfContained>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
+
+    <!-- Version unique de l'application : reprise dans le journal ; à garder alignée avec installer\SysDeck.iss. -->
+    <Version>1.9.4</Version>
+    <Product>SysDeck</Product>
+    <Company>Fenix</Company>
+    <Description>Widgets de bureau : surveillance matérielle, audio, médias, consommation et raccourcis.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="HidSharp" Version="2.6.4" />
+    <!-- 0.9.6 (stable), pas la préversion 0.9.7-pre717 : cette dernière plante (AccessViolationException,
+         non rattrapable) en lisant la consommation électrique des GPU NVIDIA. La 0.9.6 suffit puisque la
+         température CPU passe désormais par CpuTempBridge.ps1 (pilote AMD), pas par cette bibliothèque. -->
+    <PackageReference Include="LibreHardwareMonitorLib" Version="0.9.6" />
+    <PackageReference Include="NAudio" Version="2.3.0" />
+    <!-- Émojis en couleur dans WPF (qui ne sait afficher que des glyphes monochromes) + liste complète par catégorie. -->
+    <PackageReference Include="Emoji.Wpf" Version="0.3.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Assets\AppIcon.ico" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Logos de marques (Simple Icons, CC0) : lus une seule fois par BrandIcons. -->
+    <EmbeddedResource Include="Assets\brand-icons.json" LogicalName="brand-icons.json" />
+    <!-- PresentMon (Intel, licence MIT, binaire officiel signé v2.6.0) : mesure des FPS des jeux. -->
+    <None Include="Tools\PresentMon\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

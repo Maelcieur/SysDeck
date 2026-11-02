@@ -1,0 +1,1902 @@
+﻿<Window x:Class="SysDeck.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="clr-namespace:SysDeck.Controls"
+        xmlns:local="clr-namespace:SysDeck"
+        PreviewKeyDown="Window_PreviewKeyDown"
+        Title="SysDeck — Paramètres"
+        Width="1040" Height="740" MinWidth="860" MinHeight="560"
+        WindowStartupLocation="CenterScreen"
+        FontFamily="Segoe UI"
+        Foreground="{DynamicResource UiText}"
+        Background="{DynamicResource UiWindowBg}">
+    <!-- Barre de titre personnalisée ; WindowChrome garde le redimensionnement et l'ancrage Windows. -->
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="48" ResizeBorderThickness="6" GlassFrameThickness="0" CornerRadius="0" UseAeroCaptionButtons="False"/>
+    </WindowChrome.WindowChrome>
+
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Themes/SettingsStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
+            <local:UpperCaseConverter x:Key="Upper"/>
+
+            <Style x:Key="CaptionButton" TargetType="Button">
+                <Setter Property="Width" Value="46"/>
+                <Setter Property="Height" Value="34"/>
+                <Setter Property="Foreground" Value="{StaticResource Muted}"/>
+                <Setter Property="WindowChrome.IsHitTestVisibleInChrome" Value="True"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Bd" Background="Transparent" CornerRadius="6">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="{StaticResource UiHoverStrong}"/>
+                                    <Setter Property="Foreground" Value="{StaticResource UiText}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style x:Key="PageScroller" TargetType="ScrollViewer">
+                <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
+                <Setter Property="HorizontalScrollBarVisibility" Value="Disabled"/>
+                <Setter Property="Padding" Value="32,0,26,28"/>
+            </Style>
+
+            <!-- Titre de page 20 SemiBold et sous-titre gris (remplace les valeurs par défaut de SettingsStyles pour cette fenêtre). -->
+            <Style x:Key="PageTitle" TargetType="TextBlock">
+                <Setter Property="FontFamily" Value="Segoe UI"/>
+                <Setter Property="FontSize" Value="20"/>
+                <Setter Property="FontWeight" Value="SemiBold"/>
+                <Setter Property="Foreground" Value="{StaticResource UiText}"/>
+            </Style>
+
+            <Style x:Key="PageSubtitle" TargetType="TextBlock">
+                <Setter Property="Foreground" Value="{StaticResource Muted}"/>
+                <Setter Property="FontSize" Value="12.5"/>
+                <Setter Property="TextWrapping" Value="Wrap"/>
+                <Setter Property="Margin" Value="0,4,0,4"/>
+            </Style>
+
+            <!-- Titre de section : petites capitales grises au-dessus d'une carte (le texte est saisi en casse normale). -->
+            <Style x:Key="SectionHeader" TargetType="ContentControl">
+                <Setter Property="Margin" Value="2,22,0,8"/>
+                <Setter Property="Focusable" Value="False"/>
+                <Setter Property="IsTabStop" Value="False"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ContentControl">
+                            <TextBlock Text="{Binding Content, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource Upper}}"
+                                       FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Muted}"/>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- Carte de lignes de réglage : pas de marge intérieure horizontale, les lignes portent leur propre espacement. -->
+            <Style x:Key="RowCard" TargetType="Border" BasedOn="{StaticResource Card}">
+                <Setter Property="Padding" Value="20,0"/>
+            </Style>
+
+            <!-- Pile de lignes : -1 en bas pour que le trait de la dernière ligne se confonde avec le contour de la carte. -->
+            <Style x:Key="RowsPanel" TargetType="StackPanel">
+                <Setter Property="Margin" Value="0,0,0,-1"/>
+            </Style>
+
+            <!-- Bloc libre dans une carte de lignes (liste, texte d'état...) avec son trait de séparation. -->
+            <Style x:Key="RowBorder" TargetType="Border">
+                <Setter Property="BorderBrush" Value="{StaticResource CardBorder}"/>
+                <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                <Setter Property="Padding" Value="0,12"/>
+            </Style>
+
+            <!-- Ligne de réglage : libellé + description à gauche, contrôle à droite. -->
+            <Style TargetType="controls:SettingRow">
+                <Setter Property="IsTabStop" Value="False"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="controls:SettingRow">
+                            <Border BorderBrush="{StaticResource CardBorder}" BorderThickness="0,0,0,1" Padding="0,12">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <StackPanel x:Name="Texts" VerticalAlignment="Center" Margin="0,0,16,0">
+                                        <TextBlock x:Name="LabelText" Text="{TemplateBinding Label}" Foreground="{StaticResource UiText}"
+                                                   FontSize="13" TextWrapping="Wrap"/>
+                                        <TextBlock x:Name="DescText" Text="{TemplateBinding Description}" Foreground="{StaticResource Muted}"
+                                                   FontSize="11.5" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                    <ContentPresenter x:Name="Body" Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Right"/>
+                                </Grid>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="Label" Value="{x:Null}">
+                                    <Setter TargetName="LabelText" Property="Visibility" Value="Collapsed"/>
+                                    <Setter TargetName="DescText" Property="Margin" Value="0"/>
+                                </Trigger>
+                                <Trigger Property="Description" Value="{x:Null}">
+                                    <Setter TargetName="DescText" Property="Visibility" Value="Collapsed"/>
+                                </Trigger>
+                                <Trigger Property="Stacked" Value="True">
+                                    <Setter TargetName="Body" Property="Grid.Row" Value="1"/>
+                                    <Setter TargetName="Body" Property="Grid.Column" Value="0"/>
+                                    <Setter TargetName="Body" Property="Grid.ColumnSpan" Value="2"/>
+                                    <Setter TargetName="Body" Property="HorizontalAlignment" Value="Stretch"/>
+                                    <Setter TargetName="Body" Property="Margin" Value="0,10,0,0"/>
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter TargetName="Texts" Property="Opacity" Value="0.5"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- Largeur et hauteur : seulement en taille manuelle. -->
+            <Style x:Key="ManualOnlyRow" TargetType="controls:SettingRow" BasedOn="{StaticResource {x:Type controls:SettingRow}}">
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding AutoSize}" Value="True">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+
+            <!-- Lien texte (accent, sans cadre). -->
+            <Style x:Key="LinkButton" TargetType="Button">
+                <Setter Property="Foreground" Value="{StaticResource UiAccent}"/>
+                <Setter Property="FontSize" Value="12.5"/>
+                <Setter Property="Padding" Value="8,3"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="FocusVisualStyle" Value="{StaticResource UiFocusVisual}"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Bd" Background="Transparent" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                <ContentPresenter VerticalAlignment="Center" TextElement.Foreground="{TemplateBinding Foreground}"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="{StaticResource UiAccentSoft}"/>
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Opacity" Value="0.4"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- Bouton discret du bas de menu (Quitter) : pas de cadre, texte secondaire. -->
+            <Style x:Key="QuietButton" TargetType="Button">
+                <Setter Property="Foreground" Value="{StaticResource Muted}"/>
+                <Setter Property="FontSize" Value="13"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="FocusVisualStyle" Value="{StaticResource UiFocusVisual}"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Bd" Height="34" CornerRadius="6" Background="Transparent" Padding="14,0">
+                                <ContentPresenter VerticalAlignment="Center" HorizontalAlignment="Left"
+                                                  TextElement.Foreground="{TemplateBinding Foreground}"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="{StaticResource UiHover}"/>
+                                    <Setter Property="Foreground" Value="{StaticResource UiText}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <!-- Fenêtre agrandie : WindowChrome déborde de l'écran de l'épaisseur du cadre, on compense. -->
+    <Border x:Name="Root">
+        <Border.Style>
+            <Style TargetType="Border">
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding WindowState, RelativeSource={RelativeSource AncestorType=Window}}" Value="Maximized">
+                        <Setter Property="Margin" Value="7"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+        </Border.Style>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="240"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Barre latérale : recherche, menu groupé par thème, verrouillage et sortie en bas -->
+            <Border Background="{StaticResource SidebarBg}" BorderBrush="{StaticResource CardBorder}" BorderThickness="0,0,1,0">
+                <DockPanel Margin="18,20,18,14">
+                    <!-- Nom et version -->
+                    <StackPanel DockPanel.Dock="Top" Margin="6,0,0,18">
+                        <TextBlock Text="SysDeck" FontFamily="Segoe UI" FontWeight="SemiBold" FontSize="15" Foreground="{StaticResource UiText}"/>
+                        <TextBlock x:Name="VersionText" FontSize="11" Foreground="{StaticResource Muted}"/>
+                    </StackPanel>
+
+                    <!-- Bas de barre : verrouillage et sortie -->
+                    <StackPanel DockPanel.Dock="Bottom">
+                        <Border Style="{StaticResource NavDivider}"/>
+                        <CheckBox x:Name="LockWidgetsCheck" Style="{StaticResource ToggleSwitch}" Margin="14,6,14,6"
+                                  Checked="LockWidgets_Changed" Unchecked="LockWidgets_Changed">
+                            <StackPanel>
+                                <TextBlock Text="Verrouiller"/>
+                                <TextBlock Text="Empêche le déplacement" FontSize="11" Foreground="{StaticResource Muted}"/>
+                            </StackPanel>
+                        </CheckBox>
+                        <Button Style="{StaticResource QuietButton}" Click="Quit_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE7E8;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="15" Margin="0,0,14,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="Quitter SysDeck" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+
+                    <!-- Recherche : le panneau de résultats remplace le menu tant qu'on tape -->
+                    <Border DockPanel.Dock="Top" Margin="0,0,0,8" Height="36" CornerRadius="8"
+                            Background="{StaticResource InputBg}" BorderBrush="{StaticResource InputBorder}" BorderThickness="1">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="&#xE721;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13" Foreground="{StaticResource Muted}"
+                                       VerticalAlignment="Center" Margin="12,0,0,0"/>
+                            <TextBox x:Name="SearchInput" Grid.Column="1" Background="Transparent" BorderThickness="0" Height="34" Padding="8,0,4,0"
+                                     TextChanged="SearchInput_TextChanged" KeyDown="SearchInput_KeyDown" ToolTip="Rechercher un réglage (Ctrl+F)"/>
+                            <TextBlock Grid.Column="1" Text="Rechercher un réglage…" Foreground="{StaticResource Muted}" FontSize="12.5"
+                                       IsHitTestVisible="False" VerticalAlignment="Center" Margin="12,0,0,0"
+                                       Visibility="{Binding Text, ElementName=SearchInput, Converter={StaticResource EmptyToVis}}"/>
+                            <Button x:Name="SearchClearButton" Grid.Column="2" Style="{StaticResource RowIconButton}" Content="&#xE711;"
+                                    Margin="0,0,4,0" Visibility="Collapsed" Click="SearchClear_Click" ToolTip="Effacer la recherche (Échap)"/>
+                        </Grid>
+                    </Border>
+
+                    <Grid>
+                        <ScrollViewer x:Name="NavScroller" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                            <StackPanel x:Name="NavPanel">
+                                <TextBlock Text="MODULES" Style="{StaticResource NavSection}" Margin="14,2,0,6"/>
+                                <RadioButton Style="{StaticResource NavButton}" Tag="&#xE71D;" Content="Modules" x:Name="NavModules" GroupName="SettingsNav" Checked="Nav_Checked" Click="NavModules_Click" IsChecked="True"/>
+                                <RadioButton Style="{StaticResource NavButton}" Tag="&#xE718;" Content="Barre de raccourcis" x:Name="NavDock" GroupName="SettingsNav" Checked="Nav_Checked"/>
+                                <TextBlock Text="APPARENCE" Style="{StaticResource NavSection}"/>
+                                <RadioButton Style="{StaticResource NavButton}" Tag="&#xE790;" Content="Thème" x:Name="NavTheme" GroupName="SettingsNav" Checked="Nav_Checked"/>
+                                <RadioButton Style="{StaticResource NavButton}" Tag="&#xE77B;" Content="Profils" x:Name="NavProfiles" GroupName="SettingsNav" Checked="Nav_Checked"/>
+                                <TextBlock Text="APPAREILS" Style="{StaticResource NavSection}"/>
+                                <RadioButton Style="{StaticResource NavButton}" Tag="&#xE7FC;" Content="Switch" x:Name="NavSwitch" GroupName="SettingsNav" Checked="Nav_Checked"/>
+                                <TextBlock Text="NOTIFICATIONS" Style="{StaticResource NavSection}"/>
+                                <RadioButton Style="{StaticResource NavButton}" Tag="&#xEA8F;" Content="Alertes" x:Name="NavAlerts" GroupName="SettingsNav" Checked="Nav_Checked"/>
+                                <TextBlock Text="OUTILS" Style="{StaticResource NavSection}"/>
+                                <RadioButton Style="{StaticResource NavButton}" Tag="&#xE70F;" Content="Correction de texte" x:Name="NavCorrection" GroupName="SettingsNav" Checked="Nav_Checked"/>
+                                <RadioButton Style="{StaticResource NavButton}" Tag="&#xE76E;" Content="Émojis" x:Name="NavEmoji" GroupName="SettingsNav" Checked="Nav_Checked"/>
+                                <TextBlock Text="SYSTÈME" Style="{StaticResource NavSection}"/>
+                                <RadioButton Style="{StaticResource NavButton}" Tag="&#xE713;" Content="Général" x:Name="NavGeneral" GroupName="SettingsNav" Checked="Nav_Checked"/>
+                                <RadioButton Style="{StaticResource NavButton}" Tag="&#xE945;" Content="Énergie" x:Name="NavEnergy" GroupName="SettingsNav" Checked="Nav_Checked"/>
+                            </StackPanel>
+                        </ScrollViewer>
+
+                        <ScrollViewer x:Name="SearchResultsScroll" Visibility="Collapsed" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                            <StackPanel>
+                                <ItemsControl x:Name="SearchResultsList">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Button Style="{StaticResource SearchResultButton}" Click="SearchResult_Click">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding Title}" Foreground="{StaticResource UiText}" FontWeight="SemiBold" FontSize="12.5" TextWrapping="Wrap"/>
+                                                    <TextBlock Text="{Binding Path}" Foreground="{StaticResource Muted}" FontSize="11" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                                </StackPanel>
+                                            </Button>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <TextBlock x:Name="SearchEmptyText" Text="Aucun réglage trouvé." Foreground="{StaticResource Muted}" FontSize="12"
+                                           Margin="12,8,0,0" Visibility="Collapsed"/>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Grid>
+                </DockPanel>
+            </Border>
+
+            <!-- Contenu -->
+            <Grid Grid.Column="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="48"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- Boutons de fenêtre -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,8,10,0">
+                    <Button Style="{StaticResource CaptionButton}" Click="Minimize_Click" ToolTip="Réduire">
+                        <TextBlock Text="&#xE921;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="10" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+                    </Button>
+                    <Button Style="{StaticResource CaptionButton}" Click="Maximize_Click" ToolTip="Agrandir">
+                        <TextBlock Text="&#xE922;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="10" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+                    </Button>
+                    <Button Style="{StaticResource CaptionButton}" Click="Close_Click" ToolTip="Fermer">
+                        <TextBlock Text="&#xE8BB;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="10" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+                    </Button>
+                </StackPanel>
+
+                <!-- ===== Page : Modules (liste) ===== -->
+                <ScrollViewer x:Name="PageModules" Grid.Row="1" Style="{StaticResource PageScroller}">
+                    <StackPanel>
+                        <TextBlock Text="Modules" Style="{StaticResource PageTitle}"/>
+                        <TextBlock Text="Choisis les modules affichés sur le bureau. « Personnaliser » ouvre les réglages d'apparence propres à chaque module."
+                                   Style="{StaticResource PageSubtitle}"/>
+
+                        <Border Style="{StaticResource RowCard}" Margin="0,16,0,12">
+                            <ItemsControl x:Name="WidgetsList" Margin="0,0,0,-1">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Style="{StaticResource RowBorder}" Padding="0,9">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Text="{Binding Glyph}" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="16"
+                                                           Foreground="{StaticResource Muted}" Width="24" TextAlignment="Center" VerticalAlignment="Center" Margin="0,0,14,0"/>
+                                                <TextBlock Grid.Column="1" Text="{Binding Label}" FontSize="13.5" Foreground="{StaticResource UiText}" VerticalAlignment="Center"/>
+                                                <Button Grid.Column="2" Style="{StaticResource LinkButton}" Content="Personnaliser" Tag="{Binding Id}"
+                                                        Click="CustomizeModule_Click" Margin="0,0,14,0" VerticalAlignment="Center"
+                                                        Visibility="{Binding CanCustomize, Converter={StaticResource BoolToVis}}"/>
+                                                <CheckBox Grid.Column="3" Style="{StaticResource ToggleSwitch}" Margin="0" VerticalAlignment="Center"
+                                                          IsChecked="{Binding IsVisible, Mode=OneTime}" Tag="{Binding Id}"
+                                                          Checked="WidgetCheck_Changed" Unchecked="WidgetCheck_Changed"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- ===== Page : Thème (sous-onglets : un éditeur par groupe de réglages) ===== -->
+                <ScrollViewer x:Name="PageTheme" Grid.Row="1" Style="{StaticResource PageScroller}" Visibility="Collapsed">
+                    <StackPanel>
+                        <TextBlock Text="Thème" Style="{StaticResource PageTitle}"/>
+                        <TextBlock Text="Appliqué à tous les modules qui n'ont pas leur propre style. Les changements s'affichent en direct sur le bureau."
+                                   Style="{StaticResource PageSubtitle}" Margin="0,4,0,14"/>
+                        <WrapPanel>
+                            <RadioButton x:Name="GlobalTabColorsButton" Style="{StaticResource TabButton}" GroupName="GlobalThemeTabs" Content="Couleurs et polices"
+                                         IsChecked="True" Checked="GlobalThemeTab_Checked"/>
+                            <RadioButton x:Name="GlobalTabCardButton" Style="{StaticResource TabButton}" GroupName="GlobalThemeTabs" Content="Carte"
+                                         Checked="GlobalThemeTab_Checked"/>
+                            <RadioButton x:Name="GlobalTabGaugesButton" Style="{StaticResource TabButton}" GroupName="GlobalThemeTabs" Content="Jauges"
+                                         Checked="GlobalThemeTab_Checked"/>
+                            <RadioButton x:Name="GlobalTabAnimationsButton" Style="{StaticResource TabButton}" GroupName="GlobalThemeTabs" Content="Animations"
+                                         Checked="GlobalThemeTab_Checked"/>
+                        </WrapPanel>
+                        <Border Height="1" Background="{StaticResource CardBorder}" Margin="0,0,0,16"/>
+                        <controls:ThemeEditor x:Name="GlobalThemeEditor" Section="ColorsFonts"/>
+                        <controls:ThemeEditor x:Name="GlobalCardEditor" Section="Card" Visibility="Collapsed"/>
+                        <controls:ThemeEditor x:Name="GlobalGaugesEditor" Section="Gauges" Visibility="Collapsed"/>
+                        <controls:ThemeEditor x:Name="GlobalAnimationsEditor" Section="Animations" Visibility="Collapsed"/>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- ===== Page : Profils ===== -->
+                <ScrollViewer x:Name="PageProfiles" Grid.Row="1" Style="{StaticResource PageScroller}" Visibility="Collapsed">
+                    <StackPanel x:Name="ProfilesContent">
+                        <StackPanel.Resources>
+                            <!-- Tuile de la galerie de thèmes : cadre qui s'éclaire au survol et au clavier -->
+                            <Style x:Key="PresetTile" TargetType="Button">
+                                <Setter Property="Width" Value="190"/>
+                                <Setter Property="Margin" Value="0,0,12,12"/>
+                                <Setter Property="Padding" Value="0"/>
+                                <Setter Property="Cursor" Value="Hand"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="Frame" CornerRadius="8" Background="{StaticResource UiHover}" BorderBrush="{StaticResource CardBorder}" BorderThickness="1"
+                                                    ClipToBounds="True">
+                                                <ContentPresenter/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="Frame" Property="BorderBrush" Value="{StaticResource UiAccent}"/>
+                                                </Trigger>
+                                                <Trigger Property="IsKeyboardFocused" Value="True">
+                                                    <Setter TargetName="Frame" Property="BorderBrush" Value="{StaticResource UiAccent}"/>
+                                                </Trigger>
+                                                <Trigger Property="IsPressed" Value="True">
+                                                    <Setter TargetName="Frame" Property="Opacity" Value="0.8"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </StackPanel.Resources>
+
+                        <TextBlock Text="Profils" Style="{StaticResource PageTitle}"/>
+                        <TextBlock Text="Change d'ambiance en un clic avec un thème prêt à l'emploi, ou enregistre ta configuration pour la retrouver plus tard."
+                                   Style="{StaticResource PageSubtitle}"/>
+
+                        <!-- Thèmes prêts à l'emploi -->
+                        <ContentControl Style="{StaticResource SectionHeader}" Content="Thèmes prêts à l'emploi"/>
+                        <Border Style="{StaticResource RowCard}" local:SettingsSearch.Keywords="thème préréglage palette ambiance couleurs style prêt galerie néon clair sombre">
+                            <StackPanel Style="{StaticResource RowsPanel}">
+                                <controls:SettingRow Description="Un clic remplace le thème global (couleurs, polices, carte, jauges, animations). La disposition des modules ne change pas."/>
+                                <Border Style="{StaticResource RowBorder}" Padding="0,14,0,2">
+                                    <WrapPanel x:Name="PresetGallery"/>
+                                </Border>
+                                <controls:SettingRow Label="Appliquer aussi aux modules qui ont leur propre style">
+                                    <CheckBox x:Name="PresetResetModulesCheck" Style="{StaticResource ToggleSwitch}" Margin="0"/>
+                                </controls:SettingRow>
+                                <Border x:Name="PresetUndoBar" Visibility="Collapsed" Margin="0,0,0,12" Padding="14,8" CornerRadius="6"
+                                        Background="{StaticResource UiHoverStrong}" local:SettingsSearch.Ignore="True">
+                                    <DockPanel>
+                                        <Button DockPanel.Dock="Right" Content="Annuler" Click="PresetUndo_Click" Margin="12,0,0,0"/>
+                                        <TextBlock x:Name="PresetUndoText" VerticalAlignment="Center" TextWrapping="Wrap" Foreground="{StaticResource UiText}"/>
+                                    </DockPanel>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Mes profils -->
+                        <ContentControl Style="{StaticResource SectionHeader}" Content="Mes profils"/>
+                        <Border Style="{StaticResource RowCard}" local:SettingsSearch.Keywords="profil enregistrer sauvegarder configuration importer exporter partager renommer supprimer appliquer disposition fichier">
+                            <StackPanel Style="{StaticResource RowsPanel}">
+                                <controls:SettingRow Description="Un profil garde tout le style : thème, apparence des modules (bureau et Switch), barre de raccourcis, émojis et fond de la Switch."/>
+                                <controls:SettingRow Label="Nom du profil" Stacked="True">
+                                    <DockPanel>
+                                        <Button x:Name="ProfileSaveButton" DockPanel.Dock="Right" Style="{StaticResource PrimaryButton}" Margin="10,0,0,0"
+                                                Content="Enregistrer la configuration actuelle" Click="ProfileSave_Click"/>
+                                        <TextBox x:Name="ProfileNameBox" MaxLength="80" VerticalContentAlignment="Center" KeyDown="ProfileNameBox_KeyDown"
+                                                 TextChanged="ProfileNameBox_TextChanged"/>
+                                    </DockPanel>
+                                </controls:SettingRow>
+
+                                <Border x:Name="ProfileOverwriteBar" Visibility="Collapsed" Margin="0,12,0,0" Padding="14,8" CornerRadius="6"
+                                        Background="{StaticResource UiHoverStrong}" local:SettingsSearch.Ignore="True">
+                                    <DockPanel>
+                                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="12,0,0,0">
+                                            <Button Content="Remplacer" Style="{StaticResource DangerButton}" Click="ProfileOverwriteConfirm_Click"/>
+                                            <Button Content="Annuler" Margin="6,0,0,0" Click="ProfileOverwriteCancel_Click"/>
+                                        </StackPanel>
+                                        <TextBlock x:Name="ProfileOverwriteText" VerticalAlignment="Center" TextWrapping="Wrap" Foreground="{StaticResource UiText}"/>
+                                    </DockPanel>
+                                </Border>
+
+                                <controls:SettingRow Label="Appliquer aussi la disposition" Description="Modules affichés et positions.">
+                                    <CheckBox x:Name="ProfileLayoutCheck" Style="{StaticResource ToggleSwitch}" Margin="0"/>
+                                </controls:SettingRow>
+
+                                <TextBlock x:Name="ProfilesStatus" Visibility="Collapsed" Foreground="{StaticResource UiSuccess}" TextWrapping="Wrap" Margin="0,10,0,4"
+                                           local:SettingsSearch.Ignore="True"/>
+                                <TextBlock x:Name="ProfilesError" Visibility="Collapsed" Foreground="{StaticResource UiDanger}" TextWrapping="Wrap" Margin="0,10,0,4"
+                                           local:SettingsSearch.Ignore="True"/>
+
+                                <StackPanel x:Name="ProfilesListPanel" local:SettingsSearch.Ignore="True"/>
+                                <Border Style="{StaticResource RowBorder}" local:SettingsSearch.Ignore="True">
+                                    <TextBlock x:Name="ProfilesEmptyText" Text="Aucun profil enregistré pour l'instant." Foreground="{StaticResource Muted}"
+                                               FontStyle="Italic"/>
+                                </Border>
+
+                                <controls:SettingRow Label="Importer un profil" Description="Ajoute un fichier .sysdeckprofile à la liste (il n'est pas appliqué tout de suite).">
+                                    <Button Content="Importer…" Click="ProfileImport_Click"/>
+                                </controls:SettingRow>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- ===== Page : Personnaliser un module (ouverte depuis Modules ; « Modules » reste surligné dans le menu) ===== -->
+                <!-- En-tête fixe (fil d'Ariane + onglets) ; seul le contenu de l'onglet défile. -->
+                <Grid x:Name="PageCustomize" Grid.Row="1" Visibility="Collapsed">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Margin="32,0,26,0">
+                        <!-- Fil d'Ariane et choix du module -->
+                        <DockPanel Margin="0,0,0,12">
+                            <ComboBox x:Name="ModuleSelector" DockPanel.Dock="Right" Width="200" DisplayMemberPath="Label"
+                                      VerticalAlignment="Center" SelectionChanged="ModuleSelector_SelectionChanged"
+                                      ToolTip="Changer de module"/>
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Button Style="{StaticResource LinkButton}" Content="Modules" FontSize="20" FontWeight="SemiBold"
+                                        Foreground="{StaticResource Muted}" Padding="0,2" Click="CustomizeBack_Click"
+                                        ToolTip="Revenir à la liste des modules"/>
+                                <TextBlock Text="›" FontSize="20" Foreground="{StaticResource Muted}" Margin="10,0,10,2" VerticalAlignment="Center"/>
+                                <TextBlock x:Name="BreadcrumbModuleText" Style="{StaticResource PageTitle}" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </DockPanel>
+                        <!-- Cible : apparence du module sur le bureau ou sur la Switch (réglages indépendants). -->
+                        <WrapPanel Margin="0,0,0,14">
+                            <TextBlock Text="Apparence pour :" Foreground="{StaticResource Muted}" VerticalAlignment="Center" Margin="0,0,10,6"/>
+                            <RadioButton x:Name="TargetDesktop" Style="{StaticResource Chip}" Content="Bureau" GroupName="CustomizeTarget"
+                                         IsChecked="True" Checked="CustomizeTarget_Changed"/>
+                            <RadioButton x:Name="TargetSwitch" Style="{StaticResource Chip}" Content="Switch" GroupName="CustomizeTarget"
+                                         Checked="CustomizeTarget_Changed"/>
+                            <Button x:Name="CopyFromDesktopButton" Content="Reprendre l'apparence du bureau" Margin="6,0,0,6" VerticalAlignment="Center"
+                                    Visibility="Collapsed" Click="CopyFromDesktop_Click"
+                                    ToolTip="Remplace l'apparence Switch de ce module par celle du bureau"/>
+                        </WrapPanel>
+                        <WrapPanel>
+                            <RadioButton x:Name="TabSizeButton" Style="{StaticResource TabButton}" GroupName="CustomizeTabs" Content="Taille"
+                                         IsChecked="True" Checked="CustomizeTab_Checked"/>
+                            <RadioButton x:Name="TabElementsButton" Style="{StaticResource TabButton}" GroupName="CustomizeTabs" Content="Éléments"
+                                         Checked="CustomizeTab_Checked"/>
+                            <RadioButton x:Name="TabTextsButton" Style="{StaticResource TabButton}" GroupName="CustomizeTabs" Content="Textes"
+                                         Checked="CustomizeTab_Checked"/>
+                            <RadioButton x:Name="TabButtonsButton" Style="{StaticResource TabButton}" GroupName="CustomizeTabs" Content="Boutons"
+                                         Visibility="Collapsed" Checked="CustomizeTab_Checked"/>
+                            <RadioButton x:Name="TabStyleButton" Style="{StaticResource TabButton}" GroupName="CustomizeTabs" Content="Style"
+                                         Checked="CustomizeTab_Checked"/>
+                        </WrapPanel>
+                        <Border Height="1" Background="{StaticResource CardBorder}" Margin="0,0,0,8"/>
+                    </StackPanel>
+
+                    <ScrollViewer x:Name="CustomizeScroller" Grid.Row="1" Style="{StaticResource PageScroller}">
+                        <StackPanel x:Name="ModuleEditor">
+
+                            <!-- ===== Onglet Taille : taille, adaptation et réglages propres au module ===== -->
+                            <StackPanel x:Name="TabSize">
+                                <!-- Taille (bureau seulement : sur la Switch, la taille se règle dans la page Switch) -->
+                                <StackPanel x:Name="SizeCard">
+                                    <ContentControl Style="{StaticResource SectionHeader}" Content="Taille" Margin="2,10,0,8"/>
+                                    <Border Style="{StaticResource RowCard}" local:SettingsSearch.Keywords="largeur hauteur dimension taille automatique">
+                                        <StackPanel Style="{StaticResource RowsPanel}">
+                                            <controls:SettingRow Label="Taille automatique"
+                                                                 Description="Désactive pour fixer la largeur et la hauteur : le contenu s'adapte à la carte.">
+                                                <CheckBox Style="{StaticResource ToggleSwitch}" Margin="0" IsChecked="{Binding AutoSize}"/>
+                                            </controls:SettingRow>
+                                            <controls:SettingRow Style="{StaticResource ManualOnlyRow}" Label="Largeur">
+                                                <DockPanel Width="260">
+                                                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding Width, StringFormat={}{0:0} px}"/>
+                                                    <Slider Minimum="80" Maximum="900" Value="{Binding Width}" IsSnapToTickEnabled="True" TickFrequency="2"/>
+                                                </DockPanel>
+                                            </controls:SettingRow>
+                                            <controls:SettingRow Style="{StaticResource ManualOnlyRow}" Label="Hauteur">
+                                                <DockPanel Width="260">
+                                                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding Height, StringFormat={}{0:0} px}"/>
+                                                    <Slider Minimum="50" Maximum="900" Value="{Binding Height}" IsSnapToTickEnabled="True" TickFrequency="2"/>
+                                                </DockPanel>
+                                            </controls:SettingRow>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+
+                                <!-- Adaptation du contenu : une seule propriété (StretchMode) pour le bureau comme pour la Switch.
+                                     Bureau : seulement en taille manuelle. Switch : toujours (la taille vient du cadre de la page Switch). -->
+                                <StackPanel x:Name="FitCard">
+                                    <ContentControl Style="{StaticResource SectionHeader}" Content="Adaptation du contenu" Margin="2,10,0,8"/>
+                                    <Border Style="{StaticResource RowCard}" local:SettingsSearch.Keywords="adaptation cadre proportions étirer remplir taille réelle switch">
+                                        <StackPanel Style="{StaticResource RowsPanel}">
+                                            <controls:SettingRow x:Name="SwitchSizeNote" Visibility="Collapsed"
+                                                                 Description="La taille du module se règle en redimensionnant son cadre dans la page Switch."/>
+                                            <controls:SettingRow Label="Adaptation du contenu" Stacked="True">
+                                                <WrapPanel>
+                                                    <RadioButton Style="{StaticResource Chip}" Content="Garder les proportions"
+                                                                 IsChecked="{Binding StretchMode, Converter={StaticResource Equals}, ConverterParameter=Uniform}"/>
+                                                    <RadioButton Style="{StaticResource Chip}" Content="Étirer pour remplir"
+                                                                 IsChecked="{Binding StretchMode, Converter={StaticResource Equals}, ConverterParameter=Fill}"/>
+                                                    <RadioButton Style="{StaticResource Chip}" Content="Taille réelle (espace libre)"
+                                                                 IsChecked="{Binding StretchMode, Converter={StaticResource Equals}, ConverterParameter=None}"
+                                                                 ToolTip="Le contenu garde sa taille d'origine : la place restante sert à disposer librement les éléments."/>
+                                                </WrapPanel>
+                                            </controls:SettingRow>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+
+                                <!-- Forme des réglages de volume (module Volume par application uniquement) -->
+                                <StackPanel x:Name="VolumeStyleCard" Visibility="Collapsed">
+                                    <ContentControl Style="{StaticResource SectionHeader}" Content="Forme des réglages de volume"/>
+                                    <Border Style="{StaticResource RowCard}" local:SettingsSearch.Module="volumemixer" local:SettingsSearch.Keywords="barre cercle segments égaliseur volume">
+                                        <StackPanel Style="{StaticResource RowsPanel}">
+                                            <controls:SettingRow Label="Forme" Stacked="True"
+                                                                 Description="Toutes les formes se règlent au clic, en glissant ou à la molette, et prennent le dégradé du thème.">
+                                                <WrapPanel>
+                                                    <RadioButton Style="{StaticResource Chip}" Content="Barre verticale"
+                                                                 IsChecked="{Binding VolumeStyle, Converter={StaticResource Equals}, ConverterParameter=Vertical}"/>
+                                                    <RadioButton Style="{StaticResource Chip}" Content="Barre horizontale"
+                                                                 IsChecked="{Binding VolumeStyle, Converter={StaticResource Equals}, ConverterParameter=Horizontal}"/>
+                                                    <RadioButton Style="{StaticResource Chip}" Content="Cercle"
+                                                                 IsChecked="{Binding VolumeStyle, Converter={StaticResource Equals}, ConverterParameter=Circle}"/>
+                                                    <RadioButton Style="{StaticResource Chip}" Content="Demi-cercle"
+                                                                 IsChecked="{Binding VolumeStyle, Converter={StaticResource Equals}, ConverterParameter=Half}"/>
+                                                    <RadioButton Style="{StaticResource Chip}" Content="Segments (égaliseur)"
+                                                                 IsChecked="{Binding VolumeStyle, Converter={StaticResource Equals}, ConverterParameter=Segments}"/>
+                                                </WrapPanel>
+                                            </controls:SettingRow>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+
+                                <!-- Forme des jauges (module Disques uniquement) -->
+                                <StackPanel x:Name="DiskStyleCard" Visibility="Collapsed">
+                                    <ContentControl Style="{StaticResource SectionHeader}" Content="Forme des jauges"/>
+                                    <Border Style="{StaticResource RowCard}" local:SettingsSearch.Module="disk" local:SettingsSearch.Keywords="anneaux lignes barres jauges disque">
+                                        <StackPanel Style="{StaticResource RowsPanel}">
+                                            <controls:SettingRow Label="Forme" Stacked="True">
+                                                <WrapPanel>
+                                                    <RadioButton Style="{StaticResource Chip}" Content="Anneaux"
+                                                                 IsChecked="{Binding DiskStyle, Converter={StaticResource Equals}, ConverterParameter=Ring}"/>
+                                                    <RadioButton Style="{StaticResource Chip}" Content="Lignes horizontales"
+                                                                 IsChecked="{Binding DiskStyle, Converter={StaticResource Equals}, ConverterParameter=Bar}"/>
+                                                </WrapPanel>
+                                            </controls:SettingRow>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+
+                                <!-- Visualiseur audio uniquement -->
+                                <StackPanel x:Name="VisualizerCard" Visibility="Collapsed">
+                                    <ContentControl Style="{StaticResource SectionHeader}" Content="Visualiseur"/>
+                                    <Border Style="{StaticResource RowCard}" local:SettingsSearch.Module="visualizer" local:SettingsSearch.Keywords="spectre barres onde miroir sensibilité son audio">
+                                        <StackPanel Style="{StaticResource RowsPanel}">
+                                            <controls:SettingRow Description="Réagit à tout le son qui sort du PC (musique, jeux, vidéos), sur la sortie audio par défaut. Les couleurs suivent le dégradé du thème."/>
+                                            <controls:SettingRow Label="Forme" Stacked="True">
+                                                <WrapPanel>
+                                                    <RadioButton Style="{StaticResource Chip}" Content="Barres verticales"
+                                                                 IsChecked="{Binding VisualizerStyle, Converter={StaticResource Equals}, ConverterParameter=Bars}"/>
+                                                    <RadioButton Style="{StaticResource Chip}" Content="Onde miroir"
+                                                                 IsChecked="{Binding VisualizerStyle, Converter={StaticResource Equals}, ConverterParameter=Mirror}"/>
+                                                    <RadioButton Style="{StaticResource Chip}" Content="Cercle"
+                                                                 IsChecked="{Binding VisualizerStyle, Converter={StaticResource Equals}, ConverterParameter=Circle}"/>
+                                                </WrapPanel>
+                                            </controls:SettingRow>
+                                            <controls:SettingRow Label="Nombre de barres">
+                                                <DockPanel Width="260">
+                                                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding VisualizerBars}"/>
+                                                    <Slider Minimum="8" Maximum="96" Value="{Binding VisualizerBars}" IsSnapToTickEnabled="True" TickFrequency="4"/>
+                                                </DockPanel>
+                                            </controls:SettingRow>
+                                            <controls:SettingRow Label="Sensibilité">
+                                                <DockPanel Width="260">
+                                                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding VisualizerSensitivity, Converter={StaticResource Multiplier}}"/>
+                                                    <Slider Minimum="0.4" Maximum="2.5" Value="{Binding VisualizerSensitivity}" IsSnapToTickEnabled="True" TickFrequency="0.1"/>
+                                                </DockPanel>
+                                            </controls:SettingRow>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+
+                                <!-- Icônes des boutons (module Lecture en cours uniquement) -->
+                                <StackPanel x:Name="MediaIconsCard" Visibility="Collapsed">
+                                    <ContentControl Style="{StaticResource SectionHeader}" Content="Icônes des boutons"/>
+                                    <Border Style="{StaticResource RowCard}" local:SettingsSearch.Module="media" local:SettingsSearch.Keywords="boutons précédent suivant lecture pause stop icônes musique">
+                                        <StackPanel Style="{StaticResource RowsPanel}">
+                                            <controls:SettingRow Label="Jeu d'icônes" Description="Précédent, lecture, pause, suivant et stop." Stacked="True">
+                                                <WrapPanel>
+                                                    <RadioButton Style="{StaticResource Chip}" Content="Classique"
+                                                                 IsChecked="{Binding MediaIconSet, Converter={StaticResource Equals}, ConverterParameter=Classic}"/>
+                                                    <RadioButton Style="{StaticResource Chip}" Content="Plein"
+                                                                 IsChecked="{Binding MediaIconSet, Converter={StaticResource Equals}, ConverterParameter=Solid}"/>
+                                                    <RadioButton Style="{StaticResource Chip}" Content="Double flèche ◀◀ ▶▶"
+                                                                 IsChecked="{Binding MediaIconSet, Converter={StaticResource Equals}, ConverterParameter=Double}"/>
+                                                    <RadioButton Style="{StaticResource Chip}" Content="Chevrons"
+                                                                 IsChecked="{Binding MediaIconSet, Converter={StaticResource Equals}, ConverterParameter=Chevron}"/>
+                                                    <RadioButton Style="{StaticResource Chip}" Content="Néon"
+                                                                 IsChecked="{Binding MediaIconSet, Converter={StaticResource Equals}, ConverterParameter=Neon}"/>
+                                                </WrapPanel>
+                                            </controls:SettingRow>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+
+                                <!-- Fond de lecture (module Lecture en cours uniquement) -->
+                                <StackPanel x:Name="MediaBackgroundCard" Visibility="Collapsed">
+                                    <ContentControl Style="{StaticResource SectionHeader}" Content="Fond de lecture"/>
+                                    <Border Style="{StaticResource RowCard}" local:SettingsSearch.Module="media" local:SettingsSearch.Keywords="pochette flou animation spotify musique fond">
+                                        <StackPanel Style="{StaticResource RowsPanel}">
+                                            <controls:SettingRow Label="Fond" Stacked="True"
+                                                                 Description="Utilise la pochette du morceau en cours (Spotify, YouTube, lecteurs…) comme fond du module. L'opacité et le voile sombre se règlent dans « Image de fond » (onglet Style) ; sans lecture en cours, l'image de fond choisie reprend sa place.">
+                                                <WrapPanel>
+                                                    <RadioButton Style="{StaticResource Chip}" Content="Aucun"
+                                                                 IsChecked="{Binding MediaBackground, Converter={StaticResource Equals}, ConverterParameter=None}"/>
+                                                    <RadioButton Style="{StaticResource Chip}" Content="Pochette fixe"
+                                                                 IsChecked="{Binding MediaBackground, Converter={StaticResource Equals}, ConverterParameter=Cover}"/>
+                                                    <RadioButton Style="{StaticResource Chip}" Content="Pochette animée"
+                                                                 IsChecked="{Binding MediaBackground, Converter={StaticResource Equals}, ConverterParameter=Animated}"/>
+                                                </WrapPanel>
+                                            </controls:SettingRow>
+                                            <controls:SettingRow Label="Intensité du flou">
+                                                <DockPanel Width="260">
+                                                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding MediaBlur, Converter={StaticResource Percent}}"/>
+                                                    <Slider Minimum="0" Maximum="1" Value="{Binding MediaBlur}"/>
+                                                </DockPanel>
+                                            </controls:SettingRow>
+
+                                            <!-- Réglages de l'animation : seulement en mode « Pochette animée » -->
+                                            <StackPanel>
+                                                <StackPanel.Style>
+                                                    <Style TargetType="StackPanel">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding MediaBackground}" Value="Animated">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </StackPanel.Style>
+
+                                                <controls:SettingRow Label="Style d'animation" Stacked="True">
+                                                    <WrapPanel>
+                                                        <RadioButton Style="{StaticResource Chip}" Content="Zoom + glissement"
+                                                                     IsChecked="{Binding MediaAnimStyle, Converter={StaticResource Equals}, ConverterParameter=KenBurns}"/>
+                                                        <RadioButton Style="{StaticResource Chip}" Content="Zoom"
+                                                                     IsChecked="{Binding MediaAnimStyle, Converter={StaticResource Equals}, ConverterParameter=Zoom}"/>
+                                                        <RadioButton Style="{StaticResource Chip}" Content="Glissement"
+                                                                     IsChecked="{Binding MediaAnimStyle, Converter={StaticResource Equals}, ConverterParameter=Pan}"/>
+                                                        <RadioButton Style="{StaticResource Chip}" Content="Balancement"
+                                                                     IsChecked="{Binding MediaAnimStyle, Converter={StaticResource Equals}, ConverterParameter=Rotate}"/>
+                                                    </WrapPanel>
+                                                </controls:SettingRow>
+                                                <controls:SettingRow Label="Durée d'un cycle" Description="Plus court = plus rapide.">
+                                                    <DockPanel Width="260">
+                                                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding MediaAnimDuration, StringFormat={}{0:0} s}"/>
+                                                        <Slider Minimum="2" Maximum="60" Value="{Binding MediaAnimDuration}" IsSnapToTickEnabled="True" TickFrequency="1"/>
+                                                    </DockPanel>
+                                                </controls:SettingRow>
+                                                <controls:SettingRow Label="Intensité du zoom">
+                                                    <DockPanel Width="260">
+                                                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding MediaAnimZoom, Converter={StaticResource Percent}}"/>
+                                                        <Slider Minimum="0" Maximum="0.8" Value="{Binding MediaAnimZoom}"/>
+                                                    </DockPanel>
+                                                </controls:SettingRow>
+                                                <controls:SettingRow Label="Amplitude du mouvement" Description="Glissement et balancement.">
+                                                    <DockPanel Width="260">
+                                                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding MediaAnimPan, Converter={StaticResource Percent}}"/>
+                                                        <Slider Minimum="0" Maximum="0.25" Value="{Binding MediaAnimPan}"/>
+                                                    </DockPanel>
+                                                </controls:SettingRow>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+                            </StackPanel>
+
+                            <!-- ===== Onglet Éléments ===== -->
+                            <StackPanel x:Name="TabElements" Visibility="Collapsed">
+                                <ContentControl Style="{StaticResource SectionHeader}" Content="Éléments du module" Margin="2,10,0,8"/>
+                                <Border Style="{StaticResource RowCard}"
+                                        local:SettingsSearch.Keywords="déplacer masquer afficher taille position couleurs éléments">
+                                    <StackPanel Style="{StaticResource RowsPanel}">
+                                        <controls:SettingRow x:Name="EditOnSwitchRow" Visibility="Collapsed" Label="Éléments sur la Switch"
+                                                             Description="Déplace les éléments directement sur l'aperçu de la page Switch.">
+                                            <Button x:Name="EditOnSwitchButton" Content="Ouvrir l'aperçu de la Switch" Style="{StaticResource PrimaryButton}"
+                                                    Click="EditOnSwitch_Click"/>
+                                        </controls:SettingRow>
+                                        <controls:SettingRow x:Name="LayoutEditRow" Label="Déplacer les éléments sur le bureau"
+                                                             Description="Glisser pour déplacer · molette pour la taille · clic droit pour masquer (tous les modules).">
+                                            <CheckBox x:Name="LayoutEditCheck" Style="{StaticResource ToggleSwitch}" Margin="0"
+                                                      Checked="LayoutEdit_Changed" Unchecked="LayoutEdit_Changed"/>
+                                        </controls:SettingRow>
+
+                                        <Border Style="{StaticResource RowBorder}">
+                                            <StackPanel>
+                                                <!-- En-têtes de colonnes -->
+                                                <Grid Margin="0,0,0,2">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="54"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="202"/>
+                                                        <ColumnDefinition Width="66"/>
+                                                        <ColumnDefinition Width="36"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Text="Afficher" Style="{StaticResource FieldLabel}" Margin="0"/>
+                                                    <TextBlock Grid.Column="1" Text="Élément" Style="{StaticResource FieldLabel}" Margin="0"/>
+                                                    <TextBlock Grid.Column="2" Text="Taille" Style="{StaticResource FieldLabel}" Margin="0"/>
+                                                    <TextBlock Grid.Column="3" Text="Couleurs" Style="{StaticResource FieldLabel}" Margin="12,0,0,0"/>
+                                                </Grid>
+
+                                                <TextBlock x:Name="ElementsEmptyText" Style="{StaticResource FieldLabel}" TextWrapping="Wrap" Visibility="Collapsed" Margin="0,8,0,0"
+                                                           Text="Affiche ce module (page Modules) pour régler ses éléments."/>
+                                                <ItemsControl x:Name="ElementsList">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Border Style="{StaticResource ListRow}">
+                                                                <Grid>
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="54"/>
+                                                                        <ColumnDefinition Width="*"/>
+                                                                        <ColumnDefinition Width="150"/>
+                                                                        <ColumnDefinition Width="52"/>
+                                                                        <ColumnDefinition Width="66"/>
+                                                                        <ColumnDefinition Width="36"/>
+                                                                    </Grid.ColumnDefinitions>
+                                                                    <CheckBox Style="{StaticResource ToggleSwitch}" Margin="0" VerticalAlignment="Center"
+                                                                              IsChecked="{Binding Visible}" ToolTip="Afficher cet élément"/>
+                                                                    <TextBlock Grid.Column="1" Text="{Binding Label}" Foreground="{StaticResource UiText}" VerticalAlignment="Center"
+                                                                               TextTrimming="CharacterEllipsis" Margin="4,0,8,0"/>
+                                                                    <Slider Grid.Column="2" Minimum="0.3" Maximum="3" Value="{Binding Scale}" IsSnapToTickEnabled="True"
+                                                                            TickFrequency="0.05" VerticalAlignment="Center" IsEnabled="{Binding Visible}"/>
+                                                                    <TextBlock Grid.Column="3" Style="{StaticResource FieldValue}" Text="{Binding Scale, Converter={StaticResource Percent}}"/>
+                                                                    <StackPanel Grid.Column="4" Orientation="Horizontal" IsEnabled="{Binding Visible}" Margin="12,0,0,0">
+                                                                        <controls:ColorSwatch Style="{StaticResource ColorDot}" Hex="{Binding AccentStart}" Margin="0"
+                                                                                              ToolTip="Couleur de début du dégradé (pointillés = couleur du thème)"/>
+                                                                        <controls:ColorSwatch Style="{StaticResource ColorDot}" Hex="{Binding AccentEnd}"
+                                                                                              ToolTip="Couleur de fin du dégradé (pointillés = couleur du thème)"/>
+                                                                    </StackPanel>
+                                                                    <Button Grid.Column="5" Style="{StaticResource RowIconButton}" Content="&#xE72C;" Click="ResetElement_Click"
+                                                                            ToolTip="Réinitialiser cet élément (position, taille, visibilité, couleurs)"/>
+                                                                </Grid>
+                                                            </Border>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <Border Style="{StaticResource RowBorder}">
+                                            <WrapPanel>
+                                                <Button Content="Tout réafficher" Click="ShowHiddenElements_Click" Margin="0,0,8,0"/>
+                                                <Button Content="Tout réinitialiser" Click="ResetLayout_Click"/>
+                                            </WrapPanel>
+                                        </Border>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Sortie audio : nom court et icône de chaque périphérique (valables pour le bureau et la Switch) -->
+                                <StackPanel x:Name="AudioDevicesSection" Visibility="Collapsed">
+                                    <ContentControl Style="{StaticResource SectionHeader}" Content="Périphériques" Margin="2,18,0,8"/>
+                                    <Border Style="{StaticResource RowCard}" local:SettingsSearch.Module="audio"
+                                            local:SettingsSearch.Keywords="périphérique sortie audio nom court casque enceinte icône renommer">
+                                        <StackPanel Style="{StaticResource RowsPanel}">
+                                            <controls:SettingRow Description="Donne un nom court (« Casque », « Enceinte »…) et une icône à chaque sortie audio. Vide = nom d'origine, sans icône. Réglage commun au bureau et à la Switch."/>
+                                            <TextBlock x:Name="AudioDevicesEmptyText" Style="{StaticResource FieldLabel}" TextWrapping="Wrap" Visibility="Collapsed" Margin="0,8,0,8"
+                                                       Text="Aucune sortie audio détectée."/>
+                                            <ItemsControl x:Name="AudioDevicesList">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Border Style="{StaticResource ListRow}">
+                                                            <Grid>
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="32"/>
+                                                                    <ColumnDefinition Width="*"/>
+                                                                    <ColumnDefinition Width="190"/>
+                                                                    <ColumnDefinition Width="Auto"/>
+                                                                    <ColumnDefinition Width="36"/>
+                                                                </Grid.ColumnDefinitions>
+                                                                <controls:CustomIconView Icon="{Binding Icon}" IconColor="{Binding IconColor}" Size="18"
+                                                                                         HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                                                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,10,0">
+                                                                    <TextBlock Text="{Binding OriginalName}" Foreground="{StaticResource UiText}" TextTrimming="CharacterEllipsis"
+                                                                               ToolTip="{Binding OriginalName}"/>
+                                                                    <TextBlock Text="{Binding StatusText}" Style="{StaticResource FieldLabel}" Margin="0,2,0,0"/>
+                                                                </StackPanel>
+                                                                <Grid Grid.Column="2" VerticalAlignment="Center">
+                                                                    <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" MaxLength="40"
+                                                                             ToolTip="Nom affiché dans le widget à la place du nom complet"/>
+                                                                    <TextBlock Text="Nom affiché" Foreground="{StaticResource Muted}" IsHitTestVisible="False"
+                                                                               VerticalAlignment="Center" Margin="13,0,0,0" FontStyle="Italic"
+                                                                               Visibility="{Binding Name, Converter={StaticResource EmptyToVis}}"/>
+                                                                </Grid>
+                                                                <Button Grid.Column="3" Content="Icône…" Margin="8,0,0,0" VerticalAlignment="Center" Click="AudioDeviceIcon_Click"
+                                                                        ToolTip="Choisir le symbole, l'émoji ou l'image affiché à gauche du nom"/>
+                                                                <Button Grid.Column="4" Style="{StaticResource RowIconButton}" Content="&#xE72C;" Click="AudioDeviceReset_Click"
+                                                                        ToolTip="Réinitialiser ce périphérique (nom et icône d'origine)"/>
+                                                            </Grid>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+
+                                <!-- Volume par application : icône choisie à la place du logo automatique -->
+                                <StackPanel x:Name="AppIconsSection" Visibility="Collapsed">
+                                    <ContentControl Style="{StaticResource SectionHeader}" Content="Applications" Margin="2,18,0,8"/>
+                                    <Border Style="{StaticResource RowCard}" local:SettingsSearch.Module="volumemixer"
+                                            local:SettingsSearch.Keywords="application logo icône mixeur volume remplacer">
+                                        <StackPanel Style="{StaticResource RowsPanel}">
+                                            <controls:SettingRow Description="Choisis le logo de chaque application. « Réinitialiser » revient au logo trouvé automatiquement. Les applications apparaissent ici quand elles jouent du son (clic droit sur une application du widget : « Changer l'icône… »)."/>
+                                            <TextBlock x:Name="AppIconsEmptyText" Style="{StaticResource FieldLabel}" TextWrapping="Wrap" Visibility="Collapsed" Margin="0,8,0,8"
+                                                       Text="Aucune application vue pour l'instant : lance un son pour qu'elle apparaisse."/>
+                                            <ItemsControl x:Name="AppIconsList">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Border Style="{StaticResource ListRow}">
+                                                            <Grid>
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="34"/>
+                                                                    <ColumnDefinition Width="*"/>
+                                                                    <ColumnDefinition Width="Auto"/>
+                                                                    <ColumnDefinition Width="36"/>
+                                                                </Grid.ColumnDefinitions>
+                                                                <Grid Width="22" Height="22" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                                                    <Image Source="{Binding AutoIcon}" RenderOptions.BitmapScalingMode="HighQuality"
+                                                                           Visibility="{Binding ShowAuto, Converter={StaticResource BoolToVis}}"/>
+                                                                    <TextBlock Text="&#xE71D;" FontFamily="Segoe MDL2 Assets, Segoe Fluent Icons" FontSize="18"
+                                                                               HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{StaticResource UiText}"
+                                                                               Visibility="{Binding ShowFallback, Converter={StaticResource BoolToVis}}"/>
+                                                                    <controls:CustomIconView Icon="{Binding Icon}" IconColor="{Binding IconColor}" Size="22"
+                                                                                             HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                                </Grid>
+                                                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="0,0,10,0">
+                                                                    <TextBlock Text="{Binding DisplayName}" Foreground="{StaticResource UiText}" TextTrimming="CharacterEllipsis"/>
+                                                                    <TextBlock Text="{Binding StatusText}" Style="{StaticResource FieldLabel}" Margin="0,2,0,0"/>
+                                                                </StackPanel>
+                                                                <Button Grid.Column="2" Content="Icône…" VerticalAlignment="Center" Click="AppIcon_Click"
+                                                                        ToolTip="Choisir le logo de cette application"/>
+                                                                <Button Grid.Column="3" Style="{StaticResource RowIconButton}" Content="&#xE72C;" Click="AppIconReset_Click"
+                                                                        ToolTip="Revenir au logo automatique"/>
+                                                            </Grid>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+                            </StackPanel>
+
+                            <!-- ===== Onglet Boutons (Sortie audio, Volume par application, Lecture en cours) ===== -->
+                            <StackPanel x:Name="TabButtons" Visibility="Collapsed">
+                                <ContentControl Style="{StaticResource SectionHeader}" Content="Boutons du module" Margin="2,10,0,8"/>
+                                <Border Style="{StaticResource RowCard}"
+                                        local:SettingsSearch.Keywords="boutons couleur fond survol icône masquer afficher lecture pause muet utiliser fermer">
+                                    <StackPanel Style="{StaticResource RowsPanel}">
+                                        <controls:SettingRow Description="Pour chaque bouton : couleur de fond, du texte ou de l'icône, couleur au survol, icône de remplacement et affichage. Pointillés = couleur du thème."/>
+                                        <Border Style="{StaticResource RowBorder}">
+                                            <StackPanel>
+                                                <Grid Margin="0,0,0,2">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="54"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="44"/>
+                                                        <ColumnDefinition Width="44"/>
+                                                        <ColumnDefinition Width="44"/>
+                                                        <ColumnDefinition Width="132"/>
+                                                        <ColumnDefinition Width="36"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Text="Afficher" Style="{StaticResource FieldLabel}" Margin="0"/>
+                                                    <TextBlock Grid.Column="1" Text="Bouton" Style="{StaticResource FieldLabel}" Margin="0"/>
+                                                    <TextBlock Grid.Column="2" Text="Fond" Style="{StaticResource FieldLabel}" Margin="0"/>
+                                                    <TextBlock Grid.Column="3" Text="Texte" Style="{StaticResource FieldLabel}" Margin="0"/>
+                                                    <TextBlock Grid.Column="4" Text="Survol" Style="{StaticResource FieldLabel}" Margin="0"/>
+                                                    <TextBlock Grid.Column="5" Text="Icône" Style="{StaticResource FieldLabel}" Margin="8,0,0,0"/>
+                                                </Grid>
+                                                <ItemsControl x:Name="ButtonPartsList">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Border Style="{StaticResource ListRow}">
+                                                                <Grid>
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="54"/>
+                                                                        <ColumnDefinition Width="*"/>
+                                                                        <ColumnDefinition Width="44"/>
+                                                                        <ColumnDefinition Width="44"/>
+                                                                        <ColumnDefinition Width="44"/>
+                                                                        <ColumnDefinition Width="132"/>
+                                                                        <ColumnDefinition Width="36"/>
+                                                                    </Grid.ColumnDefinitions>
+                                                                    <CheckBox Style="{StaticResource ToggleSwitch}" Margin="0" VerticalAlignment="Center"
+                                                                              IsChecked="{Binding Style.Visible}" ToolTip="Afficher ce bouton"/>
+                                                                    <TextBlock Grid.Column="1" Text="{Binding Label}" Foreground="{StaticResource UiText}" VerticalAlignment="Center"
+                                                                               TextTrimming="CharacterEllipsis" Margin="4,0,8,0" ToolTip="{Binding Label}"/>
+                                                                    <controls:ColorSwatch Grid.Column="2" Style="{StaticResource ColorDot}" Hex="{Binding Style.Background}" Margin="0"
+                                                                                          IsEnabled="{Binding Style.Visible}" ToolTip="Fond du bouton (pointillés = couleur du thème)"/>
+                                                                    <controls:ColorSwatch Grid.Column="3" Style="{StaticResource ColorDot}" Hex="{Binding Style.Foreground}" Margin="0"
+                                                                                          IsEnabled="{Binding Style.Visible}" ToolTip="Texte ou icône du bouton (pointillés = couleur du thème)"/>
+                                                                    <controls:ColorSwatch Grid.Column="4" Style="{StaticResource ColorDot}" Hex="{Binding Style.HoverBackground}" Margin="0"
+                                                                                          IsEnabled="{Binding HoverEnabled}" ToolTip="{Binding HoverTip}"/>
+                                                                    <DockPanel Grid.Column="5" Margin="8,0,0,0" IsEnabled="{Binding Style.Visible}">
+                                                                        <controls:CustomIconView DockPanel.Dock="Left" Icon="{Binding Style.Glyph}" Size="18" Margin="0,0,8,0"
+                                                                                                 VerticalAlignment="Center"/>
+                                                                        <Button Content="Icône…" VerticalAlignment="Center" Click="ButtonIcon_Click"
+                                                                                ToolTip="Remplacer le contenu du bouton par un symbole, un émoji ou une image"/>
+                                                                    </DockPanel>
+                                                                    <Button Grid.Column="6" Style="{StaticResource RowIconButton}" Content="&#xE72C;" Click="ResetButtonRow_Click"
+                                                                            ToolTip="Réinitialiser ce bouton (fond, texte, survol, icône, affichage)"/>
+                                                                </Grid>
+                                                            </Border>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </StackPanel>
+                                        </Border>
+                                        <Border Style="{StaticResource RowBorder}">
+                                            <Button Content="Tout réinitialiser" Click="ResetButtons_Click" HorizontalAlignment="Left"/>
+                                        </Border>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+
+                            <!-- ===== Onglet Textes ===== -->
+                            <StackPanel x:Name="TabTexts" Visibility="Collapsed">
+                                <ContentControl Style="{StaticResource SectionHeader}" Content="Textes du module" Margin="2,10,0,8"/>
+                                <Border Style="{StaticResource RowCard}"
+                                        local:SettingsSearch.Keywords="renommer libellé titre police taille texte">
+                                    <StackPanel Style="{StaticResource RowsPanel}">
+                                        <controls:SettingRow Description="Les titres et libellés peuvent être renommés ; les valeurs (températures, pourcentages…) gardent leur texte. Dans une liste (disques, applications…), le réglage vaut pour toutes les lignes."/>
+
+                                        <ItemsControl x:Name="TextPartsList">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Style="{StaticResource ListRow}">
+                                                        <Grid>
+                                                            <Grid.RowDefinitions>
+                                                                <RowDefinition Height="Auto"/>
+                                                                <RowDefinition Height="Auto"/>
+                                                            </Grid.RowDefinitions>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="54"/>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="36"/>
+                                                                <ColumnDefinition Width="150"/>
+                                                                <ColumnDefinition Width="52"/>
+                                                                <ColumnDefinition Width="36"/>
+                                                            </Grid.ColumnDefinitions>
+
+                                                            <CheckBox Style="{StaticResource ToggleSwitch}" Margin="0" VerticalAlignment="Center"
+                                                                      IsChecked="{Binding Style.Visible}" ToolTip="Afficher ce texte"/>
+                                                            <TextBlock Grid.Column="1" Text="{Binding Label}" Foreground="{StaticResource UiText}" VerticalAlignment="Center"
+                                                                       TextTrimming="CharacterEllipsis" Margin="4,0,8,0"/>
+                                                            <controls:ColorSwatch Grid.Column="2" Style="{StaticResource ColorDot}" Hex="{Binding Style.Color}" Margin="0"
+                                                                                  IsEnabled="{Binding Style.Visible}" ToolTip="Couleur du texte (pointillés = couleur du thème)"/>
+                                                            <Slider Grid.Column="3" Minimum="0.4" Maximum="3" Value="{Binding Style.Scale}" IsSnapToTickEnabled="True"
+                                                                    TickFrequency="0.05" VerticalAlignment="Center" IsEnabled="{Binding Style.Visible}" ToolTip="Taille de ce texte"/>
+                                                            <TextBlock Grid.Column="4" Style="{StaticResource FieldValue}" Text="{Binding Style.Scale, Converter={StaticResource Percent}}"/>
+                                                            <Button Grid.Column="5" Style="{StaticResource RowIconButton}" Content="&#xE72C;" Click="ResetTextRow_Click"
+                                                                    ToolTip="Réinitialiser ce texte (libellé, police, taille, couleur)"/>
+
+                                                            <!-- Seconde ligne : libellé personnalisé (textes fixes) et police -->
+                                                            <Grid Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="5" Margin="4,8,0,0" IsEnabled="{Binding Style.Visible}">
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="*"/>
+                                                                    <ColumnDefinition Width="12"/>
+                                                                    <ColumnDefinition Width="230"/>
+                                                                </Grid.ColumnDefinitions>
+                                                                <Grid Visibility="{Binding Editable, Converter={StaticResource BoolToVis}}">
+                                                                    <TextBox Text="{Binding Style.CustomText, UpdateSourceTrigger=PropertyChanged}" MaxLength="60"
+                                                                             ToolTip="Texte affiché à la place de l'original ; vide = texte d'origine"/>
+                                                                    <TextBlock Text="{Binding DefaultText}" Foreground="{StaticResource Muted}" IsHitTestVisible="False"
+                                                                               VerticalAlignment="Center" Margin="13,0,0,0" FontStyle="Italic"
+                                                                               Visibility="{Binding Style.CustomText, Converter={StaticResource EmptyToVis}}"/>
+                                                                </Grid>
+                                                                <controls:FontPicker Grid.Column="2" AllowThemeDefault="True" ShowImport="False" FontKey="{Binding Style.Font}"/>
+                                                            </Grid>
+                                                        </Grid>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+
+                                        <!-- Échelle propre au module (s'ajoute à la taille du texte du thème) -->
+                                        <controls:SettingRow Label="Taille de tous les textes du module"
+                                                             Description="S'ajoute à la taille du texte réglée dans le thème.">
+                                            <DockPanel Width="400">
+                                                <Button DockPanel.Dock="Right" Content="Tout réinitialiser" Margin="12,0,0,0" Click="ResetTexts_Click"/>
+                                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding FontScale, Converter={StaticResource Percent}}"/>
+                                                <Slider Minimum="0.5" Maximum="2" Value="{Binding FontScale}" IsSnapToTickEnabled="True" TickFrequency="0.05"/>
+                                            </DockPanel>
+                                        </controls:SettingRow>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+
+                            <!-- ===== Onglet Style : couleurs et polices, carte, jauges, animations ===== -->
+                            <!-- Chaque section suit le thème global tant que « Propre à ce module » est éteint. -->
+                            <StackPanel x:Name="TabStyle" Visibility="Collapsed">
+                                <DockPanel Margin="0,8,0,0" local:SettingsSearch.Ignore="True">
+                                    <Button DockPanel.Dock="Right" Style="{StaticResource LinkButton}" Content="Modifier le thème global"
+                                            Click="EditGlobalTheme_Click"/>
+                                    <TextBlock Text="Chaque section suit le thème global tant que « Propre à ce module » est éteint."
+                                               Foreground="{StaticResource Muted}" FontSize="12" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                                </DockPanel>
+
+                                <!-- Couleurs et polices -->
+                                <StackPanel x:Name="StyleColorsSection">
+                                    <ContentControl Style="{StaticResource SectionHeader}" Content="Couleurs et polices"/>
+                                    <Border Style="{StaticResource RowCard}" local:SettingsSearch.Keywords="couleur couleurs police polices dégradé thème texte boutons">
+                                        <StackPanel Style="{StaticResource RowsPanel}">
+                                            <controls:SettingRow Label="Propre à ce module" Description="Dégradé, couleur des textes et des boutons, polices.">
+                                                <CheckBox Style="{StaticResource ToggleSwitch}" Margin="0" IsChecked="{Binding UseCustomTheme}"/>
+                                            </controls:SettingRow>
+                                            <Border x:Name="InheritColorsBar" Style="{StaticResource RowBorder}" BorderThickness="0" Padding="0,2,0,14" local:SettingsSearch.Ignore="True">
+                                                <TextBlock Text="Suit le thème global" Foreground="{StaticResource Muted}" FontStyle="Italic"/>
+                                            </Border>
+                                            <Border x:Name="ColorsEditorHost" Padding="0,0,0,16">
+                                                <controls:ThemeEditor x:Name="ColorsEditor" Section="ColorsFonts" Embedded="True"/>
+                                            </Border>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+
+                                <!-- Carte (et image de fond) -->
+                                <StackPanel x:Name="StyleCardSection">
+                                    <ContentControl Style="{StaticResource SectionHeader}" Content="Carte"/>
+                                    <Border Style="{StaticResource RowCard}" local:SettingsSearch.Keywords="carte fond contour opacité arrondi coins bulles">
+                                        <StackPanel Style="{StaticResource RowsPanel}">
+                                            <controls:SettingRow Label="Propre à ce module" Description="Couleurs du fond et du contour, opacités, arrondi.">
+                                                <CheckBox Style="{StaticResource ToggleSwitch}" Margin="0" IsChecked="{Binding CustomCard}"/>
+                                            </controls:SettingRow>
+                                            <Border x:Name="InheritCardBar" Style="{StaticResource RowBorder}" BorderThickness="0" Padding="0,2,0,14" local:SettingsSearch.Ignore="True">
+                                                <TextBlock Text="Suit le thème global" Foreground="{StaticResource Muted}" FontStyle="Italic"/>
+                                            </Border>
+                                            <Border x:Name="CardEditorHost" Padding="0,0,0,16">
+                                                <controls:ThemeEditor x:Name="CardEditor" Section="Card" Embedded="True"/>
+                                            </Border>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <ContentControl Style="{StaticResource SectionHeader}" Content="Image de fond"/>
+                                    <Border Style="{StaticResource RowCard}" local:SettingsSearch.Keywords="image fond opacité voile sombre arrière-plan">
+                                        <StackPanel Style="{StaticResource RowsPanel}">
+                                            <controls:SettingRow Label="Image" Stacked="True">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <Border Width="190" Height="110" CornerRadius="8" Background="{StaticResource UiHover}" BorderBrush="{StaticResource InputBorder}"
+                                                            BorderThickness="1" Margin="0,0,18,0" VerticalAlignment="Top">
+                                                        <Grid>
+                                                            <TextBlock Text="Aucune image" Foreground="{StaticResource Muted}" FontSize="11.5"
+                                                                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                            <Border CornerRadius="7" Background="{Binding BackgroundImage, Converter={StaticResource ImageToBrush}}"
+                                                                    Opacity="{Binding BackgroundImageOpacity}"/>
+                                                        </Grid>
+                                                    </Border>
+                                                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
+                                                        <Button Content="Choisir une image…" Style="{StaticResource PrimaryButton}" Click="ChooseBackground_Click" Margin="0,0,8,0"/>
+                                                        <Button Content="Retirer" Click="RemoveBackground_Click"/>
+                                                    </StackPanel>
+                                                </Grid>
+                                            </controls:SettingRow>
+                                            <controls:SettingRow Label="Opacité de l'image">
+                                                <DockPanel Width="260">
+                                                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding BackgroundImageOpacity, Converter={StaticResource Percent}}"/>
+                                                    <Slider Minimum="0.05" Maximum="1" Value="{Binding BackgroundImageOpacity}"/>
+                                                </DockPanel>
+                                            </controls:SettingRow>
+                                            <controls:SettingRow Label="Voile sombre" Description="Améliore la lisibilité des textes.">
+                                                <DockPanel Width="260">
+                                                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding BackgroundDim, Converter={StaticResource Percent}}"/>
+                                                    <Slider Minimum="0" Maximum="0.9" Value="{Binding BackgroundDim}"/>
+                                                </DockPanel>
+                                            </controls:SettingRow>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+
+                                <!-- Jauges (masquées pour un module sans option de jauge) -->
+                                <StackPanel x:Name="StyleGaugesSection">
+                                    <ContentControl Style="{StaticResource SectionHeader}" Content="Jauges"/>
+                                    <Border Style="{StaticResource RowCard}" local:SettingsSearch.Keywords="jauge jauges forme épaisseur graduations halo">
+                                        <StackPanel Style="{StaticResource RowsPanel}">
+                                            <controls:SettingRow Label="Propre à ce module" Description="Style, forme, épaisseur, graduations, halo.">
+                                                <CheckBox Style="{StaticResource ToggleSwitch}" Margin="0" IsChecked="{Binding CustomGauges}"/>
+                                            </controls:SettingRow>
+                                            <Border x:Name="InheritGaugesBar" Style="{StaticResource RowBorder}" BorderThickness="0" Padding="0,2,0,14" local:SettingsSearch.Ignore="True">
+                                                <TextBlock Text="Suit le thème global" Foreground="{StaticResource Muted}" FontStyle="Italic"/>
+                                            </Border>
+                                            <Border x:Name="GaugesEditorHost" Padding="0,0,0,16">
+                                                <controls:ThemeEditor x:Name="GaugesEditor" Section="Gauges" Embedded="True"/>
+                                            </Border>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+
+                                <!-- Animations -->
+                                <StackPanel x:Name="StyleAnimationsSection">
+                                    <ContentControl Style="{StaticResource SectionHeader}" Content="Animations"/>
+                                    <Border Style="{StaticResource RowCard}" local:SettingsSearch.Keywords="animation animations durée mouvement fondu">
+                                        <StackPanel Style="{StaticResource RowsPanel}">
+                                            <controls:SettingRow Label="Propre à ce module" Description="Durée, mouvement, remplissage et apparition.">
+                                                <CheckBox Style="{StaticResource ToggleSwitch}" Margin="0" IsChecked="{Binding CustomAnimations}"/>
+                                            </controls:SettingRow>
+                                            <Border x:Name="InheritAnimationsBar" Style="{StaticResource RowBorder}" BorderThickness="0" Padding="0,2,0,14" local:SettingsSearch.Ignore="True">
+                                                <TextBlock Text="Suit le thème global" Foreground="{StaticResource Muted}" FontStyle="Italic"/>
+                                            </Border>
+                                            <Border x:Name="AnimationsEditorHost" Padding="0,0,0,16">
+                                                <controls:ThemeEditor x:Name="AnimationsEditor" Section="Animations" Embedded="True"/>
+                                            </Border>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+
+                                <Button Content="Revenir au thème global" HorizontalAlignment="Left" Margin="0,20,0,8" local:SettingsSearch.Ignore="True"
+                                        Click="ResetModuleTheme_Click"
+                                        ToolTip="Désactive les 4 réglages « Propre à ce module » : le module suit de nouveau le thème global"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+
+                <!-- ===== Page : Barre de raccourcis ===== -->
+                <ScrollViewer x:Name="PageDock" Grid.Row="1" Style="{StaticResource PageScroller}" Visibility="Collapsed">
+                    <StackPanel>
+                        <TextBlock Text="Barre de raccourcis" Style="{StaticResource PageTitle}"/>
+                        <TextBlock Text="Apparence et comportement du dock de lancement rapide." Style="{StaticResource PageSubtitle}"/>
+
+                        <ContentControl Style="{StaticResource SectionHeader}" Content="Disposition"/>
+                        <Border Style="{StaticResource RowCard}" local:SettingsSearch.Keywords="dock orientation horizontale verticale icônes espacement taille animation survol">
+                            <StackPanel Style="{StaticResource RowsPanel}">
+                                <controls:SettingRow Label="Orientation">
+                                    <WrapPanel>
+                                        <RadioButton x:Name="OrientationHorizontal" Style="{StaticResource Chip}" Content="Horizontale" GroupName="DockOrientation" Checked="DockStyle_RadioChanged" Margin="0,0,0,0"/>
+                                        <RadioButton x:Name="OrientationVertical" Style="{StaticResource Chip}" Content="Verticale" GroupName="DockOrientation" Checked="DockStyle_RadioChanged" Margin="6,0,0,0"/>
+                                    </WrapPanel>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Sens de l'animation au survol" Stacked="True">
+                                    <WrapPanel>
+                                        <RadioButton x:Name="DirUp" Style="{StaticResource Chip}" Content="Vers le haut" GroupName="DockDirection" Checked="DockStyle_RadioChanged"/>
+                                        <RadioButton x:Name="DirDown" Style="{StaticResource Chip}" Content="Vers le bas" GroupName="DockDirection" Checked="DockStyle_RadioChanged"/>
+                                        <RadioButton x:Name="DirLeft" Style="{StaticResource Chip}" Content="Vers la gauche" GroupName="DockDirection" Checked="DockStyle_RadioChanged"/>
+                                        <RadioButton x:Name="DirRight" Style="{StaticResource Chip}" Content="Vers la droite" GroupName="DockDirection" Checked="DockStyle_RadioChanged"/>
+                                    </WrapPanel>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Taille des icônes">
+                                    <DockPanel Width="260">
+                                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding Value, ElementName=IconSizeSlider, StringFormat={}{0:0} px}"/>
+                                        <Slider x:Name="IconSizeSlider" Minimum="30" Maximum="80" ValueChanged="DockStyle_SliderChanged"/>
+                                    </DockPanel>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Espacement des icônes">
+                                    <DockPanel Width="260">
+                                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding Value, ElementName=IconSpacingSlider, StringFormat={}{0:0} px}"/>
+                                        <Slider x:Name="IconSpacingSlider" Minimum="0" Maximum="24" ValueChanged="DockStyle_SliderChanged"/>
+                                    </DockPanel>
+                                </controls:SettingRow>
+                            </StackPanel>
+                        </Border>
+
+                        <ContentControl Style="{StaticResource SectionHeader}" Content="Transparence"/>
+                        <Border Style="{StaticResource RowCard}" local:SettingsSearch.Keywords="dock opacité fond contour transparent">
+                            <StackPanel Style="{StaticResource RowsPanel}">
+                                <controls:SettingRow Label="Opacité du fond">
+                                    <DockPanel Width="260">
+                                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding Value, ElementName=DockPanelOpacitySlider, Converter={StaticResource Percent}}"/>
+                                        <Slider x:Name="DockPanelOpacitySlider" Minimum="0" Maximum="1" ValueChanged="DockOpacitySlider_Changed"/>
+                                    </DockPanel>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Opacité du contour">
+                                    <DockPanel Width="260">
+                                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding Value, ElementName=DockBorderOpacitySlider, Converter={StaticResource Percent}}"/>
+                                        <Slider x:Name="DockBorderOpacitySlider" Minimum="0" Maximum="1" ValueChanged="DockOpacitySlider_Changed"/>
+                                    </DockPanel>
+                                </controls:SettingRow>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- ===== Page : Switch ===== -->
+                <ScrollViewer x:Name="PageSwitch" Grid.Row="1" Style="{StaticResource PageScroller}" Visibility="Collapsed">
+                    <StackPanel>
+                        <TextBlock Text="Switch" Style="{StaticResource PageTitle}"/>
+                        <TextBlock Text="Écran de la Switch (câble USB-C). Place les éléments à la souris : l'aperçu montre en direct ce qu'affiche la Switch."
+                                   Style="{StaticResource PageSubtitle}"/>
+
+                        <!-- Ordre de la page : Écran, Horloge et veille, Disposition, Éléments, Applications, Fond -->
+                        <ContentControl Style="{StaticResource SectionHeader}" Content="Écran"/>
+                        <Border Style="{StaticResource RowCard}" local:SettingsSearch.Keywords="luminosité brightness fps images seconde taille tuiles switch écran activer">
+                            <StackPanel Style="{StaticResource RowsPanel}">
+                                <controls:SettingRow Label="Utiliser la Switch"
+                                                     Description="Désactivé : SysDeck ne cherche plus la Switch (la disposition reste modifiable).">
+                                    <CheckBox x:Name="DeckEnabledCheck" Style="{StaticResource ToggleSwitch}" Margin="0"
+                                              Checked="DeckEnabled_Changed" Unchecked="DeckEnabled_Changed"/>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Luminosité">
+                                    <DockPanel Width="260">
+                                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding Value, ElementName=DeckBrightnessSlider, StringFormat={}{0:0} %}"/>
+                                        <Slider x:Name="DeckBrightnessSlider" Minimum="5" Maximum="100" ValueChanged="DeckSlider_Changed"/>
+                                    </DockPanel>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Images par seconde (maximum)">
+                                    <DockPanel Width="260">
+                                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding Value, ElementName=DeckFpsSlider, StringFormat={}{0:0}}"/>
+                                        <Slider x:Name="DeckFpsSlider" Minimum="2" Maximum="30" IsSnapToTickEnabled="True" TickFrequency="1" ValueChanged="DeckSlider_Changed"/>
+                                    </DockPanel>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Taille des tuiles" Description="Raccourcis et applications.">
+                                    <DockPanel Width="260">
+                                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding Value, ElementName=DeckTileSlider, StringFormat={}{0:0} px}"/>
+                                        <Slider x:Name="DeckTileSlider" Minimum="60" Maximum="240" ValueChanged="DeckSlider_Changed"/>
+                                    </DockPanel>
+                                </controls:SettingRow>
+                            </StackPanel>
+                        </Border>
+
+                        <ContentControl Style="{StaticResource SectionHeader}" Content="Horloge et veille"/>
+                        <Border Style="{StaticResource RowCard}" local:SettingsSearch.Keywords="horloge nuit veille éteint luminosité minimale heure fond">
+                            <StackPanel Style="{StaticResource RowsPanel}">
+                                <controls:SettingRow Label="Opacité du fond de l'horloge">
+                                    <DockPanel Width="260">
+                                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding Value, ElementName=DeckClockOpacitySlider, Converter={StaticResource Percent}}"/>
+                                        <Slider x:Name="DeckClockOpacitySlider" Minimum="0" Maximum="1" ValueChanged="DeckSlider_Changed"/>
+                                    </DockPanel>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Horloge quand le PC est éteint"
+                                                     Description="La Switch (câble branché) garde le fond et l'heure à luminosité minimale. Nécessite l'élément Horloge sur la page affichée, sinon le fond seul.">
+                                    <CheckBox x:Name="DeckNightClockCheck" Style="{StaticResource ToggleSwitch}" Margin="0"
+                                              Checked="DeckNightClock_Changed" Unchecked="DeckNightClock_Changed"/>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Luminosité la nuit">
+                                    <DockPanel Width="260">
+                                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding Value, ElementName=DeckNightBrightnessSlider, StringFormat={}{0:0} %}"/>
+                                        <Slider x:Name="DeckNightBrightnessSlider" Minimum="1" Maximum="30" IsSnapToTickEnabled="True" TickFrequency="1" ValueChanged="DeckSlider_Changed"/>
+                                    </DockPanel>
+                                </controls:SettingRow>
+                            </StackPanel>
+                        </Border>
+
+                        <DockPanel>
+                            <TextBlock x:Name="DeckStatusText" DockPanel.Dock="Right" FontSize="12" Foreground="{StaticResource Muted}" VerticalAlignment="Bottom" Margin="0,0,0,8"/>
+                            <ContentControl Style="{StaticResource SectionHeader}" Content="Disposition de l'écran"/>
+                        </DockPanel>
+                        <Border Style="{StaticResource Card}" local:SettingsSearch.Title="Disposition de l'écran">
+                            <StackPanel>
+                                <!-- Pages : chacune a ses propres éléments ; sur la Switch, glisser à gauche / à droite change de page. -->
+                                <WrapPanel>
+                                    <ListBox x:Name="DeckPagesList" Style="{StaticResource ChipList}" DisplayMemberPath="Name"
+                                             SelectionChanged="DeckPages_SelectionChanged"/>
+                                    <Button Content="Nouvelle page" VerticalAlignment="Top" Margin="0,0,0,8" Click="DeckPageAdd_Click"/>
+                                </WrapPanel>
+                                <DockPanel Margin="0,0,0,14">
+                                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                        <Button Content="&#xE76B;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" ToolTip="Déplacer la page vers la gauche" Click="DeckPageLeft_Click"/>
+                                        <Button Content="&#xE76C;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" ToolTip="Déplacer la page vers la droite" Margin="6,0,0,0" Click="DeckPageRight_Click"/>
+                                        <Button x:Name="DeckPageRemoveButton" Content="Supprimer la page" Style="{StaticResource DangerButton}" Margin="6,0,0,0" Click="DeckPageRemove_Click"/>
+                                    </StackPanel>
+                                    <TextBlock Text="Nom de la page" Style="{StaticResource FieldLabel}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                    <TextBox x:Name="DeckPageNameBox" MaxWidth="260" HorizontalAlignment="Left" MinWidth="180" TextChanged="DeckPageName_Changed"/>
+                                </DockPanel>
+                                <controls:DeckLayoutEditor x:Name="DeckEditor"/>
+                                <TextBlock x:Name="DeckEditorHint" FontSize="11.5" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,10,0,0"
+                                           Text="Éléments : glisser pour déplacer · molette pour la taille · clic droit pour masquer ou réinitialiser. Clic droit sur une zone vide : réafficher un élément masqué."/>
+                            </StackPanel>
+                        </Border>
+
+                        <ContentControl Style="{StaticResource SectionHeader}" Content="Éléments affichés"/>
+                        <Border Style="{StaticResource Card}">
+                            <ItemsControl x:Name="DeckElementsList">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <UniformGrid Columns="3"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <!-- Interrupteur à gauche du nom ; un clic sur le nom bascule aussi l'interrupteur. -->
+                                        <Border Background="Transparent" Cursor="Hand" Margin="0,0,14,10" MouseLeftButtonUp="DeckElementLabel_Click">
+                                            <StackPanel Orientation="Horizontal">
+                                                <CheckBox Style="{StaticResource ToggleSwitch}" Margin="0"
+                                                          IsChecked="{Binding IsVisible, Mode=OneTime}" Tag="{Binding Id}"
+                                                          Checked="DeckElementCheck_Changed" Unchecked="DeckElementCheck_Changed"/>
+                                                <TextBlock Text="{Binding Label}" FontSize="13" VerticalAlignment="Center" Margin="8,0,0,0" TextTrimming="CharacterEllipsis"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Border>
+
+                        <ContentControl Style="{StaticResource SectionHeader}" Content="Applications de la page"/>
+                        <Border Style="{StaticResource RowCard}" AllowDrop="True" DragOver="DeckApps_DragOver" Drop="DeckApps_Drop"
+                                local:SettingsSearch.Keywords="applications tuiles ajouter tuile lien fichier dossier url arguments commande éteindre redémarrer veille verrouiller fermer session shutdown micro muet son muet coupé sortie audio confirmer second appui icône image symbole émoji raccourci clavier touches combinaison multimédia opacité fond transparence">
+                            <StackPanel Style="{StaticResource RowsPanel}">
+                                <controls:SettingRow Description="Tuiles propres à la page affichée, sans passer par la barre de raccourcis. « Ajouter une tuile… » propose : application installée, lien ou fichier, commande (éteindre, redémarrer, veille, verrouiller…), raccourci clavier, micro muet et son muet. Tu peux aussi glisser des .exe ou des .lnk ici depuis l'Explorateur."/>
+                                <Border Style="{StaticResource RowBorder}">
+                                    <StackPanel>
+                                        <ItemsControl x:Name="DeckAppsList">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <DockPanel Margin="0,0,0,6">
+                                                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                                            <Button Content="Modifier…" ToolTip="Modifier cette tuile (nom, lien, commande, combinaison, périphérique, icône)"
+                                                                    Height="30" VerticalAlignment="Center" Tag="{Binding Item}" Click="DeckTileEdit_Click"/>
+                                                            <Button Content="Icône…" ToolTip="Changer l'icône de cette tuile"
+                                                                    Height="30" VerticalAlignment="Center" Margin="8,0,0,0" Tag="{Binding Item}" Click="DeckAppIcon_Click"/>
+                                                            <Button Content="&#xE76B;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" ToolTip="Échanger avec la tuile précédente"
+                                                                    Height="30" MinWidth="34" VerticalAlignment="Center" Margin="8,0,0,0" Tag="{Binding Item}" Click="DeckAppLeft_Click"/>
+                                                            <Button Content="&#xE76C;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" ToolTip="Échanger avec la tuile suivante"
+                                                                    Height="30" MinWidth="34" VerticalAlignment="Center" Margin="8,0,0,0" Tag="{Binding Item}" Click="DeckAppRight_Click"/>
+                                                            <Button Content="&#xE711;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" ToolTip="Retirer de la page"
+                                                                    Style="{StaticResource DangerButton}" Height="30" MinWidth="34" VerticalAlignment="Center" Margin="8,0,0,0" Tag="{Binding Item}" Click="DeckAppRemove_Click"/>
+                                                        </StackPanel>
+                                                        <ContentControl Content="{Binding Icon}" Width="22" Height="22" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis"/>
+                                                            <TextBlock Text="{Binding Detail}" Foreground="{StaticResource Muted}" FontSize="12" Margin="10,1,0,0"/>
+                                                            <TextBlock Text="{Binding Warning}" Foreground="{StaticResource Muted}" FontStyle="Italic" FontSize="12" Margin="10,1,0,0"/>
+                                                        </StackPanel>
+                                                    </DockPanel>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        <TextBlock x:Name="DeckAppsEmpty" Text="Aucune application sur cette page." FontSize="12" Foreground="{StaticResource Muted}"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Style="{StaticResource RowBorder}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button Content="Ajouter une tuile…" Style="{StaticResource PrimaryButton}" Click="DeckTileAdd_Click"/>
+                                    </StackPanel>
+                                </Border>
+                                <controls:SettingRow Label="Opacité du fond des applications">
+                                    <DockPanel Width="260">
+                                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding Value, ElementName=DeckAppsOpacitySlider, Converter={StaticResource Percent}}"/>
+                                        <Slider x:Name="DeckAppsOpacitySlider" Minimum="0" Maximum="1" ValueChanged="DeckSlider_Changed"/>
+                                    </DockPanel>
+                                </controls:SettingRow>
+                            </StackPanel>
+                        </Border>
+
+                        <ContentControl Style="{StaticResource SectionHeader}" Content="Fond"/>
+                        <Border Style="{StaticResource RowCard}" local:SettingsSearch.Keywords="fond image couleur assombrissement arrière-plan">
+                            <StackPanel Style="{StaticResource RowsPanel}">
+                                <controls:SettingRow Label="Couleur de fond">
+                                    <controls:ColorSwatch x:Name="DeckBackgroundSwatch" Content="Couleur" Margin="0"/>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Image de fond">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button Content="Choisir une image…" Style="{StaticResource PrimaryButton}" Click="DeckBackgroundImage_Click"/>
+                                        <Button Content="Retirer" Margin="10,0,0,0" Click="DeckBackgroundImageClear_Click"/>
+                                    </StackPanel>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Assombrissement de l'image">
+                                    <DockPanel Width="260">
+                                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding Value, ElementName=DeckDimSlider, Converter={StaticResource Percent}}"/>
+                                        <Slider x:Name="DeckDimSlider" Minimum="0" Maximum="0.9" ValueChanged="DeckSlider_Changed"/>
+                                    </DockPanel>
+                                </controls:SettingRow>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- ===== Page : Alertes ===== DataContext = réglages Alerts -->
+                <ScrollViewer x:Name="PageAlerts" Grid.Row="1" Style="{StaticResource PageScroller}" Visibility="Collapsed">
+                    <StackPanel x:Name="AlertsPanel">
+                        <TextBlock Text="Alertes" Style="{StaticResource PageTitle}"/>
+                        <TextBlock Text="SysDeck te prévient en bas à droite de l'écran quand un seuil est dépassé. Chaque alerte ne s'affiche qu'une fois par dépassement, puis se réarme quand la valeur redescend. Pas besoin que le module soit affiché."
+                                   Style="{StaticResource PageSubtitle}"/>
+
+                        <ContentControl Style="{StaticResource SectionHeader}" Content="Processeur"/>
+                        <Border Style="{StaticResource RowCard}" local:SettingsSearch.Keywords="alerte cpu processeur température chaud surchauffe">
+                            <StackPanel Style="{StaticResource RowsPanel}">
+                                <controls:SettingRow Label="Prévenir quand le processeur chauffe"
+                                                     Description="Après quelques secondes au-dessus du seuil, pour ignorer les pics brefs.">
+                                    <CheckBox Style="{StaticResource ToggleSwitch}" Margin="0" IsChecked="{Binding CpuEnabled}"/>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Température d'alerte" IsEnabled="{Binding CpuEnabled}">
+                                    <DockPanel Width="260">
+                                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding CpuTemperature, StringFormat={}{0:0} °C}"/>
+                                        <Slider Minimum="50" Maximum="105" Value="{Binding CpuTemperature}" IsSnapToTickEnabled="True" TickFrequency="1"/>
+                                    </DockPanel>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Tester l'alerte" Description="Affiche une alerte d'exemple.">
+                                    <Button Content="Tester" Tag="CpuTemperature" Click="TestAlert_Click"/>
+                                </controls:SettingRow>
+                            </StackPanel>
+                        </Border>
+
+                        <ContentControl Style="{StaticResource SectionHeader}" Content="Carte graphique"/>
+                        <Border Style="{StaticResource RowCard}" local:SettingsSearch.Keywords="alerte gpu carte graphique température chaud surchauffe">
+                            <StackPanel Style="{StaticResource RowsPanel}">
+                                <controls:SettingRow Label="Prévenir quand la carte graphique chauffe"
+                                                     Description="Après quelques secondes au-dessus du seuil, pour ignorer les pics brefs.">
+                                    <CheckBox Style="{StaticResource ToggleSwitch}" Margin="0" IsChecked="{Binding GpuEnabled}"/>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Température d'alerte" IsEnabled="{Binding GpuEnabled}">
+                                    <DockPanel Width="260">
+                                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding GpuTemperature, StringFormat={}{0:0} °C}"/>
+                                        <Slider Minimum="50" Maximum="105" Value="{Binding GpuTemperature}" IsSnapToTickEnabled="True" TickFrequency="1"/>
+                                    </DockPanel>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Tester l'alerte" Description="Affiche une alerte d'exemple.">
+                                    <Button Content="Tester" Tag="GpuTemperature" Click="TestAlert_Click"/>
+                                </controls:SettingRow>
+                            </StackPanel>
+                        </Border>
+
+                        <ContentControl Style="{StaticResource SectionHeader}" Content="Batterie de la souris"/>
+                        <Border Style="{StaticResource RowCard}" local:SettingsSearch.Keywords="alerte souris batterie logitech charge faible">
+                            <StackPanel Style="{StaticResource RowsPanel}">
+                                <controls:SettingRow Label="Prévenir quand la batterie de la souris est faible"
+                                                     Description="Jamais pendant la charge. Vérifiée toutes les 30 secondes.">
+                                    <CheckBox Style="{StaticResource ToggleSwitch}" Margin="0" IsChecked="{Binding MouseEnabled}"/>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Niveau d'alerte" IsEnabled="{Binding MouseEnabled}">
+                                    <DockPanel Width="260">
+                                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding MousePercent, StringFormat={}{0:0} %}"/>
+                                        <Slider Minimum="5" Maximum="50" Value="{Binding MousePercent}" IsSnapToTickEnabled="True" TickFrequency="1"/>
+                                    </DockPanel>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Tester l'alerte" Description="Affiche une alerte d'exemple.">
+                                    <Button Content="Tester" Tag="MouseBattery" Click="TestAlert_Click"/>
+                                </controls:SettingRow>
+                            </StackPanel>
+                        </Border>
+
+                        <ContentControl Style="{StaticResource SectionHeader}" Content="Quota Claude"/>
+                        <Border Style="{StaticResource RowCard}" local:SettingsSearch.Keywords="alerte claude quota session semaine limite usage">
+                            <StackPanel Style="{StaticResource RowsPanel}">
+                                <controls:SettingRow Label="Prévenir pour la session de 5 h"
+                                                     Description="Lu toutes les 2 minutes auprès de Claude Code.">
+                                    <CheckBox Style="{StaticResource ToggleSwitch}" Margin="0" IsChecked="{Binding ClaudeSessionEnabled}"/>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Prévenir à partir de" IsEnabled="{Binding ClaudeSessionEnabled}">
+                                    <DockPanel Width="260">
+                                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding ClaudeSessionPercent, StringFormat={}{0:0} %}"/>
+                                        <Slider Minimum="10" Maximum="100" Value="{Binding ClaudeSessionPercent}" IsSnapToTickEnabled="True" TickFrequency="5"/>
+                                    </DockPanel>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Tester l'alerte de session" Description="Affiche une alerte d'exemple.">
+                                    <Button Content="Tester" Tag="ClaudeSession" Click="TestAlert_Click"/>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Prévenir pour le quota de la semaine">
+                                    <CheckBox Style="{StaticResource ToggleSwitch}" Margin="0" IsChecked="{Binding ClaudeWeekEnabled}"/>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Prévenir à partir de" IsEnabled="{Binding ClaudeWeekEnabled}">
+                                    <DockPanel Width="260">
+                                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding ClaudeWeekPercent, StringFormat={}{0:0} %}"/>
+                                        <Slider Minimum="10" Maximum="100" Value="{Binding ClaudeWeekPercent}" IsSnapToTickEnabled="True" TickFrequency="5"/>
+                                    </DockPanel>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Tester l'alerte de la semaine" Description="Affiche une alerte d'exemple.">
+                                    <Button Content="Tester" Tag="ClaudeWeek" Click="TestAlert_Click"/>
+                                </controls:SettingRow>
+                            </StackPanel>
+                        </Border>
+
+                        <ContentControl Style="{StaticResource SectionHeader}" Content="Apparence des alertes"/>
+                        <Border Style="{StaticResource RowCard}" local:SettingsSearch.Keywords="alerte apparence couleur transparence opacité fond arrondi position coin taille contour ombre">
+                            <StackPanel Style="{StaticResource RowsPanel}">
+                                <controls:SettingRow Label="Couleur du fond">
+                                    <controls:ColorSwatch Content="Fond" Hex="{Binding BackgroundColor}" Margin="0"/>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Opacité du fond">
+                                    <DockPanel Width="260">
+                                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding BackgroundOpacity, Converter={StaticResource Percent}}"/>
+                                        <Slider Minimum="0.2" Maximum="1" Value="{Binding BackgroundOpacity}" IsSnapToTickEnabled="True" TickFrequency="0.01"/>
+                                    </DockPanel>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Arrondi des coins">
+                                    <DockPanel Width="260">
+                                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding CornerRadius, StringFormat={}{0:0} px}"/>
+                                        <Slider Minimum="0" Maximum="30" Value="{Binding CornerRadius}" IsSnapToTickEnabled="True" TickFrequency="1"/>
+                                    </DockPanel>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Taille">
+                                    <DockPanel Width="260">
+                                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding Scale, Converter={StaticResource Percent}}"/>
+                                        <Slider Minimum="0.7" Maximum="1.5" Value="{Binding Scale}" IsSnapToTickEnabled="True" TickFrequency="0.05"/>
+                                    </DockPanel>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Couleur selon le type d'alerte"
+                                                     Description="Orange (température), jaune (souris), violet (Claude), rouge si critique. Sinon, ta couleur.">
+                                    <CheckBox Style="{StaticResource ToggleSwitch}" Margin="0" IsChecked="{Binding AutoAccent}"/>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Couleur des alertes" IsEnabled="{Binding AutoAccent, Converter={StaticResource InverseBool}}">
+                                    <controls:ColorSwatch Content="Couleur" Hex="{Binding AccentColor}" Margin="0"/>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Contour coloré">
+                                    <CheckBox Style="{StaticResource ToggleSwitch}" Margin="0" IsChecked="{Binding ShowBorder}"/>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Ombre et halo lumineux">
+                                    <CheckBox Style="{StaticResource ToggleSwitch}" Margin="0" IsChecked="{Binding ShowGlow}"/>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Position à l'écran" Stacked="True">
+                                    <WrapPanel>
+                                        <RadioButton Style="{StaticResource Chip}" Content="En bas à droite" IsChecked="{Binding Position, Converter={StaticResource Equals}, ConverterParameter=BottomRight}"/>
+                                        <RadioButton Style="{StaticResource Chip}" Content="En haut à droite" IsChecked="{Binding Position, Converter={StaticResource Equals}, ConverterParameter=TopRight}"/>
+                                        <RadioButton Style="{StaticResource Chip}" Content="En bas à gauche" IsChecked="{Binding Position, Converter={StaticResource Equals}, ConverterParameter=BottomLeft}"/>
+                                        <RadioButton Style="{StaticResource Chip}" Content="En haut à gauche" IsChecked="{Binding Position, Converter={StaticResource Equals}, ConverterParameter=TopLeft}"/>
+                                    </WrapPanel>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Aperçu de l'apparence" Description="Affiche une alerte d'exemple avec ces réglages.">
+                                    <Button Content="Aperçu" Style="{StaticResource PrimaryButton}" Tag="CpuTemperature" Click="TestAlert_Click"/>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Valeurs d'origine" Description="Remet l'apparence des alertes par défaut.">
+                                    <Button Content="Réinitialiser" Click="ResetAlertLook_Click"/>
+                                </controls:SettingRow>
+                            </StackPanel>
+                        </Border>
+
+                        <ContentControl Style="{StaticResource SectionHeader}" Content="Affichage"/>
+                        <Border Style="{StaticResource RowCard}" local:SettingsSearch.Keywords="alerte son durée notification">
+                            <StackPanel Style="{StaticResource RowsPanel}">
+                                <controls:SettingRow Label="Jouer un son avec l'alerte">
+                                    <CheckBox Style="{StaticResource ToggleSwitch}" Margin="0" IsChecked="{Binding SoundEnabled}"/>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Durée d'affichage" Description="Reste affichée tant que la souris est dessus.">
+                                    <DockPanel Width="260">
+                                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding DurationSeconds, StringFormat={}{0:0} s}"/>
+                                        <Slider Minimum="3" Maximum="30" Value="{Binding DurationSeconds}" IsSnapToTickEnabled="True" TickFrequency="1"/>
+                                    </DockPanel>
+                                </controls:SettingRow>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- ===== Page : Correction de texte ===== -->
+                <ScrollViewer x:Name="PageCorrection" Grid.Row="1" Style="{StaticResource PageScroller}" Visibility="Collapsed">
+                    <StackPanel>
+                        <TextBlock Text="Correction de texte" Style="{StaticResource PageTitle}"/>
+                        <TextBlock Text="Sélectionne du texte dans n'importe quelle fenêtre puis appuie sur CTRL+ESPACE pour le corriger via l'API Gemini."
+                                   Style="{StaticResource PageSubtitle}"/>
+                        <ContentControl Style="{StaticResource SectionHeader}" Content="Clé API Gemini"/>
+                        <Border Style="{StaticResource RowCard}" local:SettingsSearch.Keywords="gemini google api clé correction orthographe ia">
+                            <StackPanel Style="{StaticResource RowsPanel}">
+                                <controls:SettingRow Label="Clé API Gemini" Description="Nécessaire pour corriger le texte sélectionné.">
+                                    <StackPanel Orientation="Horizontal">
+                                        <PasswordBox x:Name="GeminiApiKeyBox" Width="240"/>
+                                        <Button Content="Enregistrer la clé" Style="{StaticResource PrimaryButton}" Margin="10,0,0,0" Click="SaveGeminiKey_Click"/>
+                                    </StackPanel>
+                                </controls:SettingRow>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- ===== Page : Émojis ===== -->
+                <ScrollViewer x:Name="PageEmoji" Grid.Row="1" Style="{StaticResource PageScroller}" Visibility="Collapsed">
+                    <StackPanel>
+                        <TextBlock Text="Émojis" Style="{StaticResource PageTitle}"/>
+                        <TextBlock Text="Un raccourci ouvre le sélecteur d'émojis ; un clic insère l'émoji dans le champ de texte où tu écris (navigateur, Discord, Word…). Le sélecteur reste ouvert jusqu'à ce que tu cliques sur sa croix."
+                                   Style="{StaticResource PageSubtitle}"/>
+
+                        <ContentControl Style="{StaticResource SectionHeader}" Content="Raccourci clavier"/>
+                        <Border Style="{StaticResource RowCard}" local:SettingsSearch.Keywords="hotkey touche combinaison emoji émoji ctrl">
+                            <StackPanel Style="{StaticResource RowsPanel}">
+                                <controls:SettingRow Label="Combinaison"
+                                                     Description="Clique dans la zone puis appuie sur ta combinaison (avec Ctrl, Maj, Alt ou Win). Évite Ctrl+Alt : sur un clavier AZERTY, c'est la touche AltGr (€, @, #…).">
+                                    <StackPanel Orientation="Horizontal">
+                                        <controls:HotkeyBox x:Name="EmojiHotkeyBox" Width="200" Style="{StaticResource {x:Type TextBox}}"
+                                                            GestureCaptured="EmojiHotkeyBox_GestureCaptured" CaptureStateChanged="EmojiHotkeyBox_CaptureStateChanged"/>
+                                        <Button Content="Désactiver" Margin="8,0,0,0" Click="ClearEmojiHotkey_Click"/>
+                                    </StackPanel>
+                                </controls:SettingRow>
+                                <Border Style="{StaticResource RowBorder}" BorderThickness="0">
+                                    <TextBlock x:Name="EmojiHotkeyStatus" Style="{StaticResource FieldLabel}" TextWrapping="Wrap" Margin="0"/>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Apparence du sélecteur ; DataContext = réglages EmojiPicker -->
+                        <ContentControl Style="{StaticResource SectionHeader}" Content="Apparence du sélecteur"/>
+                        <Border x:Name="EmojiAppearanceCard" Style="{StaticResource RowCard}">
+                            <StackPanel Style="{StaticResource RowsPanel}">
+                                <controls:SettingRow Description="Le sélecteur est transparent : on voit ce qu'il y a derrière à travers son fond."/>
+                                <controls:SettingRow Label="Couleurs">
+                                    <WrapPanel>
+                                        <controls:ColorSwatch Content="Fond" Hex="{Binding BackgroundColor}" Margin="0"/>
+                                        <controls:ColorSwatch Content="Bordure" Hex="{Binding BorderColor}" Margin="10,0,0,0"/>
+                                    </WrapPanel>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Opacité du fond">
+                                    <DockPanel Width="260">
+                                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding BackgroundOpacity, Converter={StaticResource Percent}}"/>
+                                        <Slider Minimum="0" Maximum="1" Value="{Binding BackgroundOpacity}" IsSnapToTickEnabled="True" TickFrequency="0.01"/>
+                                    </DockPanel>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Opacité de la bordure">
+                                    <DockPanel Width="260">
+                                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding BorderOpacity, Converter={StaticResource Percent}}"/>
+                                        <Slider Minimum="0" Maximum="1" Value="{Binding BorderOpacity}" IsSnapToTickEnabled="True" TickFrequency="0.01"/>
+                                    </DockPanel>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Arrondi des coins">
+                                    <DockPanel Width="260">
+                                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding CornerRadius, StringFormat={}{0:0} px}"/>
+                                        <Slider Minimum="0" Maximum="36" Value="{Binding CornerRadius}" IsSnapToTickEnabled="True" TickFrequency="1"/>
+                                    </DockPanel>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Valeurs d'origine">
+                                    <Button Content="Réinitialiser" Click="ResetEmojiAppearance_Click"/>
+                                </controls:SettingRow>
+                            </StackPanel>
+                        </Border>
+
+                        <ContentControl Style="{StaticResource SectionHeader}" Content="Émojis récents"/>
+                        <Border Style="{StaticResource RowCard}">
+                            <StackPanel Style="{StaticResource RowsPanel}">
+                                <controls:SettingRow Label="Effacer les émojis récents"
+                                                     Description="Les derniers émojis insérés sont proposés en premier, dans l'onglet « Récents » du sélecteur.">
+                                    <Button Content="Effacer" Click="ClearRecentEmojis_Click"/>
+                                </controls:SettingRow>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- ===== Page : Général ===== -->
+                <ScrollViewer x:Name="PageGeneral" Grid.Row="1" Style="{StaticResource PageScroller}" Visibility="Collapsed">
+                    <StackPanel>
+                        <TextBlock Text="Général" Style="{StaticResource PageTitle}"/>
+                        <TextBlock Text="Application, éléments masqués et réinitialisation." Style="{StaticResource PageSubtitle}"/>
+
+                        <!-- Mesure des FPS (module Carte graphique) -->
+                        <ContentControl Style="{StaticResource SectionHeader}" Content="Application"/>
+                        <Border Style="{StaticResource RowCard}" local:SettingsSearch.Title="Images par seconde (FPS)"
+                                local:SettingsSearch.Keywords="fps jeu jeux images seconde presentmon performance autoriser mesure carte graphique gpu">
+                            <StackPanel Style="{StaticResource RowsPanel}">
+                                <controls:SettingRow Label="Images par seconde (FPS)"
+                                                     Description="La tuile FPS du module Carte graphique affiche les images par seconde du jeu au premier plan (DirectX, Vulkan, OpenGL), mesurées par PresentMon d'Intel. Windows réserve cette mesure aux administrateurs et au groupe « Utilisateurs du journal de performances » : il suffit d'y ajouter ton compte une fois.">
+                                    <Button x:Name="FpsPermissionButton" Content="Autoriser la mesure des FPS" Style="{StaticResource PrimaryButton}"
+                                            Click="FpsPermission_Click"/>
+                                </controls:SettingRow>
+                                <Border Style="{StaticResource RowBorder}" BorderThickness="0">
+                                    <TextBlock x:Name="FpsStatusText" TextWrapping="Wrap" FontWeight="SemiBold"/>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+
+                        <ContentControl Style="{StaticResource SectionHeader}" Content="Éléments masqués"/>
+                        <Border Style="{StaticResource RowCard}" local:SettingsSearch.Keywords="réafficher périphériques audio mixeur applications masqués">
+                            <StackPanel Style="{StaticResource RowsPanel}">
+                                <controls:SettingRow Label="Périphériques audio" Description="Réaffiche tous les périphériques audio masqués.">
+                                    <Button Content="Réafficher" Click="ResetHiddenAudio_Click"/>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Applications du mixeur" Description="Réaffiche toutes les applications masquées du mixeur de volume.">
+                                    <Button Content="Réafficher" Click="ResetHiddenVolumeMixerApps_Click"/>
+                                </controls:SettingRow>
+                            </StackPanel>
+                        </Border>
+
+                        <ContentControl Style="{StaticResource SectionHeader}" Content="Réinitialisation"/>
+                        <Border Style="{StaticResource RowCard}" local:SettingsSearch.Keywords="reset remettre zéro défaut valeurs d'origine apparence réinitialiser">
+                            <StackPanel Style="{StaticResource RowsPanel}">
+                                <controls:SettingRow Label="Apparence"
+                                                     Description="Remet le thème global et l'apparence de tous les modules aux valeurs d'origine. Les positions, raccourcis et éléments masqués sont conservés.">
+                                    <Button x:Name="ResetAppearanceButton" Content="Réinitialiser toute l'apparence" Style="{StaticResource DangerButton}"
+                                            Click="ResetAppearance_Click"/>
+                                </controls:SettingRow>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- ===== Page : Énergie (module Consommation électrique) ===== DataContext = réglages Power -->
+                <ScrollViewer x:Name="PageEnergy" Grid.Row="1" Style="{StaticResource PageScroller}" Visibility="Collapsed">
+                    <StackPanel x:Name="EnergyPanel">
+                        <TextBlock Text="Énergie" Style="{StaticResource PageTitle}"/>
+                        <TextBlock Text="Prix de l'électricité et estimation de la consommation, utilisés par le module Consommation électrique."
+                                   Style="{StaticResource PageSubtitle}"/>
+
+                        <ContentControl Style="{StaticResource SectionHeader}" Content="Prix de l'électricité"/>
+                        <Border Style="{StaticResource RowCard}"
+                                local:SettingsSearch.Keywords="prix tarif kwh facture euro électricité heures creuses pleines watts puissance coût estimation consommation">
+                            <StackPanel Style="{StaticResource RowsPanel}">
+                                <controls:SettingRow Description="Prix TTC du kWh indiqué sur ta facture. Il est appliqué à chaque mesure : le changer ne modifie pas les montants déjà comptés."/>
+                                <controls:SettingRow Label="Prix du kWh (€)" Description="Heures pleines si l'option heures creuses est active.">
+                                    <TextBox Width="120" Text="{Binding PricePerKwh, Converter={StaticResource DecimalText}, UpdateSourceTrigger=LostFocus}"/>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Heures pleines / heures creuses"
+                                                     Description="Un second prix s'applique pendant la plage des heures creuses.">
+                                    <CheckBox Style="{StaticResource ToggleSwitch}" Margin="0" IsChecked="{Binding UseOffPeak}"/>
+                                </controls:SettingRow>
+                                <StackPanel Visibility="{Binding UseOffPeak, Converter={StaticResource BoolToVis}}">
+                                    <controls:SettingRow Label="Prix du kWh en heures creuses (€)">
+                                        <TextBox Width="120" Text="{Binding OffPeakPricePerKwh, Converter={StaticResource DecimalText}, UpdateSourceTrigger=LostFocus}"/>
+                                    </controls:SettingRow>
+                                    <controls:SettingRow Label="Début des heures creuses">
+                                        <DockPanel Width="260">
+                                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding OffPeakStartHour, Converter={StaticResource Hour}}"/>
+                                            <Slider Minimum="0" Maximum="23.5" Value="{Binding OffPeakStartHour}" IsSnapToTickEnabled="True" TickFrequency="0.5"/>
+                                        </DockPanel>
+                                    </controls:SettingRow>
+                                    <controls:SettingRow Label="Fin des heures creuses">
+                                        <DockPanel Width="260">
+                                            <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding OffPeakEndHour, Converter={StaticResource Hour}}"/>
+                                            <Slider Minimum="0" Maximum="23.5" Value="{Binding OffPeakEndHour}" IsSnapToTickEnabled="True" TickFrequency="0.5"/>
+                                        </DockPanel>
+                                    </controls:SettingRow>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <ContentControl Style="{StaticResource SectionHeader}" Content="Estimation de la puissance"/>
+                        <Border Style="{StaticResource RowCard}" local:SettingsSearch.Keywords="watts puissance processeur écran alimentation rendement jauge estimation">
+                            <StackPanel Style="{StaticResource RowsPanel}">
+                                <controls:SettingRow Description="La carte graphique est mesurée par son capteur. Le processeur aussi quand son capteur est accessible ; sinon (Intégrité de la mémoire activée) il est estimé selon sa charge, entre les deux valeurs ci-dessous. Le reste n'a aucun capteur : c'est un forfait."/>
+                                <controls:SettingRow Label="Processeur au repos" Description="Si estimé.">
+                                    <DockPanel Width="260">
+                                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding CpuIdleWatts, StringFormat={}{0:0} W}"/>
+                                        <Slider Minimum="5" Maximum="100" Value="{Binding CpuIdleWatts}" IsSnapToTickEnabled="True" TickFrequency="1"/>
+                                    </DockPanel>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Processeur à pleine charge" Description="Si estimé.">
+                                    <DockPanel Width="260">
+                                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding CpuMaxWatts, StringFormat={}{0:0} W}"/>
+                                        <Slider Minimum="30" Maximum="350" Value="{Binding CpuMaxWatts}" IsSnapToTickEnabled="True" TickFrequency="5"/>
+                                    </DockPanel>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Autres composants" Description="Carte mère, RAM, SSD, ventilateurs, USB.">
+                                    <DockPanel Width="260">
+                                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding OtherWatts, StringFormat={}{0:0} W}"/>
+                                        <Slider Minimum="0" Maximum="200" Value="{Binding OtherWatts}" IsSnapToTickEnabled="True" TickFrequency="5"/>
+                                    </DockPanel>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Écran(s)" Description="0 pour ne pas les compter.">
+                                    <DockPanel Width="260">
+                                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding MonitorWatts, StringFormat={}{0:0} W}"/>
+                                        <Slider Minimum="0" Maximum="300" Value="{Binding MonitorWatts}" IsSnapToTickEnabled="True" TickFrequency="5"/>
+                                    </DockPanel>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Rendement de l'alimentation" Description="80+ Gold ≈ 90 %.">
+                                    <DockPanel Width="260">
+                                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding PsuEfficiency, Converter={StaticResource Percent}}"/>
+                                        <Slider Minimum="0.7" Maximum="0.98" Value="{Binding PsuEfficiency}" IsSnapToTickEnabled="True" TickFrequency="0.01"/>
+                                    </DockPanel>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Maximum de la jauge">
+                                    <DockPanel Width="260">
+                                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding GaugeMaxWatts, StringFormat={}{0:0} W}"/>
+                                        <Slider Minimum="100" Maximum="1500" Value="{Binding GaugeMaxWatts}" IsSnapToTickEnabled="True" TickFrequency="50"/>
+                                    </DockPanel>
+                                </controls:SettingRow>
+                            </StackPanel>
+                        </Border>
+
+                        <ContentControl Style="{StaticResource SectionHeader}" Content="Heures d'utilisation"/>
+                        <Border Style="{StaticResource RowCard}" local:SettingsSearch.Keywords="jour soir heures début fin utilisation">
+                            <StackPanel Style="{StaticResource RowsPanel}">
+                                <controls:SettingRow Description="Le temps d'allumage (hors veille) est réparti en « jour » et « soir ». Le soir va de la fin du jour jusqu'au début du jour suivant. Les heures déjà mesurées gardent la plage en vigueur au moment de la mesure ; les heures reprises du journal Windows suivent le réglage actuel."/>
+                                <controls:SettingRow Label="Début du jour">
+                                    <DockPanel Width="260">
+                                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding DayStartHour, Converter={StaticResource Hour}}"/>
+                                        <Slider Minimum="0" Maximum="23.5" Value="{Binding DayStartHour}" IsSnapToTickEnabled="True" TickFrequency="0.5"/>
+                                    </DockPanel>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Fin du jour" Description="Début du soir.">
+                                    <DockPanel Width="260">
+                                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding DayEndHour, Converter={StaticResource Hour}}"/>
+                                        <Slider Minimum="0" Maximum="23.5" Value="{Binding DayEndHour}" IsSnapToTickEnabled="True" TickFrequency="0.5"/>
+                                    </DockPanel>
+                                </controls:SettingRow>
+                            </StackPanel>
+                        </Border>
+
+                        <ContentControl Style="{StaticResource SectionHeader}" Content="Depuis la mise en service"/>
+                        <Border Style="{StaticResource RowCard}" local:SettingsSearch.Keywords="mise en service date installation windows journal moyenne remise zéro cumul réinitialiser session mois">
+                            <StackPanel Style="{StaticResource RowsPanel}">
+                                <controls:SettingRow Description="Avant SysDeck, rien n'a été mesuré : les heures d'allumage sont reprises du journal Windows (qui ne garde que les derniers mois), puis extrapolées jusqu'à la mise en service au même rythme. Elles sont comptées à la puissance moyenne ci-dessous et au prix actuel. C'est une estimation."/>
+                                <controls:SettingRow Label="Date de la première mise en service" Description="jj/mm/aaaa — vide = installation de Windows.">
+                                    <TextBox Width="120" Text="{Binding FirstPowerOnDate, Converter={StaticResource DateText}, UpdateSourceTrigger=LostFocus, TargetNullValue=''}"/>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Puissance moyenne avant SysDeck" Description="0 = moyenne mesurée par SysDeck.">
+                                    <DockPanel Width="260">
+                                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding PastAverageWatts, StringFormat={}{0:0} W}"/>
+                                        <Slider Minimum="0" Maximum="800" Value="{Binding PastAverageWatts}" IsSnapToTickEnabled="True" TickFrequency="10"/>
+                                    </DockPanel>
+                                </controls:SettingRow>
+                                <Border Style="{StaticResource RowBorder}">
+                                    <Border Background="{StaticResource UiHover}" CornerRadius="6" Padding="12,10">
+                                        <TextBlock x:Name="LifetimeDetailsText" FontSize="11.5" Foreground="{StaticResource Muted}" TextWrapping="Wrap" LineHeight="18"/>
+                                    </Border>
+                                </Border>
+                                <controls:SettingRow Label="Compteurs de la période" Description="Le cumul depuis la mise en service est conservé.">
+                                    <Button x:Name="ResetPowerButton" Content="Réinitialiser session, jour et mois" Click="ResetPower_Click"/>
+                                </controls:SettingRow>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>

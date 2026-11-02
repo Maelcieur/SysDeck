@@ -1,0 +1,50 @@
+<Window x:Class="SysDeck.AddCommandTileWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="SysDeck — Commande"
+        Width="440" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize" ShowInTaskbar="False"
+        FontFamily="Segoe UI" Foreground="#E7E8EB" Background="#1A1B1F">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Themes/SettingsStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+    <StackPanel Margin="20">
+        <TextBlock x:Name="TitleText" Text="Ajouter une commande" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,4"/>
+        <TextBlock Text="Toucher la tuile exécute la ligne de commande, sans fenêtre (cmd.exe /c)."
+                   FontSize="11.5" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,14"/>
+
+        <TextBlock Text="Préréglage" Style="{StaticResource FieldLabel}"/>
+        <ComboBox x:Name="PresetBox" Margin="0,0,0,4" SelectionChanged="Preset_Changed"/>
+        <TextBlock x:Name="PresetHint" FontSize="11" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,14"
+                   Text="Remplit le nom, la commande et l'icône ; tout reste modifiable."/>
+
+        <TextBlock Text="Nom" Style="{StaticResource FieldLabel}"/>
+        <TextBox x:Name="NameBox" Margin="0,0,0,14"/>
+
+        <TextBlock Text="Commande" Style="{StaticResource FieldLabel}"/>
+        <TextBox x:Name="CommandBox" Margin="0,0,0,14" FontFamily="Consolas"/>
+
+        <CheckBox x:Name="ConfirmCheck" Style="{StaticResource ToggleSwitch}" Content="Confirmer par un second appui" Margin="0,0,0,2"/>
+        <TextBlock Text="Premier appui : la tuile devient rouge pendant 3 s ; il faut toucher une seconde fois pour exécuter."
+                   FontSize="11" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,10"/>
+
+        <CheckBox x:Name="AdminCheck" Style="{StaticResource ToggleSwitch}" Content="Exécuter en administrateur" Margin="0,0,0,2"/>
+        <TextBlock Text="Windows demande une autorisation à chaque exécution."
+                   FontSize="11" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,14"/>
+
+        <TextBlock Text="Icône" Style="{StaticResource FieldLabel}"/>
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,20">
+            <ContentControl x:Name="IconHost" Width="32" Height="32" VerticalAlignment="Center" Margin="0,0,12,0"/>
+            <Button Content="Icône…" Click="Icon_Click"/>
+        </StackPanel>
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="Annuler" Margin="0,0,8,0" Click="Cancel_Click"/>
+            <Button x:Name="AddButton" Content="Ajouter" Style="{StaticResource PrimaryButton}" Click="Add_Click"/>
+        </StackPanel>
+    </StackPanel>
+</Window>

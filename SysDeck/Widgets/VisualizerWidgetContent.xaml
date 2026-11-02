@@ -1,0 +1,15 @@
+<UserControl x:Class="SysDeck.Widgets.VisualizerWidgetContent"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:SysDeck.Controls"
+             Width="260">
+    <StackPanel>
+        <DockPanel controls:Movable.Key="title">
+            <TextBlock controls:TextPart.Key="device" x:Name="DeviceText" DockPanel.Dock="Right" Text="" Style="{StaticResource SubText}"
+                       FontSize="10" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="150" Margin="8,0,0,0"/>
+            <TextBlock controls:TextPart.Key="title" Text="VISUALISEUR" Style="{StaticResource WidgetCaption}"/>
+        </DockPanel>
+
+        <controls:SpectrumVisualizer x:Name="Spectrum" controls:Movable.Key="spectrum" Height="80" Margin="0,8,0,0"/>
+    </StackPanel>
+</UserControl>

@@ -112,6 +112,23 @@ public sealed class VoicemodSettings
     public bool Enabled { get; set; }
 }
 
+/// <summary>Réglages des plugins : ceux que l'utilisateur a désactivés, et les réglages globaux que chacun enregistre (<c>setGlobalSettings</c>).</summary>
+public sealed class PluginsConfig
+{
+    public List<string> Disabled { get; set; } = new();
+    public Dictionary<string, System.Text.Json.Nodes.JsonObject> Global { get; set; } = new();
+
+    /// <summary>Plugins installés depuis le catalogue : dépôt GitHub et version, pour proposer les mises à jour.</summary>
+    public Dictionary<string, PluginSource> Sources { get; set; } = new();
+}
+
+/// <summary>Origine d'un plugin installé depuis GitHub.</summary>
+public sealed class PluginSource
+{
+    public string Repo { get; set; } = "";
+    public string Tag { get; set; } = "";
+}
+
 /// <summary>
 /// Compte Twitch connecté (Device Code Flow, client public). Les jetons sont chiffrés pour le compte Windows
 /// courant (DPAPI), jamais écrits en clair ni dans le journal, et ne font pas partie des profils exportés.
@@ -252,6 +269,9 @@ public sealed class AppConfig
     /// <summary>Empêche le déplacement des widgets (et de la barre de raccourcis) à la souris.</summary>
     public bool WidgetsLocked { get; set; }
 
+    /// <summary>Menu de gauche des Paramètres masqué (bouton ☰ ou Ctrl+B).</summary>
+    public bool SettingsNavCollapsed { get; set; }
+
     /// <summary>Écran de la Switch (payload SwitchDeck) : disposition des éléments, fond, luminosité.</summary>
     public DeckSettings Deck { get; set; } = new();
 
@@ -263,6 +283,9 @@ public sealed class AppConfig
 
     /// <summary>Intégration Voicemod (désactivée par défaut).</summary>
     public VoicemodSettings Voicemod { get; set; } = new();
+
+    /// <summary>Plugins désactivés et réglages globaux de chaque plugin.</summary>
+    public PluginsConfig Plugins { get; set; } = new();
 
     /// <summary>
     /// Applications affichées dans la page « Applications connectées », dans l'ordre d'ajout (voir <see cref="ConnectedApps"/>).
@@ -292,6 +315,10 @@ public sealed class AppConfig
         Obs ??= new();
         Twitch ??= new();
         Voicemod ??= new();
+        Plugins ??= new();
+        Plugins.Disabled ??= new();
+        Plugins.Global ??= new();
+        Plugins.Sources ??= new();
         if (string.IsNullOrWhiteSpace(Obs.Host)) Obs.Host = "127.0.0.1";
         if (Obs.Port is < 1 or > 65535) Obs.Port = ObsSettings.DefaultPort;
         if (ConnectedApps is null)

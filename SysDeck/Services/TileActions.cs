@@ -91,8 +91,27 @@ public static class TileRuntime
         _ => ""
     };
 
-    /// <summary>Vrai pour une tuile d'intégration (OBS, Twitch, Voicemod) dont le service n'est pas connecté : elle s'affiche atténuée.</summary>
-    public static bool IntegrationOffline(ShortcutItem item) => ObsOffline(item) || TwitchOffline(item) || VoicemodOffline(item);
+    /// <summary>Hôte des plugins (renseigné par <c>WidgetManager</c>) ; null dans les tests.</summary>
+    public static Plugins.PluginHost? Plugins { get; set; }
+
+    /// <summary>Vrai pour une tuile de plugin tant que son plugin ne tourne pas (désactivé, planté, désinstallé).</summary>
+    public static bool PluginOffline(ShortcutItem item) => item.Kind == TileKind.Plugin && Plugins?.IsRunning(item.PluginId) != true;
+
+    /// <summary>Indicateur bref d'une tuile de plugin : <c>showOk</c> en accent, <c>showAlert</c> en rouge.</summary>
+    public static IntegrationLook PluginLookOf(ShortcutItem item) => item.Kind != TileKind.Plugin ? IntegrationLook.Normal : Plugins?.FlashOf(item) switch
+    {
+        true => IntegrationLook.Highlight,
+        false => IntegrationLook.Alert,
+        _ => Plugins?.IsActive(item) == true ? IntegrationLook.Highlight : IntegrationLook.Normal // setState 1 : tuile active
+    };
+
+    /// <summary>Nom affiché sous la tuile : titre envoyé par le plugin (<c>setTitle</c>), sinon le nom de la tuile.</summary>
+    public static string DisplayName(ShortcutItem item) => item.Kind == TileKind.Plugin && Plugins?.TitleOf(item) is { } title ? title : item.Name;
+
+    public const string PluginGlyph = ""; // pièce de puzzle
+
+    /// <summary>Vrai pour une tuile d'intégration (OBS, Twitch, Voicemod, plugin) dont le service n'est pas connecté : elle s'affiche atténuée.</summary>
+    public static bool IntegrationOffline(ShortcutItem item) => ObsOffline(item) || TwitchOffline(item) || VoicemodOffline(item) || PluginOffline(item);
 
     private static bool? TwitchOn(ShortcutItem item)
         => item.TwitchAction is { } action ? Twitch?.IsOn(action) : null;
@@ -109,6 +128,7 @@ public static class TileRuntime
     {
         TileKind.Twitch => TwitchLookOf(item),
         TileKind.Voicemod => VoicemodLookOf(item),
+        TileKind.Plugin => PluginLookOf(item),
         _ => ObsLookOf(item)
     };
 
@@ -176,6 +196,13 @@ public static class TileRuntime
     /// </summary>
     public static ShortcutItem ForDisplay(ShortcutItem item)
     {
+        // Plugin : son image (setImage) passe avant l'icône choisie ; sans icône choisie, celle de l'action dans le manifest.
+        if (item.Kind == TileKind.Plugin && Plugins?.ImageOf(item) is { } image)
+            return new ShortcutItem { Name = item.Name, DisplayImage = image, TileColor = item.TileColor };
+        if (item.Kind == TileKind.Plugin && string.IsNullOrEmpty(item.IconGlyph) && string.IsNullOrWhiteSpace(item.CustomIconPath)
+            && Plugins?.Find(item.PluginId)?.Manifest?.FindAction(item.PluginAction)?.ImageFor(Plugins.StateOf(item)) is { } actionIcon)
+            return new ShortcutItem { Name = item.Name, CustomIconPath = actionIcon, TileColor = item.TileColor };
+
         if (!string.IsNullOrEmpty(item.IconGlyph) || !string.IsNullOrWhiteSpace(item.CustomIconPath)) return item;
         var glyph = item.Kind switch
         {
@@ -185,6 +212,7 @@ public static class TileRuntime
             TileKind.Obs => ObsGlyph(item),
             TileKind.Twitch => TwitchGlyph(item),
             TileKind.Voicemod => VoicemodGlyph(item),
+            TileKind.Plugin => PluginGlyph,
             _ => null
         };
         return glyph is null ? item : new ShortcutItem { Name = item.Name, IconGlyph = glyph, IconColor = item.IconColor, TileColor = item.TileColor };

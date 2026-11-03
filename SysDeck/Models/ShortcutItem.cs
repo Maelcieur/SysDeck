@@ -24,6 +24,63 @@ public sealed class ShortcutItem
     public string? TileColor { get; set; }
 
     /// <summary>
+    /// Couleur appliquée à une image choisie (<see cref="CustomIconPath"/>) : l'image devient d'une seule couleur, idéal
+    /// pour les icônes monochromes des packs. Null = couleurs d'origine. Sans effet sur un symbole ou un émoji.
+    /// </summary>
+    public string? ImageTint { get; set; }
+
+    /// <summary>Taille de l'icône dans la tuile de la Switch (part du côté, 0,25 à 1) ; null = réglage général de la Switch.</summary>
+    public double? IconScale { get; set; }
+
+    /// <summary>Masque le nom sous la tuile de la Switch (utile avec une image qui remplit la tuile).</summary>
+    public bool HideName { get; set; }
+
+    // ---------- Tuile active (micro coupé, stream OBS en cours, mode Twitch, voix Voicemod, état 1 d'un plugin…) ----------
+
+    /// <summary>Fond de la tuile quand elle est active ; null = rouge (coupé, en cours) ou accent du thème (scène, mode actif).</summary>
+    public string? ActiveColor { get; set; }
+
+    /// <summary>Symbole ou émoji affiché quand la tuile est active (ex. micro barré) ; null = même icône.</summary>
+    public string? ActiveIconGlyph { get; set; }
+
+    /// <summary>Image (copie gérée par SysDeck) affichée quand la tuile est active ; ignorée si <see cref="ActiveIconGlyph"/> est choisi.</summary>
+    public string? ActiveIconPath { get; set; }
+
+    /// <summary>Couleur du symbole actif ; null = celle du symbole normal.</summary>
+    public string? ActiveIconColor { get; set; }
+
+    /// <summary>Couleur appliquée à l'image active ; null = couleurs d'origine.</summary>
+    public string? ActiveImageTint { get; set; }
+
+    /// <summary>Bouton en verre qui reste enfoncé tant que la tuile est active.</summary>
+    public bool ActivePressed { get; set; } = true;
+
+    [JsonIgnore]
+    public bool HasActiveIcon => !string.IsNullOrEmpty(ActiveIconGlyph) || !string.IsNullOrWhiteSpace(ActiveIconPath);
+
+    /// <summary>Tuile servant à dessiner l'icône active.</summary>
+    public ShortcutItem ActiveDisplay() => new()
+    {
+        Name = Name,
+        IconGlyph = ActiveIconGlyph,
+        CustomIconPath = string.IsNullOrEmpty(ActiveIconGlyph) ? ActiveIconPath : null,
+        IconColor = ActiveIconColor ?? IconColor,
+        ImageTint = ActiveImageTint,
+        TileColor = TileColor
+    };
+
+    /// <summary>Recopie l'apparence « active » d'une autre tuile (modification d'une tuile, aperçu).</summary>
+    public void CopyActiveFrom(ShortcutItem other)
+    {
+        ActiveColor = other.ActiveColor;
+        ActiveIconGlyph = other.ActiveIconGlyph;
+        ActiveIconPath = other.ActiveIconPath;
+        ActiveIconColor = other.ActiveIconColor;
+        ActiveImageTint = other.ActiveImageTint;
+        ActivePressed = other.ActivePressed;
+    }
+
+    /// <summary>
     /// Combinaison de touches envoyée à la fenêtre au premier plan (forme de <c>HotkeyGesture.Serialize</c>) :
     /// la tuile est alors un raccourci clavier, sans programme (<see cref="Path"/> vide). Null = application normale.
     /// </summary>
@@ -97,6 +154,26 @@ public sealed class ShortcutItem
     /// <summary>Nom lisible de la voix ou du son choisi (affichage dans les Paramètres).</summary>
     public string? VoicemodTargetName { get; set; }
 
+    /// <summary>Identifiant du plugin d'une tuile <see cref="TileKind.Plugin"/> (manifest « Id »).</summary>
+    public string? PluginId { get; set; }
+
+    /// <summary>Identifiant de l'action du plugin (manifest « Actions[].Id »).</summary>
+    public string? PluginAction { get; set; }
+
+    /// <summary>Réglages de la tuile, propres à l'action du plugin (formulaire généré, puis <c>setSettings</c> du plugin).</summary>
+    public System.Text.Json.Nodes.JsonObject? PluginSettings { get; set; }
+
+    /// <summary>Identifiant stable de la tuile pour son plugin (« context » du protocole) ; voir <see cref="EnsurePluginContext"/>.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? PluginContext { get; set; }
+
+    /// <summary>Image à afficher à la place de l'icône (envoyée par un plugin) ; jamais enregistrée.</summary>
+    [JsonIgnore]
+    public System.Windows.Media.ImageSource? DisplayImage { get; set; }
+
+    /// <summary>Contexte de la tuile, créé à la première demande.</summary>
+    public string EnsurePluginContext() => PluginContext ??= Guid.NewGuid().ToString("N");
+
     [JsonIgnore]
     public bool IsMuteTile =>Kind is TileKind.MicMute or TileKind.OutputMute;
 
@@ -121,7 +198,9 @@ public enum TileKind
     /// <summary>Action sur la chaîne Twitch (clip, marqueur, message, pub, modes du tchat, titre, catégorie…).</summary>
     Twitch,
     /// <summary>Action sur Voicemod (changeur de voix, voix, son du soundboard, micro…).</summary>
-    Voicemod
+    Voicemod,
+    /// <summary>Action fournie par un plugin installé (programme séparé relié par WebSocket local).</summary>
+    Plugin
 }
 
 /// <summary>Action d'une tuile Voicemod.</summary>

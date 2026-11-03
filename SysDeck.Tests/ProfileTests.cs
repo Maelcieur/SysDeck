@@ -232,6 +232,20 @@ public sealed class ProfileTests : IDisposable
     }
 
     [Fact]
+    public void DeckScreen_AppliesToEveryPage()
+    {
+        var config = new AppConfig();
+        config.Deck.Pages.Add(new Deck.DeckPage { Name = "A" });
+        config.Deck.Pages.Add(new Deck.DeckPage { Name = "B" });
+        config.Deck.Migrate();
+        var profile = new Profile { DeckScreen = new ProfileDeckScreen { BackgroundColor = "#FF123456", TileStyle = Deck.DeckTileStyle.Flat, TileIconScale = 0.8 } };
+
+        profile.ApplyTo(config, includeLayout: false);
+
+        Assert.All(config.Deck.Pages, p => Assert.True(p.BackgroundColor == "#FF123456" && p.TileStyle == Deck.DeckTileStyle.Flat && p.TileIconScale == 0.8));
+    }
+
+    [Fact]
     public void ImportWithDifferentFontOfSameNameKeepsBoth()
     {
         var dirA = Dir("a");

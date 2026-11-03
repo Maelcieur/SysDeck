@@ -1,0 +1,21 @@
+{
+  "Id": "fr.sysdeck.compteur",
+  "Name": "Compteur",
+  "Version": "1.0.0",
+  "Author": "SysDeck",
+  "Description": "Exemple de plugin : chaque appui ajoute le pas choisi au compteur affiché sur la tuile (morts, victoires, verres d'eau…).",
+  "SdkVersion": 1,
+  "CodePath": "plugin.ps1",
+  "Actions": [
+    {
+      "Id": "fr.sysdeck.compteur.compter",
+      "Name": "Compteur",
+      "Tooltip": "Chaque appui ajoute le pas au compteur ; la valeur est gardée même après un redémarrage.",
+      "Settings": [
+        { "Key": "label", "Type": "text", "Label": "Libellé", "Default": "", "Placeholder": "Ex. : Morts" },
+        { "Key": "step", "Type": "number", "Label": "Pas", "Default": 1, "Description": "Mettre -1 pour décompter." },
+        { "Key": "value", "Type": "number", "Label": "Valeur actuelle", "Default": 0 }
+      ]
+    }
+  ]
+}

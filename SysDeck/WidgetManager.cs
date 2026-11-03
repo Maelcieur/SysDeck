@@ -163,7 +163,7 @@ public sealed partial class WidgetManager : IDisposable, IProfileHost
 
         // Écran de la Switch : ses modules sont des instances propres, construites et alimentées comme celles du bureau.
         _deck = new DeckController(_config, () => _configStore.Save(_config), BuildDeckModule, GetAppearance,
-            ApplyModuleSettings, _shortcuts, LaunchShortcut);
+            ApplyModuleSettings, LaunchShortcut);
         _deck.ContentsChanged += () =>
         {
             UpdateSensorDemand();
@@ -190,6 +190,7 @@ public sealed partial class WidgetManager : IDisposable, IProfileHost
         ApplyObsSettings();
         ApplyTwitchSettings();
         ApplyVoicemodSettings();
+        StartPlugins();
         StartTileTimers();
         RefreshMouseBattery();
     }
@@ -479,7 +480,6 @@ public sealed partial class WidgetManager : IDisposable, IProfileHost
             _shortcuts.Remove(item);
             CustomIconStore.TryDelete(item.CustomIconPath);
             _shortcutStore.Save(_shortcuts);
-            _deck.RefreshShortcuts(); // la Switch affiche aussi ce raccourci
         };
         _shortcutsContent.AddRequested += () =>
         {
@@ -526,6 +526,7 @@ public sealed partial class WidgetManager : IDisposable, IProfileHost
             var previousIconPath = item.CustomIconPath;
             item.IconColor = choice.IconColor;
             item.TileColor = choice.TileColor;
+            item.ImageTint = choice.ImageTint;
             if (choice.Kind != IconChoiceKind.Keep)
             {
                 string? newImage = null;
@@ -551,7 +552,6 @@ public sealed partial class WidgetManager : IDisposable, IProfileHost
 
             _shortcutStore.Save(_shortcuts);
             _shortcutsContent?.RefreshIcon(item);
-            _deck.RefreshShortcuts();
         };
         ApplyDockStyle();
         return _shortcutsContent;
@@ -580,6 +580,9 @@ public sealed partial class WidgetManager : IDisposable, IProfileHost
                 return true;
             case TileKind.Voicemod:
                 RunVoicemodTile(item);
+                return true;
+            case TileKind.Plugin:
+                RunPluginTile(item);
                 return true;
             default:
                 return false;
@@ -1110,7 +1113,8 @@ public sealed partial class WidgetManager : IDisposable, IProfileHost
     private HashSet<string> BackgroundPaths()
         => _config.Modules.Values.Concat(_config.Deck.Modules.Values)
             .Select(a => a.BackgroundImage)
-            .Append(_config.Deck.BackgroundImage)
+            .Concat(_config.Deck.Pages.Select(p => p.BackgroundImage)) // fond propre à chaque page de la Switch
+            .Append(_config.Deck.DefaultBackgroundImage)
             .Where(p => !string.IsNullOrWhiteSpace(p))
             .Select(p => p!)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -1228,6 +1232,7 @@ public sealed partial class WidgetManager : IDisposable, IProfileHost
             _twitch.Dispose();
             TileRuntime.Voicemod = null;
             _voicemod.Dispose();
+            DisposePlugins();
         }
         catch (Exception ex)
         {

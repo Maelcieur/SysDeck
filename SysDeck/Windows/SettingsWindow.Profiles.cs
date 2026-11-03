@@ -424,11 +424,7 @@ public partial class SettingsWindow
             IconSizeSlider.Value = config.DockIconSize;
             IconSpacingSlider.Value = config.DockIconSpacing;
 
-            var deck = Deck.Settings;
-            DeckDimSlider.Value = deck.BackgroundDim;
-            DeckClockOpacitySlider.Value = deck.ClockOpacity;
-            DeckAppsOpacitySlider.Value = deck.AppsOpacity;
-            DeckBackgroundSwatch.Hex = deck.BackgroundColor;
+            LoadPageLook();
             DeckEditor.Rebuild();
 
             if (includeLayout)

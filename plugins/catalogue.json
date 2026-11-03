@@ -1,0 +1,4 @@
+[
+  // Plugins vérifiés avec SysDeck, affichés en premier dans Paramètres › Plugins › Catalogue.
+  // { "repo": "auteur/depot", "name": "Nom affiché", "description": "Ce que fait le plugin", "kind": "sysdeck" | "streamdeck" }
+]

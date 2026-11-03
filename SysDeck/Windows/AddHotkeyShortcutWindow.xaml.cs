@@ -23,6 +23,10 @@ public partial class AddHotkeyShortcutWindow : Window
     private string? _iconColor, _tileColor; // couleurs de la tuile ; null = thème
 
     private string? _existingImage; // icône déjà copiée par SysDeck (modification) : réutilisée telle quelle
+    private double? _iconScale; // taille d'icône et nom sur la Switch : gardés tels quels (réglés par le bouton Icône de la liste)
+    private bool _hideName;
+    private string? _imageTint;
+    private ShortcutItem? _existingItem; // apparence active gardée telle quelle (réglée par le bouton Icône de la liste)
 
     /// <summary>Tuile créée (Path vide, Hotkey rempli) ; null si annulé. En modification, nouvelle version de la tuile.</summary>
     public ShortcutItem? Result { get; private set; }
@@ -47,6 +51,10 @@ public partial class AddHotkeyShortcutWindow : Window
         NameBox.Text = item.Name;
         _glyph = item.IconGlyph;
         _imagePath = _existingImage = item.CustomIconPath;
+        _iconScale = item.IconScale;
+        _hideName = item.HideName;
+        _imageTint = item.ImageTint;
+        _existingItem = item;
         _iconColor = item.IconColor;
         _tileColor = item.TileColor;
 
@@ -173,12 +181,14 @@ public partial class AddHotkeyShortcutWindow : Window
             IconGlyph = _glyph ?? (_imagePath is null ? KeyboardGlyph : null),
             CustomIconPath = _imagePath,
             IconColor = _iconColor,
-            TileColor = _tileColor
+            TileColor = _tileColor,
+            ImageTint = _imageTint
         };
         var chooser = new IconChooserWindow(this, string.IsNullOrWhiteSpace(NameBox.Text) ? "Raccourci clavier" : NameBox.Text.Trim(), _createEmojiPicker, current);
         if (chooser.ShowDialog() != true || chooser.Result is not { } choice) return;
 
         _iconColor = choice.IconColor;
+        _imageTint = choice.ImageTint;
         _tileColor = choice.TileColor;
         switch (choice.Kind)
         {
@@ -218,8 +228,12 @@ public partial class AddHotkeyShortcutWindow : Window
             IconGlyph = _glyph ?? (imageCopy is null ? KeyboardGlyph : null), // sans choix : symbole de clavier
             IconColor = _iconColor,
             TileColor = _tileColor,
-            CustomIconPath = imageCopy
+            CustomIconPath = imageCopy,
+            IconScale = _iconScale,
+            HideName = _hideName,
+            ImageTint = imageCopy is null ? null : _imageTint
         };
+        if (_existingItem is not null) Result.CopyActiveFrom(_existingItem);
         DialogResult = true;
     }
 }

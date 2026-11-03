@@ -195,7 +195,7 @@ public partial class SettingsWindow
         Walk(PageProfiles, new SearchContext(NavProfiles, "Profils"));
         Walk(PageModules, new SearchContext(NavModules, "Modules"));
         Walk(PageDock, new SearchContext(NavDock, "Barre de raccourcis"));
-        Walk(PageSwitch, new SearchContext(NavSwitch, "Switch"));
+        Walk(SwitchSettingsPanel, new SearchContext(NavSwitch, "Switch › Réglages", GlobalTab: SwitchTabSettings));
         Walk(PageIntegrations, new SearchContext(NavIntegrations, "Applications connectées"));
         Walk(PageCorrection, new SearchContext(NavCorrection, "Correction de texte"));
         Walk(PageEmoji, new SearchContext(NavEmoji, "Émojis"));
@@ -296,8 +296,14 @@ public partial class SettingsWindow
     {
         if (Keyboard.FocusedElement is HotkeyBox) return; // saisie d'un raccourci : on ne la perturbe pas
 
-        if (e.Key == Key.F && Keyboard.Modifiers == ModifierKeys.Control)
+        if (e.Key == Key.B && Keyboard.Modifiers == ModifierKeys.Control)
         {
+            SetNavCollapsed(!_navCollapsed, save: true);
+            e.Handled = true;
+        }
+        else if (e.Key == Key.F && Keyboard.Modifiers == ModifierKeys.Control)
+        {
+            if (_navCollapsed) SetNavCollapsed(false, save: true); // la recherche est dans le menu
             SearchInput.Focus();
             SearchInput.SelectAll();
             e.Handled = true;

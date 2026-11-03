@@ -15,7 +15,7 @@
     <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
 
     <!-- Version unique de l'application : reprise dans le journal ; à garder alignée avec installer\SysDeck.iss. -->
-    <Version>1.10.1</Version>
+    <Version>1.11.0</Version>
     <Product>SysDeck</Product>
     <Company>Fenix</Company>
     <Description>Widgets de bureau : surveillance matérielle, audio, médias, consommation et raccourcis.</Description>
@@ -27,15 +27,19 @@
          non rattrapable) en lisant la consommation électrique des GPU NVIDIA. La 0.9.6 suffit puisque la
          température CPU passe désormais par CpuTempBridge.ps1 (pilote AMD), pas par cette bibliothèque. -->
     <PackageReference Include="LibreHardwareMonitorLib" Version="0.9.6" />
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2849.39" />
     <PackageReference Include="NAudio" Version="2.3.0" />
     <!-- Émojis en couleur dans WPF (qui ne sait afficher que des glyphes monochromes) + liste complète par catégorie. -->
     <PackageReference Include="Emoji.Wpf" Version="0.3.4" />
+    <PackageReference Include="SharpVectors.Wpf" Version="1.8.4" />
   </ItemGroup>
 
   <ItemGroup>
     <None Include="Assets\AppIcon.ico" CopyToOutputDirectory="PreserveNewest" />
     <!-- Logos de marques (Simple Icons, CC0) : lus une seule fois par BrandIcons. -->
     <EmbeddedResource Include="Assets\brand-icons.json" LogicalName="brand-icons.json" />
+    <!-- Boutons en verre des tuiles de la Switch (relâché / appuyé ; face et bord séparés), lus une fois par TileGlass. -->
+    <EmbeddedResource Include="Assets\Tiles\*.png" LogicalName="%(Filename)%(Extension)" />
     <!-- Clé de la Control API Voicemod, brouillée (Secrets\ est exclu de git) : absente, l'intégration Voicemod l'indique. -->
     <EmbeddedResource Include="Secrets\voicemod.key" LogicalName="voicemod.key" Condition="Exists('Secrets\voicemod.key')" />
     <!-- PresentMon (Intel, licence MIT, binaire officiel signé v2.6.0) : mesure des FPS des jeux. -->

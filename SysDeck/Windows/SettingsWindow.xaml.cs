@@ -106,6 +106,7 @@ public partial class SettingsWindow : Window
         InitDeckPage();
         InitProfilesPage();
         InitIntegrationsPage();
+        InitPluginsPage();
 
         // Divers
         GeminiApiKeyBox.Password = config.GeminiApiKey ?? "";
@@ -118,6 +119,7 @@ public partial class SettingsWindow : Window
             : widgetManager.IsEmojiHotkeyActive ? "Actif."
             : "Ce raccourci est déjà utilisé par une autre application : choisis-en un autre.";
         LockWidgetsCheck.IsChecked = config.WidgetsLocked;
+        SetNavCollapsed(config.SettingsNavCollapsed, save: false);
         LayoutEditCheck.IsChecked = widgetManager.LayoutEditMode;
         widgetManager.LayoutEditModeChanged += OnLayoutEditModeChanged;
         widgetManager.DesktopStateChanged += OnDesktopStateChanged;
@@ -219,6 +221,7 @@ public partial class SettingsWindow : Window
             [NavDock] = PageDock,
             [NavSwitch] = PageSwitch,
             [NavIntegrations] = PageIntegrations,
+            [NavPlugins] = PagePlugins,
             [NavCorrection] = PageCorrection,
             [NavEmoji] = PageEmoji,
             [NavAlerts] = PageAlerts,
@@ -232,7 +235,10 @@ public partial class SettingsWindow : Window
         if (target == PageProfiles) RefreshProfilesList(); // un profil a pu être ajouté ou retiré depuis la dernière visite
         if (target == PageEnergy) UpdateLifetimeDetails();
         if (target == PageGeneral) UpdateFpsStatus();
+        if (target == PagePlugins) RefreshPluginsList();
         SetIntegrationsTimer(target == PageIntegrations);
+        if (target != PageSwitch) ClosePluginPage(); // la page de réglages d'un plugin ne reste pas ouverte en arrière-plan
+        else if (_inspected is not null) ShowPluginPage(_inspected);
         if (target is ScrollViewer scroller) scroller.ScrollToTop();
         else CustomizeScroller.ScrollToTop(); // Personnaliser : en-tête fixe, seul l'onglet défile
     }

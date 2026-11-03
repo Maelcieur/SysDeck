@@ -49,6 +49,7 @@ public sealed partial class DeckLayoutEditor : Border
         _overlay.MouseLeftButtonUp += (_, _) => EndDrag();
         _overlay.LostMouseCapture += (_, _) => EndDrag();
         InitElementMode();
+        InitActionDrop();
     }
 
     public void Attach(DeckController deck)
@@ -238,12 +239,22 @@ public sealed partial class DeckLayoutEditor : Border
                 if (other.Child is Grid { Children: [Border label, ..] }) label.Opacity = isSelected || other.IsMouseOver || label.Tag is GripTag ? 1 : 0;
             }
         }
-        // Clic sur une tuile du bloc d'applications : on déplace la tuile (pas le bloc).
+        // Clic sur une tuile du bloc d'applications : on déplace la tuile (pas le bloc) ; un simple clic la sélectionne,
+        // un double-clic ouvre sa configuration.
         if (!_resizing && TryBeginTileDrag(element, _dragStart))
         {
             _dragFrame = null;
             _dragElement = null;
+            if (e.ClickCount == 2 && _tileDrag is { } item)
+            {
+                SelectTile(item);
+                _tileDrag = null;
+                e.Handled = true;
+                Dispatcher.BeginInvoke(() => TileActivated?.Invoke(item));
+                return;
+            }
         }
+        else SelectTile(null);
         _overlay.CaptureMouse();
         e.Handled = true;
     }

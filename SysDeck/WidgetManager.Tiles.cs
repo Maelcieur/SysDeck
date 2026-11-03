@@ -23,6 +23,7 @@ public sealed partial class WidgetManager
             RefreshMuteStates();
             SyncObsWatch();
             SyncTwitchWatch();
+            _plugins?.SyncTiles(); // tuiles de plugin ajoutées, retirées ou modifiées : willAppear / willDisappear
         };
         _muteTimer.Start();
         RefreshMuteStates();

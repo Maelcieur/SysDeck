@@ -49,6 +49,7 @@ public sealed partial class DeckLayoutEditor
             lines.Height = Math.Max(MinSize, element.Height);
             lines.InvalidateVisual();
         }
+        SyncTileSelection();
     }
 
     /// <summary>Début d'un glisser de tuile si le clic tombe sur une tuile du bloc d'applications.</summary>
@@ -109,8 +110,10 @@ public sealed partial class DeckLayoutEditor
         _dropMark.Visibility = Visibility.Collapsed;
         _overlay.Children.Remove(_dropMark);
         if (_overlay.IsMouseCaptured) _overlay.ReleaseMouseCapture();
+        if (item is not null) SelectTile(item); // clic simple ou tuile déplacée : elle devient la tuile configurée
         if (!moved || item is null || target is not { } cell || _deck is null) return;
         if (_deck.MoveAppToCell(item, cell.Col, cell.Row)) LayoutChanged?.Invoke();
+        SyncTileSelection();
     }
 }
 

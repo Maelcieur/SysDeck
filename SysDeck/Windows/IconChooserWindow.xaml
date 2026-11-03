@@ -28,7 +28,9 @@
                 <WrapPanel>
                     <Button Content="Image…" Style="{StaticResource PrimaryButton}" Margin="0,0,8,0" Click="Image_Click"/>
                     <Button Content="Émoji…" Style="{StaticResource PrimaryButton}" Margin="0,0,8,0" Click="Emoji_Click"/>
-                    <Button Content="Icône d'origine" Click="Reset_Click"/>
+                    <Button Content="Icône d'origine" Margin="0,0,8,0" Click="Reset_Click"/>
+                    <Button Content="Pack d'icônes…" Click="ImportPack_Click"
+                            ToolTip="Importer un pack d'icônes (.streamDeckIconPack du Stream Deck, zip ou dossier d'images)"/>
                 </WrapPanel>
             </StackPanel>
         </DockPanel>
@@ -44,7 +46,7 @@
                 <WrapPanel x:Name="SymbolsPanel"/>
             </ScrollViewer>
         </Border>
-        <TextBlock x:Name="NoSymbolText" Text="Aucun symbole ni logo ne correspond." FontSize="11.5" Foreground="{StaticResource Muted}"
+        <TextBlock x:Name="NoSymbolText" Text="Aucune icône ne correspond." FontSize="11.5" Foreground="{StaticResource Muted}"
                    Visibility="Collapsed" Margin="0,6,0,0"/>
 
         <!-- Couleurs -->
@@ -52,6 +54,37 @@
         <WrapPanel x:Name="IconColorsPanel"/>
         <TextBlock Text="Fond de la tuile" Style="{StaticResource FieldLabel}" Margin="0,10,0,6"/>
         <WrapPanel x:Name="TileColorsPanel"/>
+
+        <!-- Tuile de la Switch : taille de l'icône et nom (réglages propres à cette tuile) -->
+        <StackPanel x:Name="TileOptionsPanel" Visibility="Collapsed">
+            <TextBlock Text="Taille de l'icône sur la Switch" Style="{StaticResource FieldLabel}" Margin="0,12,0,6"/>
+            <DockPanel>
+                <CheckBox x:Name="DefaultScaleCheck" DockPanel.Dock="Left" Content="Réglage général" VerticalAlignment="Center" Margin="0,0,14,0"
+                          Click="TileOption_Changed" ToolTip="Taille choisie dans Paramètres › Switch pour toutes les tuiles"/>
+                <TextBlock x:Name="ScaleValueText" DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Width="44" TextAlignment="Right"/>
+                <Slider x:Name="ScaleSlider" Minimum="0.25" Maximum="1" SmallChange="0.05" LargeChange="0.1" IsSnapToTickEnabled="True"
+                        TickFrequency="0.05" VerticalAlignment="Center" ValueChanged="ScaleSlider_Changed"/>
+            </DockPanel>
+            <CheckBox x:Name="HideNameCheck" Style="{StaticResource ToggleSwitch}" Content="Masquer le nom sous la tuile" Margin="0,10,0,0"
+                      Click="TileOption_Changed"/>
+
+            <!-- Tuile active : couleur, deuxième icône, bouton qui reste enfoncé -->
+            <TextBlock Text="Quand la tuile est active" Style="{StaticResource FieldLabel}" Margin="0,16,0,2"/>
+            <TextBlock Text="Micro ou son coupé, stream ou enregistrement OBS en cours, scène active, mode Twitch, voix Voicemod, plugin en état actif…"
+                       FontSize="11" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,8"/>
+            <WrapPanel x:Name="ActiveColorsPanel"/>
+            <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                <Border Width="40" Height="40" CornerRadius="6" Background="#1E2130" BorderBrush="{StaticResource InputBorder}" BorderThickness="1" Margin="0,0,10,0">
+                    <ContentControl x:Name="ActiveIconHost" Width="26" Height="26" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+                <Button Content="Icône active…" VerticalAlignment="Center" Click="ActiveIcon_Click"
+                        ToolTip="Deuxième icône, montrée quand la tuile est active (ex. : micro barré)"/>
+                <Button x:Name="ActiveIconClearButton" Content="Même icône" VerticalAlignment="Center" Margin="8,0,0,0" Click="ActiveIconClear_Click"/>
+            </StackPanel>
+            <CheckBox x:Name="ActivePressedCheck" Style="{StaticResource ToggleSwitch}" Content="Rester enfoncée quand elle est active (verre 3D)"
+                      Margin="0,10,0,0" Click="TileOption_Changed"/>
+            <CheckBox x:Name="PreviewActiveCheck" Content="Aperçu de la tuile active" Margin="0,8,0,0" Click="TileOption_Changed"/>
+        </StackPanel>
 
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,18,0,0">
             <Button Content="Annuler" Margin="0,0,8,0" Click="Cancel_Click"/>

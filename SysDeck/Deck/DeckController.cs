@@ -1,5 +1,4 @@
-﻿using System.Collections.ObjectModel;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
@@ -24,8 +23,7 @@ public sealed partial class DeckController : IDisposable
     public static readonly WidgetDescriptor[] ExtraElements =
     {
         new("clock", "Horloge"),
-        new("shortcuts", "Tuiles de raccourcis"),
-        new("apps", "Applications de la page"),
+        new("apps", "Tuiles de la page"),
     };
 
     /// <summary>Tous les éléments plaçables sur la Switch (modules du bureau sauf la barre, + éléments propres).</summary>
@@ -43,14 +41,14 @@ public sealed partial class DeckController : IDisposable
 
     /// <param name="desktopAppearance">Apparence du module sur le bureau (point de départ de celle de la Switch).</param>
     public DeckController(AppConfig config, Action save, Func<string, UIElement?> buildModule, Func<string, ModuleAppearance> desktopAppearance,
-        Action<UIElement, ModuleAppearance> applyModuleSettings, ObservableCollection<ShortcutItem> shortcuts, Action<ShortcutItem> launch)
+        Action<UIElement, ModuleAppearance> applyModuleSettings, Action<ShortcutItem> launch)
     {
         _settings = config.Deck;
         _desktopAppearance = desktopAppearance;
         _launch = launch;
         if (_settings.IsNew) AddDefaultElements();
 
-        Screen = new DeckScreen(config, save, buildModule, GetAppearance, applyModuleSettings, shortcuts);
+        Screen = new DeckScreen(config, save, buildModule, GetAppearance, applyModuleSettings);
 
         // Fenêtre visible mais loin de tout écran, absente de la barre des tâches et d'Alt+Tab.
         _host = new Window

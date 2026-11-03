@@ -20,7 +20,7 @@ public sealed partial class DeckController
             new DeckElement { Id = "gpu", X = 20, Y = 240, Width = 400, Height = 220 },
             new DeckElement { Id = "ram", X = 440, Y = 240, Width = 420, Height = 220 },
             new DeckElement { Id = "network", X = 880, Y = 240, Width = 380, Height = 220 },
-            new DeckElement { Id = "shortcuts", X = 20, Y = 480, Width = 1240, Height = 220 },
+            new DeckElement { Id = "apps", X = 20, Y = 480, Width = 1240, Height = 220 },
         });
     }
 
@@ -34,7 +34,7 @@ public sealed partial class DeckController
         {
             if (!visible) return;
             element = new DeckElement { Id = id };
-            if (id is "shortcuts" or "apps") { element.Width = 1240; element.Height = 160; }
+            if (id == "apps") { element.Width = 1240; element.Height = 160; }
             (element.X, element.Y) = FindFreeSpot(element.Width, element.Height);
             _settings.Elements.Add(element);
         }
@@ -72,7 +72,9 @@ public sealed partial class DeckController
     public void AddPage()
     {
         var index = _settings.CurrentPage + 1;
-        _settings.Pages.Insert(index, new DeckPage { Name = $"Page {_settings.Pages.Count + 1}" });
+        var page = new DeckPage { Name = $"Page {_settings.Pages.Count + 1}", OwnLook = true };
+        page.CopyLookFrom(_settings.Page); // même apparence que la page affichée, à modifier ensuite
+        _settings.Pages.Insert(index, page);
         _settings.CurrentPage = index;
         Sync();
         PageChanged?.Invoke();
@@ -103,6 +105,8 @@ public sealed partial class DeckController
     private void Sync()
     {
         if (Screen.Sync()) ContentsChanged?.Invoke();
+        // Chaque page a son fond, son horloge et ses tuiles : on les réapplique (sans effet si rien n'a changé).
+        Screen.ApplyPageLook();
     }
 
     private (double X, double Y) FindFreeSpot(double w, double h)

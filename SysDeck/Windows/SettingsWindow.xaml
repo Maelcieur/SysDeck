@@ -5,7 +5,7 @@
         xmlns:local="clr-namespace:SysDeck"
         PreviewKeyDown="Window_PreviewKeyDown"
         Title="SysDeck — Paramètres"
-        Width="1040" Height="740" MinWidth="860" MinHeight="560"
+        Width="1220" Height="780" MinWidth="860" MinHeight="560"
         WindowStartupLocation="CenterScreen"
         FontFamily="Segoe UI"
         Foreground="{DynamicResource UiText}"
@@ -221,12 +221,12 @@
         </Border.Style>
         <Grid>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="240"/>
+                <ColumnDefinition x:Name="NavColumn" Width="240"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <!-- Barre latérale : recherche, menu groupé par thème, verrouillage et sortie en bas -->
-            <Border Background="{StaticResource SidebarBg}" BorderBrush="{StaticResource CardBorder}" BorderThickness="0,0,1,0">
+            <!-- Barre latérale : recherche, menu groupé par thème, verrouillage et sortie en bas ; masquable (☰ ou Ctrl+B) -->
+            <Border x:Name="Sidebar" Background="{StaticResource SidebarBg}" BorderBrush="{StaticResource CardBorder}" BorderThickness="0,0,1,0">
                 <DockPanel Margin="18,20,18,14">
                     <!-- Nom et version -->
                     <StackPanel DockPanel.Dock="Top" Margin="6,0,0,18">
@@ -286,6 +286,7 @@
                                 <RadioButton Style="{StaticResource NavButton}" Tag="&#xE7FC;" Content="Switch" x:Name="NavSwitch" GroupName="SettingsNav" Checked="Nav_Checked"/>
                                 <TextBlock Text="APPLICATIONS" Style="{StaticResource NavSection}"/>
                                 <RadioButton Style="{StaticResource NavButton}" Tag="&#xE71B;" Content="Applications connectées" x:Name="NavIntegrations" GroupName="SettingsNav" Checked="Nav_Checked"/>
+                                <RadioButton Style="{StaticResource NavButton}" Tag="&#xEA86;" Content="Plugins" x:Name="NavPlugins" GroupName="SettingsNav" Checked="Nav_Checked"/>
                                 <TextBlock Text="NOTIFICATIONS" Style="{StaticResource NavSection}"/>
                                 <RadioButton Style="{StaticResource NavButton}" Tag="&#xEA8F;" Content="Alertes" x:Name="NavAlerts" GroupName="SettingsNav" Checked="Nav_Checked"/>
                                 <TextBlock Text="OUTILS" Style="{StaticResource NavSection}"/>
@@ -325,6 +326,15 @@
                     <RowDefinition Height="48"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
+
+                <!-- Afficher / masquer le menu de gauche, et nom de la page quand il est masqué -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,8,0,0">
+                    <Button x:Name="NavToggleButton" Style="{StaticResource CaptionButton}" Click="NavToggle_Click" ToolTip="Masquer le menu (Ctrl+B)">
+                        <TextBlock Text="&#xE700;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="14" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}"/>
+                    </Button>
+                    <TextBlock x:Name="CollapsedTitle" Text="SysDeck" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource Muted}"
+                               VerticalAlignment="Center" Margin="8,0,0,0" Visibility="Collapsed"/>
+                </StackPanel>
 
                 <!-- Boutons de fenêtre -->
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,8,10,0">
@@ -1284,189 +1294,311 @@
                     </StackPanel>
                 </ScrollViewer>
 
-                <!-- ===== Page : Switch ===== -->
-                <ScrollViewer x:Name="PageSwitch" Grid.Row="1" Style="{StaticResource PageScroller}" Visibility="Collapsed">
-                    <StackPanel>
-                        <TextBlock Text="Switch" Style="{StaticResource PageTitle}"/>
-                        <TextBlock Text="Écran de la Switch (câble USB-C). Place les éléments à la souris : l'aperçu montre en direct ce qu'affiche la Switch."
-                                   Style="{StaticResource PageSubtitle}"/>
+                <!-- ===== Page : Switch (façon Stream Deck : aperçu au centre, inspecteur en bas, bibliothèque et réglages à droite) ===== -->
+                <Grid x:Name="PageSwitch" Grid.Row="1" Visibility="Collapsed" Margin="24,0,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" MinWidth="360"/>
+                        <ColumnDefinition Width="370"/>
+                    </Grid.ColumnDefinitions>
 
-                        <!-- Ordre de la page : Écran, Horloge et veille, Disposition, Éléments, Applications, Fond -->
-                        <ContentControl Style="{StaticResource SectionHeader}" Content="Écran"/>
-                        <Border Style="{StaticResource RowCard}" local:SettingsSearch.Keywords="luminosité brightness fps images seconde taille tuiles switch écran activer">
-                            <StackPanel Style="{StaticResource RowsPanel}">
-                                <controls:SettingRow Label="Utiliser la Switch"
-                                                     Description="Désactivé : SysDeck ne cherche plus la Switch (la disposition reste modifiable).">
-                                    <CheckBox x:Name="DeckEnabledCheck" Style="{StaticResource ToggleSwitch}" Margin="0"
-                                              Checked="DeckEnabled_Changed" Unchecked="DeckEnabled_Changed"/>
-                                </controls:SettingRow>
-                                <controls:SettingRow Label="Luminosité">
-                                    <DockPanel Width="260">
-                                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding Value, ElementName=DeckBrightnessSlider, StringFormat={}{0:0} %}"/>
-                                        <Slider x:Name="DeckBrightnessSlider" Minimum="5" Maximum="100" ValueChanged="DeckSlider_Changed"/>
-                                    </DockPanel>
-                                </controls:SettingRow>
-                                <controls:SettingRow Label="Images par seconde (maximum)">
-                                    <DockPanel Width="260">
-                                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding Value, ElementName=DeckFpsSlider, StringFormat={}{0:0}}"/>
-                                        <Slider x:Name="DeckFpsSlider" Minimum="2" Maximum="30" IsSnapToTickEnabled="True" TickFrequency="1" ValueChanged="DeckSlider_Changed"/>
-                                    </DockPanel>
-                                </controls:SettingRow>
-                                <controls:SettingRow Label="Taille des tuiles" Description="Raccourcis et applications.">
-                                    <DockPanel Width="260">
-                                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding Value, ElementName=DeckTileSlider, StringFormat={}{0:0} px}"/>
-                                        <Slider x:Name="DeckTileSlider" Minimum="60" Maximum="240" ValueChanged="DeckSlider_Changed"/>
-                                    </DockPanel>
-                                </controls:SettingRow>
-                            </StackPanel>
-                        </Border>
+                    <!-- Colonne principale : en-tête, aperçu, pages, inspecteur de la tuile -->
+                    <Grid Margin="0,0,20,20">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
 
-                        <ContentControl Style="{StaticResource SectionHeader}" Content="Horloge et veille"/>
-                        <Border Style="{StaticResource RowCard}" local:SettingsSearch.Keywords="horloge nuit veille éteint luminosité minimale heure fond">
-                            <StackPanel Style="{StaticResource RowsPanel}">
-                                <controls:SettingRow Label="Opacité du fond de l'horloge">
-                                    <DockPanel Width="260">
-                                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding Value, ElementName=DeckClockOpacitySlider, Converter={StaticResource Percent}}"/>
-                                        <Slider x:Name="DeckClockOpacitySlider" Minimum="0" Maximum="1" ValueChanged="DeckSlider_Changed"/>
-                                    </DockPanel>
-                                </controls:SettingRow>
-                                <controls:SettingRow Label="Horloge quand le PC est éteint"
-                                                     Description="La Switch (câble branché) garde le fond et l'heure à luminosité minimale. Nécessite l'élément Horloge sur la page affichée, sinon le fond seul.">
-                                    <CheckBox x:Name="DeckNightClockCheck" Style="{StaticResource ToggleSwitch}" Margin="0"
-                                              Checked="DeckNightClock_Changed" Unchecked="DeckNightClock_Changed"/>
-                                </controls:SettingRow>
-                                <controls:SettingRow Label="Luminosité la nuit">
-                                    <DockPanel Width="260">
-                                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding Value, ElementName=DeckNightBrightnessSlider, StringFormat={}{0:0} %}"/>
-                                        <Slider x:Name="DeckNightBrightnessSlider" Minimum="1" Maximum="30" IsSnapToTickEnabled="True" TickFrequency="1" ValueChanged="DeckSlider_Changed"/>
-                                    </DockPanel>
-                                </controls:SettingRow>
-                            </StackPanel>
-                        </Border>
-
-                        <DockPanel>
-                            <TextBlock x:Name="DeckStatusText" DockPanel.Dock="Right" FontSize="12" Foreground="{StaticResource Muted}" VerticalAlignment="Bottom" Margin="0,0,0,8"/>
-                            <ContentControl Style="{StaticResource SectionHeader}" Content="Disposition de l'écran"/>
-                        </DockPanel>
-                        <Border Style="{StaticResource Card}" local:SettingsSearch.Title="Disposition de l'écran">
+                        <DockPanel Margin="0,0,0,12">
+                            <TextBlock x:Name="DeckStatusText" DockPanel.Dock="Right" FontSize="12" Foreground="{StaticResource Muted}" VerticalAlignment="Center"/>
                             <StackPanel>
-                                <!-- Pages : chacune a ses propres éléments ; sur la Switch, glisser à gauche / à droite change de page. -->
-                                <WrapPanel>
-                                    <ListBox x:Name="DeckPagesList" Style="{StaticResource ChipList}" DisplayMemberPath="Name"
-                                             SelectionChanged="DeckPages_SelectionChanged"/>
-                                    <Button Content="Nouvelle page" VerticalAlignment="Top" Margin="0,0,0,8" Click="DeckPageAdd_Click"/>
-                                </WrapPanel>
-                                <DockPanel Margin="0,0,0,14">
-                                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                                        <Button Content="&#xE76B;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" ToolTip="Déplacer la page vers la gauche" Click="DeckPageLeft_Click"/>
-                                        <Button Content="&#xE76C;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" ToolTip="Déplacer la page vers la droite" Margin="6,0,0,0" Click="DeckPageRight_Click"/>
-                                        <Button x:Name="DeckPageRemoveButton" Content="Supprimer la page" Style="{StaticResource DangerButton}" Margin="6,0,0,0" Click="DeckPageRemove_Click"/>
-                                    </StackPanel>
-                                    <TextBlock Text="Nom de la page" Style="{StaticResource FieldLabel}" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                                    <TextBox x:Name="DeckPageNameBox" MaxWidth="260" HorizontalAlignment="Left" MinWidth="180" TextChanged="DeckPageName_Changed"/>
-                                </DockPanel>
-                                <controls:DeckLayoutEditor x:Name="DeckEditor"/>
-                                <TextBlock x:Name="DeckEditorHint" FontSize="11.5" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,10,0,0"
-                                           Text="Éléments : glisser pour déplacer · molette pour la taille · clic droit pour masquer ou réinitialiser. Clic droit sur une zone vide : réafficher un élément masqué."/>
+                                <TextBlock Text="Switch" Style="{StaticResource PageTitle}"/>
+                                <TextBlock Text="Glisse une action de la bibliothèque sur une case, puis clique sur la tuile pour la régler."
+                                           Style="{StaticResource PageSubtitle}"/>
                             </StackPanel>
+                        </DockPanel>
+
+                        <!-- Aperçu en direct de l'écran ; les .exe et .lnk glissés depuis l'Explorateur y sont acceptés -->
+                        <Border Grid.Row="1" AllowDrop="True" DragOver="DeckApps_DragOver" Drop="DeckApps_Drop" Background="Transparent">
+                            <controls:DeckLayoutEditor x:Name="DeckEditor" VerticalAlignment="Center"/>
                         </Border>
 
-                        <ContentControl Style="{StaticResource SectionHeader}" Content="Éléments affichés"/>
-                        <Border Style="{StaticResource Card}">
-                            <ItemsControl x:Name="DeckElementsList">
-                                <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <UniformGrid Columns="3"/>
-                                    </ItemsPanelTemplate>
-                                </ItemsControl.ItemsPanel>
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate>
-                                        <!-- Interrupteur à gauche du nom ; un clic sur le nom bascule aussi l'interrupteur. -->
-                                        <Border Background="Transparent" Cursor="Hand" Margin="0,0,14,10" MouseLeftButtonUp="DeckElementLabel_Click">
-                                            <StackPanel Orientation="Horizontal">
-                                                <CheckBox Style="{StaticResource ToggleSwitch}" Margin="0"
-                                                          IsChecked="{Binding IsVisible, Mode=OneTime}" Tag="{Binding Id}"
-                                                          Checked="DeckElementCheck_Changed" Unchecked="DeckElementCheck_Changed"/>
-                                                <TextBlock Text="{Binding Label}" FontSize="13" VerticalAlignment="Center" Margin="8,0,0,0" TextTrimming="CharacterEllipsis"/>
+                        <!-- Pages (comme les points du Stream Deck) et tuiles hors grille -->
+                        <StackPanel Grid.Row="2" Margin="0,12,0,0">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <ListBox x:Name="DeckPagesList" Style="{StaticResource ChipList}" DisplayMemberPath="Name"
+                                         SelectionChanged="DeckPages_SelectionChanged" ToolTip="Pages de l'écran : sur la Switch, glisse à gauche ou à droite pour en changer"/>
+                                <Button Content="&#xE710;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" VerticalAlignment="Top" Margin="2,0,0,8"
+                                        ToolTip="Nouvelle page" Click="DeckPageAdd_Click"/>
+                            </StackPanel>
+                            <StackPanel x:Name="DeckHiddenAppsPanel" Visibility="Collapsed" Margin="0,4,0,0">
+                                <TextBlock x:Name="DeckHiddenAppsText" FontSize="11.5" Foreground="{StaticResource Muted}" TextWrapping="Wrap" HorizontalAlignment="Center"/>
+                                <WrapPanel x:Name="DeckHiddenAppsList" HorizontalAlignment="Center" Margin="0,6,0,0"/>
+                            </StackPanel>
+                        </StackPanel>
+
+                        <!-- Inspecteur : réglages de la tuile sélectionnée -->
+                        <Border Grid.Row="3" Style="{StaticResource Card}" Margin="0,8,0,0" MinHeight="128">
+                            <Grid>
+                                <TextBlock x:Name="DeckInspectorEmpty" Text="Sélectionne une tuile dans l'aperçu pour configurer son action."
+                                           Foreground="{StaticResource Muted}" FontSize="12.5" HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                                <Grid x:Name="DeckInspector" Visibility="Collapsed">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <!-- Page de réglages d'un plugin Stream Deck (Property Inspector), affichée par WebView2 -->
+                                    <Border x:Name="DeckPluginPageHost" Grid.Row="1" Grid.ColumnSpan="3" Margin="0,14,0,0" Visibility="Collapsed"
+                                            BorderBrush="{StaticResource CardBorder}" BorderThickness="0,1,0,0" Padding="0,12,0,0">
+                                        <StackPanel>
+                                            <TextBlock Text="RÉGLAGES DU PLUGIN" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Muted}" Margin="0,0,0,8"/>
+                                            <TextBlock x:Name="DeckPluginPageMessage" FontSize="12" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Visibility="Collapsed"/>
+                                            <ContentControl x:Name="DeckPluginPageSlot" Height="300" Focusable="False"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <!-- Aperçu de la tuile -->
+                                    <Border x:Name="DeckInspectorTile" Width="76" Height="76" CornerRadius="14" VerticalAlignment="Top"
+                                            Background="#1E2130" BorderBrush="{StaticResource InputBorder}" BorderThickness="1" Margin="0,0,16,0">
+                                        <ContentControl x:Name="DeckInspectorIcon" Width="40" Height="40" HorizontalAlignment="Center" VerticalAlignment="Center" Focusable="False"/>
+                                    </Border>
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Top">
+                                        <TextBlock x:Name="DeckInspectorKind" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource UiAccent}"/>
+                                        <TextBlock Text="Nom" Style="{StaticResource FieldLabel}" Margin="0,8,0,4"/>
+                                        <TextBox x:Name="DeckInspectorName" MaxWidth="340" HorizontalAlignment="Stretch" TextChanged="DeckInspectorName_Changed"/>
+                                        <TextBlock x:Name="DeckInspectorDetail" FontSize="11.5" Foreground="{StaticResource Muted}" TextWrapping="Wrap"
+                                                   TextTrimming="CharacterEllipsis" MaxHeight="34" Margin="0,6,0,0"/>
+                                        <CheckBox x:Name="DeckInspectorConfirm" Style="{StaticResource ToggleSwitch}" Content="Confirmer par un second appui"
+                                                  Margin="0,8,0,0" Click="DeckInspectorConfirm_Click"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2" Margin="16,0,0,0" MinWidth="170" VerticalAlignment="Top">
+                                        <Button x:Name="DeckInspectorEdit" Content="Configurer l'action…" Style="{StaticResource PrimaryButton}" Click="DeckTileEdit_Click"/>
+                                        <Button x:Name="DeckInspectorIconButton" Content="Icône et couleurs…" Margin="0,8,0,0" Click="DeckAppIcon_Click"
+                                                ToolTip="Icône, couleurs, taille, nom masqué, apparence quand la tuile est active"/>
+                                        <UniformGrid Columns="3" Margin="0,8,0,0">
+                                            <Button x:Name="DeckInspectorLeft" Content="&#xE76B;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                                    ToolTip="Échanger avec la case précédente" Margin="0,0,4,0" Click="DeckAppLeft_Click"/>
+                                            <Button x:Name="DeckInspectorRight" Content="&#xE76C;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                                    ToolTip="Échanger avec la case suivante" Margin="2,0,2,0" Click="DeckAppRight_Click"/>
+                                            <Button x:Name="DeckInspectorRemove" Content="&#xE74D;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                                    Style="{StaticResource DangerButton}" ToolTip="Retirer la tuile de la page" Margin="4,0,0,0" Click="DeckAppRemove_Click"/>
+                                        </UniformGrid>
+                                    </StackPanel>
+                                </Grid>
+                            </Grid>
+                        </Border>
+                    </Grid>
+
+                    <!-- Panneau de droite : bibliothèque d'actions et réglages de la Switch -->
+                    <Border Grid.Column="1" Background="{StaticResource SidebarBg}" BorderBrush="{StaticResource CardBorder}" BorderThickness="1,0,0,0">
+                        <DockPanel>
+                            <UniformGrid DockPanel.Dock="Top" Columns="2" Margin="14,4,14,10">
+                                <RadioButton x:Name="SwitchTabActions" Content="Actions" Style="{StaticResource TabButton}" GroupName="SwitchPanel"
+                                             IsChecked="True" Checked="SwitchPanelTab_Checked"/>
+                                <RadioButton x:Name="SwitchTabSettings" Content="Réglages" Style="{StaticResource TabButton}" GroupName="SwitchPanel"
+                                             Checked="SwitchPanelTab_Checked"/>
+                            </UniformGrid>
+
+                            <Grid>
+                                <!-- Bibliothèque d'actions -->
+                                <DockPanel x:Name="SwitchActionsPanel">
+                                    <Border DockPanel.Dock="Top" Margin="14,0,14,8" Height="34" CornerRadius="8"
+                                            Background="{StaticResource InputBg}" BorderBrush="{StaticResource InputBorder}" BorderThickness="1">
+                                        <Grid>
+                                            <TextBlock Text="&#xE721;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12" Foreground="{StaticResource Muted}"
+                                                       VerticalAlignment="Center" Margin="11,0,0,0"/>
+                                            <TextBox x:Name="DeckActionSearch" Background="Transparent" BorderThickness="0" Height="32" Padding="30,0,6,0"
+                                                     TextChanged="DeckActionSearch_TextChanged"/>
+                                            <TextBlock Text="Rechercher une action…" Foreground="{StaticResource Muted}" FontSize="12.5" IsHitTestVisible="False"
+                                                       VerticalAlignment="Center" Margin="32,0,0,0"
+                                                       Visibility="{Binding Text, ElementName=DeckActionSearch, Converter={StaticResource EmptyToVis}}"/>
+                                        </Grid>
+                                    </Border>
+                                    <TextBlock DockPanel.Dock="Bottom" Text="Clic : ajoute à la première case libre · glisser : dépose sur la case voulue."
+                                               FontSize="11" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="16,8,16,12"/>
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                        <StackPanel x:Name="DeckActionsList" Margin="8,0,8,0"/>
+                                    </ScrollViewer>
+                                </DockPanel>
+
+                                <!-- Réglages de la Switch -->
+                                <ScrollViewer x:Name="SwitchSettingsPanel" Visibility="Collapsed" VerticalScrollBarVisibility="Auto"
+                                              HorizontalScrollBarVisibility="Disabled" Padding="14,0,14,20">
+                                    <StackPanel>
+                                        <!-- ===== Réglages de la page affichée ===== -->
+                                        <TextBlock x:Name="PageLookTitle" FontSize="15" FontWeight="SemiBold" Foreground="{StaticResource UiText}"
+                                                   Margin="2,4,0,2" TextTrimming="CharacterEllipsis"/>
+                                        <TextBlock Text="Chaque page a ses propres tuiles, son fond et son horloge. Change de page sous l'aperçu pour régler les autres."
+                                                   FontSize="11.5" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="2,0,0,8"/>
+                                        <Button Content="Appliquer ce style à toutes les pages" HorizontalAlignment="Left" Margin="2,0,0,4"
+                                                Click="DeckLookToAllPages_Click"
+                                                ToolTip="Copie le style des tuiles, le fond et l'horloge de cette page sur toutes les autres (pas les tuiles ni les éléments)"/>
+
+                                        <ContentControl Style="{StaticResource SectionHeader}" Content="Tuiles de la page"/>
+                                        <Border Style="{StaticResource RowCard}" Padding="14,0"
+                                                local:SettingsSearch.Keywords="tuiles taille icônes style verre 3d plat nom opacité fond transparence boutons page">
+                                            <StackPanel Style="{StaticResource RowsPanel}">
+                                                <controls:SettingRow Label="Style des tuiles" Stacked="True"
+                                                                     Description="Verre 3D : boutons en relief façon Stream Deck, qui s'enfoncent à l'appui. À plat : fond uni du thème.">
+                                                    <ComboBox x:Name="DeckTileStyleBox" SelectionChanged="DeckTileStyle_Changed">
+                                                        <ComboBoxItem Content="Verre 3D"/>
+                                                        <ComboBoxItem Content="À plat"/>
+                                                    </ComboBox>
+                                                </controls:SettingRow>
+                                                <controls:SettingRow Label="Taille des tuiles" Stacked="True">
+                                                    <DockPanel>
+                                                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding Value, ElementName=DeckTileSlider, StringFormat={}{0:0} px}"/>
+                                                        <Slider x:Name="DeckTileSlider" Minimum="60" Maximum="240" ValueChanged="DeckSlider_Changed"/>
+                                                    </DockPanel>
+                                                </controls:SettingRow>
+                                                <controls:SettingRow Label="Taille des icônes" Stacked="True"
+                                                                     Description="À 100 %, l'icône remplit la tuile et le nom passe par-dessus. Chaque tuile peut avoir la sienne.">
+                                                    <DockPanel>
+                                                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding Value, ElementName=DeckIconScaleSlider, Converter={StaticResource Percent}}"/>
+                                                        <Slider x:Name="DeckIconScaleSlider" Minimum="0.25" Maximum="1" SmallChange="0.05" LargeChange="0.1"
+                                                                IsSnapToTickEnabled="True" TickFrequency="0.05" ValueChanged="DeckSlider_Changed"/>
+                                                    </DockPanel>
+                                                </controls:SettingRow>
+                                                <controls:SettingRow Label="Afficher le nom des tuiles">
+                                                    <CheckBox x:Name="DeckShowNamesCheck" Style="{StaticResource ToggleSwitch}" Margin="0"
+                                                              Checked="DeckShowNames_Changed" Unchecked="DeckShowNames_Changed"/>
+                                                </controls:SettingRow>
+                                                <controls:SettingRow Label="Opacité du fond des tuiles" Stacked="True"
+                                                                     Description="À 0 %, en verre 3D, seul le bord du bouton reste autour de l'icône.">
+                                                    <DockPanel>
+                                                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding Value, ElementName=DeckAppsOpacitySlider, Converter={StaticResource Percent}}"/>
+                                                        <Slider x:Name="DeckAppsOpacitySlider" Minimum="0" Maximum="1" ValueChanged="DeckSlider_Changed"/>
+                                                    </DockPanel>
+                                                </controls:SettingRow>
                                             </StackPanel>
                                         </Border>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </Border>
 
-                        <ContentControl Style="{StaticResource SectionHeader}" Content="Applications de la page"/>
-                        <Border Style="{StaticResource RowCard}" AllowDrop="True" DragOver="DeckApps_DragOver" Drop="DeckApps_Drop"
-                                local:SettingsSearch.Keywords="applications tuiles ajouter tuile lien fichier dossier url arguments commande éteindre redémarrer veille verrouiller fermer session shutdown micro muet son muet coupé sortie audio confirmer second appui icône image symbole émoji raccourci clavier touches combinaison multimédia opacité fond transparence">
-                            <StackPanel Style="{StaticResource RowsPanel}">
-                                <controls:SettingRow Description="Tuiles propres à la page affichée, sans passer par la barre de raccourcis. « Ajouter une tuile… » propose : application installée, lien ou fichier, commande (éteindre, redémarrer, veille, verrouiller…), raccourci clavier, micro muet et son muet. Tu peux aussi glisser des .exe ou des .lnk ici depuis l'Explorateur."/>
-                                <Border Style="{StaticResource RowBorder}">
-                                    <StackPanel>
-                                        <ItemsControl x:Name="DeckAppsList">
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate>
-                                                    <DockPanel Margin="0,0,0,6">
-                                                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                                                            <Button Content="Modifier…" ToolTip="Modifier cette tuile (nom, lien, commande, combinaison, périphérique, icône)"
-                                                                    Height="30" VerticalAlignment="Center" Tag="{Binding Item}" Click="DeckTileEdit_Click"/>
-                                                            <Button Content="Icône…" ToolTip="Changer l'icône de cette tuile"
-                                                                    Height="30" VerticalAlignment="Center" Margin="8,0,0,0" Tag="{Binding Item}" Click="DeckAppIcon_Click"/>
-                                                            <Button Content="&#xE76B;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" ToolTip="Échanger avec la tuile précédente"
-                                                                    Height="30" MinWidth="34" VerticalAlignment="Center" Margin="8,0,0,0" Tag="{Binding Item}" Click="DeckAppLeft_Click"/>
-                                                            <Button Content="&#xE76C;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" ToolTip="Échanger avec la tuile suivante"
-                                                                    Height="30" MinWidth="34" VerticalAlignment="Center" Margin="8,0,0,0" Tag="{Binding Item}" Click="DeckAppRight_Click"/>
-                                                            <Button Content="&#xE711;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" ToolTip="Retirer de la page"
-                                                                    Style="{StaticResource DangerButton}" Height="30" MinWidth="34" VerticalAlignment="Center" Margin="8,0,0,0" Tag="{Binding Item}" Click="DeckAppRemove_Click"/>
-                                                        </StackPanel>
-                                                        <ContentControl Content="{Binding Icon}" Width="22" Height="22" Margin="0,0,10,0" VerticalAlignment="Center"/>
-                                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                                            <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis"/>
-                                                            <TextBlock Text="{Binding Detail}" Foreground="{StaticResource Muted}" FontSize="12" Margin="10,1,0,0"/>
-                                                            <TextBlock Text="{Binding Warning}" Foreground="{StaticResource Muted}" FontStyle="Italic" FontSize="12" Margin="10,1,0,0"/>
-                                                        </StackPanel>
+                                        <ContentControl Style="{StaticResource SectionHeader}" Content="Fond de la page"/>
+                                        <Border Style="{StaticResource RowCard}" Padding="14,0" local:SettingsSearch.Keywords="fond image couleur assombrissement arrière-plan horloge opacité page">
+                                            <StackPanel Style="{StaticResource RowsPanel}">
+                                                <controls:SettingRow Label="Couleur de fond">
+                                                    <controls:ColorSwatch x:Name="DeckBackgroundSwatch" Content="Couleur" Margin="0"/>
+                                                </controls:SettingRow>
+                                                <controls:SettingRow Label="Image de fond" Stacked="True">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Button Content="Choisir une image…" Style="{StaticResource PrimaryButton}" Click="DeckBackgroundImage_Click"/>
+                                                        <Button Content="Retirer" Margin="8,0,0,0" Click="DeckBackgroundImageClear_Click"/>
+                                                    </StackPanel>
+                                                </controls:SettingRow>
+                                                <controls:SettingRow Label="Assombrissement de l'image" Stacked="True">
+                                                    <DockPanel>
+                                                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding Value, ElementName=DeckDimSlider, Converter={StaticResource Percent}}"/>
+                                                        <Slider x:Name="DeckDimSlider" Minimum="0" Maximum="0.9" ValueChanged="DeckSlider_Changed"/>
                                                     </DockPanel>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-                                        <TextBlock x:Name="DeckAppsEmpty" Text="Aucune application sur cette page." FontSize="12" Foreground="{StaticResource Muted}"/>
-                                    </StackPanel>
-                                </Border>
-                                <Border Style="{StaticResource RowBorder}">
-                                    <StackPanel Orientation="Horizontal">
-                                        <Button Content="Ajouter une tuile…" Style="{StaticResource PrimaryButton}" Click="DeckTileAdd_Click"/>
-                                    </StackPanel>
-                                </Border>
-                                <controls:SettingRow Label="Opacité du fond des applications">
-                                    <DockPanel Width="260">
-                                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding Value, ElementName=DeckAppsOpacitySlider, Converter={StaticResource Percent}}"/>
-                                        <Slider x:Name="DeckAppsOpacitySlider" Minimum="0" Maximum="1" ValueChanged="DeckSlider_Changed"/>
-                                    </DockPanel>
-                                </controls:SettingRow>
-                            </StackPanel>
-                        </Border>
+                                                </controls:SettingRow>
+                                                <controls:SettingRow Label="Opacité du fond de l'horloge" Stacked="True">
+                                                    <DockPanel>
+                                                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding Value, ElementName=DeckClockOpacitySlider, Converter={StaticResource Percent}}"/>
+                                                        <Slider x:Name="DeckClockOpacitySlider" Minimum="0" Maximum="1" ValueChanged="DeckSlider_Changed"/>
+                                                    </DockPanel>
+                                                </controls:SettingRow>
+                                            </StackPanel>
+                                        </Border>
 
-                        <ContentControl Style="{StaticResource SectionHeader}" Content="Fond"/>
-                        <Border Style="{StaticResource RowCard}" local:SettingsSearch.Keywords="fond image couleur assombrissement arrière-plan">
-                            <StackPanel Style="{StaticResource RowsPanel}">
-                                <controls:SettingRow Label="Couleur de fond">
-                                    <controls:ColorSwatch x:Name="DeckBackgroundSwatch" Content="Couleur" Margin="0"/>
-                                </controls:SettingRow>
-                                <controls:SettingRow Label="Image de fond">
-                                    <StackPanel Orientation="Horizontal">
-                                        <Button Content="Choisir une image…" Style="{StaticResource PrimaryButton}" Click="DeckBackgroundImage_Click"/>
-                                        <Button Content="Retirer" Margin="10,0,0,0" Click="DeckBackgroundImageClear_Click"/>
+                                        <ContentControl Style="{StaticResource SectionHeader}" Content="Éléments de la page"/>
+                                        <Border Style="{StaticResource Card}" Padding="14,12" local:SettingsSearch.Title="Éléments de la page"
+                                                local:SettingsSearch.Keywords="éléments horloge modules applications tuiles afficher masquer">
+                                            <StackPanel>
+                                                <ItemsControl x:Name="DeckElementsList">
+                                                    <ItemsControl.ItemsPanel>
+                                                        <ItemsPanelTemplate>
+                                                            <UniformGrid Columns="2"/>
+                                                        </ItemsPanelTemplate>
+                                                    </ItemsControl.ItemsPanel>
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <!-- Interrupteur à gauche du nom ; un clic sur le nom bascule aussi l'interrupteur. -->
+                                                            <Border Background="Transparent" Cursor="Hand" Margin="0,0,8,10" MouseLeftButtonUp="DeckElementLabel_Click">
+                                                                <StackPanel Orientation="Horizontal">
+                                                                    <CheckBox Style="{StaticResource ToggleSwitch}" Margin="0"
+                                                                              IsChecked="{Binding IsVisible, Mode=OneTime}" Tag="{Binding Id}"
+                                                                              Checked="DeckElementCheck_Changed" Unchecked="DeckElementCheck_Changed"/>
+                                                                    <TextBlock Text="{Binding Label}" FontSize="12.5" VerticalAlignment="Center" Margin="8,0,0,0" TextTrimming="CharacterEllipsis"/>
+                                                                </StackPanel>
+                                                            </Border>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                                <TextBlock x:Name="DeckEditorHint" FontSize="11" Foreground="{StaticResource Muted}" TextWrapping="Wrap"
+                                                           Text="Dans l'aperçu : glisser un élément le déplace, son coin le redimensionne, clic droit pour le masquer."/>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <ContentControl Style="{StaticResource SectionHeader}" Content="Nom et ordre de la page"/>
+                                        <Border Style="{StaticResource RowCard}" Padding="14,0" local:SettingsSearch.Keywords="page nom renommer déplacer supprimer pages">
+                                            <StackPanel Style="{StaticResource RowsPanel}">
+                                                <controls:SettingRow Label="Nom de la page" Stacked="True">
+                                                    <TextBox x:Name="DeckPageNameBox" TextChanged="DeckPageName_Changed"/>
+                                                </controls:SettingRow>
+                                                <Border Style="{StaticResource RowBorder}">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Button Content="&#xE76B;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" ToolTip="Déplacer la page vers la gauche" Click="DeckPageLeft_Click"/>
+                                                        <Button Content="&#xE76C;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" ToolTip="Déplacer la page vers la droite" Margin="6,0,0,0" Click="DeckPageRight_Click"/>
+                                                        <Button x:Name="DeckPageRemoveButton" Content="Supprimer la page" Style="{StaticResource DangerButton}" Margin="10,0,0,0" Click="DeckPageRemove_Click"/>
+                                                    </StackPanel>
+                                                </Border>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <!-- ===== Réglages communs à toute la Switch ===== -->
+                                        <TextBlock Text="Toute la Switch" FontSize="15" FontWeight="SemiBold" Foreground="{StaticResource UiText}" Margin="2,28,0,2"/>
+                                        <TextBlock Text="Ces réglages valent pour toutes les pages." FontSize="11.5" Foreground="{StaticResource Muted}" Margin="2,0,0,0"/>
+
+                                        <ContentControl Style="{StaticResource SectionHeader}" Content="Écran"/>
+                                        <Border Style="{StaticResource RowCard}" Padding="14,0" local:SettingsSearch.Keywords="luminosité brightness fps images seconde switch écran activer">
+                                            <StackPanel Style="{StaticResource RowsPanel}">
+                                                <controls:SettingRow Label="Utiliser la Switch"
+                                                                     Description="Désactivé : SysDeck ne cherche plus la Switch (la disposition reste modifiable).">
+                                                    <CheckBox x:Name="DeckEnabledCheck" Style="{StaticResource ToggleSwitch}" Margin="0"
+                                                              Checked="DeckEnabled_Changed" Unchecked="DeckEnabled_Changed"/>
+                                                </controls:SettingRow>
+                                                <controls:SettingRow Label="Luminosité" Stacked="True">
+                                                    <DockPanel>
+                                                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding Value, ElementName=DeckBrightnessSlider, StringFormat={}{0:0} %}"/>
+                                                        <Slider x:Name="DeckBrightnessSlider" Minimum="5" Maximum="100" ValueChanged="DeckSlider_Changed"/>
+                                                    </DockPanel>
+                                                </controls:SettingRow>
+                                                <controls:SettingRow Label="Images par seconde (maximum)" Stacked="True">
+                                                    <DockPanel>
+                                                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding Value, ElementName=DeckFpsSlider, StringFormat={}{0:0}}"/>
+                                                        <Slider x:Name="DeckFpsSlider" Minimum="2" Maximum="30" IsSnapToTickEnabled="True" TickFrequency="1" ValueChanged="DeckSlider_Changed"/>
+                                                    </DockPanel>
+                                                </controls:SettingRow>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <ContentControl Style="{StaticResource SectionHeader}" Content="Veille (PC éteint)"/>
+                                        <Border Style="{StaticResource RowCard}" Padding="14,0" local:SettingsSearch.Keywords="horloge nuit veille éteint luminosité minimale heure">
+                                            <StackPanel Style="{StaticResource RowsPanel}">
+                                                <controls:SettingRow Label="Horloge quand le PC est éteint"
+                                                                     Description="La Switch (câble branché) garde le fond et l'heure de la page affichée, à luminosité minimale.">
+                                                    <CheckBox x:Name="DeckNightClockCheck" Style="{StaticResource ToggleSwitch}" Margin="0"
+                                                              Checked="DeckNightClock_Changed" Unchecked="DeckNightClock_Changed"/>
+                                                </controls:SettingRow>
+                                                <controls:SettingRow Label="Luminosité la nuit" Stacked="True">
+                                                    <DockPanel>
+                                                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding Value, ElementName=DeckNightBrightnessSlider, StringFormat={}{0:0} %}"/>
+                                                        <Slider x:Name="DeckNightBrightnessSlider" Minimum="1" Maximum="30" IsSnapToTickEnabled="True" TickFrequency="1" ValueChanged="DeckSlider_Changed"/>
+                                                    </DockPanel>
+                                                </controls:SettingRow>
+                                            </StackPanel>
+                                        </Border>
                                     </StackPanel>
-                                </controls:SettingRow>
-                                <controls:SettingRow Label="Assombrissement de l'image">
-                                    <DockPanel Width="260">
-                                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding Value, ElementName=DeckDimSlider, Converter={StaticResource Percent}}"/>
-                                        <Slider x:Name="DeckDimSlider" Minimum="0" Maximum="0.9" ValueChanged="DeckSlider_Changed"/>
-                                    </DockPanel>
-                                </controls:SettingRow>
-                            </StackPanel>
-                        </Border>
-                    </StackPanel>
-                </ScrollViewer>
+                                </ScrollViewer>
+                            </Grid>
+                        </DockPanel>
+                    </Border>
+                </Grid>
 
                 <!-- ===== Page : Alertes ===== DataContext = réglages Alerts -->
                 <ScrollViewer x:Name="PageAlerts" Grid.Row="1" Style="{StaticResource PageScroller}" Visibility="Collapsed">
@@ -1779,6 +1911,68 @@
                                 </Border>
                             </StackPanel>
                         </Border>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- ===== Page : Plugins (onglets : installés / catalogue GitHub) ===== -->
+                <ScrollViewer x:Name="PagePlugins" Grid.Row="1" Style="{StaticResource PageScroller}" Visibility="Collapsed">
+                    <StackPanel>
+                        <TextBlock Text="Plugins" Style="{StaticResource PageTitle}"/>
+                        <TextBlock Text="Les plugins ajoutent de nouvelles actions de tuiles : plugins SysDeck, et plugins du Stream Deck d'Elgato publiés en open source. Chacun est un petit programme lancé par SysDeck."
+                                   Style="{StaticResource PageSubtitle}"/>
+
+                        <StackPanel Orientation="Horizontal" Margin="0,14,0,4">
+                            <RadioButton x:Name="PluginsTabInstalled" Content="Installés" Style="{StaticResource TabButton}" GroupName="PluginsTabs"
+                                         IsChecked="True" Checked="PluginsTab_Checked" MinWidth="120"/>
+                            <RadioButton x:Name="PluginsTabCatalog" Content="Catalogue" Style="{StaticResource TabButton}" GroupName="PluginsTabs"
+                                         Checked="PluginsTab_Checked" MinWidth="120"/>
+                        </StackPanel>
+
+                        <!-- Plugins installés -->
+                        <StackPanel x:Name="PluginsInstalledPanel">
+                            <WrapPanel Margin="0,12,0,0">
+                                <Button Content="+ Installer un fichier…" Style="{StaticResource PrimaryButton}" Margin="0,0,8,0" Click="InstallPlugin_Click"
+                                        local:SettingsSearch.Keywords="plugin extension installer sysdeckplugin streamdeckplugin elgato"/>
+                                <Button Content="Vérifier les mises à jour" Margin="0,0,8,0" Click="CheckPluginUpdates_Click"/>
+                                <Button Content="Ouvrir le dossier des plugins" Click="OpenPluginsFolder_Click"/>
+                            </WrapPanel>
+                            <TextBlock Text="Un plugin exécute du code sur ce PC avec tes droits : n'installe que des plugins de confiance."
+                                       FontSize="11.5" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+
+                            <Border x:Name="PluginsEmptyCard" Style="{StaticResource Card}" Margin="0,16,0,0" Padding="20,28">
+                                <StackPanel HorizontalAlignment="Center">
+                                    <TextBlock Text="&#xEA86;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="30"
+                                               Foreground="{StaticResource Muted}" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="Aucun plugin installé" Foreground="{StaticResource UiText}" FontSize="14"
+                                               FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,10,0,0"/>
+                                    <TextBlock Text="Cherche-en un dans l'onglet Catalogue, ou installe un fichier .sysdeckplugin ou .streamDeckPlugin."
+                                               Style="{StaticResource PageSubtitle}" TextAlignment="Center" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                            <StackPanel x:Name="PluginsList"/>
+                        </StackPanel>
+
+                        <!-- Catalogue : plugins vérifiés et dépôts GitHub -->
+                        <StackPanel x:Name="PluginsCatalogPanel" Visibility="Collapsed">
+                            <DockPanel Margin="0,12,0,0">
+                                <Button DockPanel.Dock="Right" x:Name="CatalogSearchButton" Content="Rechercher" Style="{StaticResource PrimaryButton}"
+                                        Margin="8,0,0,0" Click="CatalogSearch_Click"/>
+                                <Border Height="34" CornerRadius="8" Background="{StaticResource InputBg}" BorderBrush="{StaticResource InputBorder}" BorderThickness="1">
+                                    <Grid>
+                                        <TextBlock Text="&#xE721;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12" Foreground="{StaticResource Muted}"
+                                                   VerticalAlignment="Center" Margin="11,0,0,0"/>
+                                        <TextBox x:Name="CatalogSearchBox" Background="Transparent" BorderThickness="0" Height="32" Padding="30,0,6,0"
+                                                 KeyDown="CatalogSearchBox_KeyDown"/>
+                                        <TextBlock Text="Nom ou usage du plugin (ex. : spotify, obs, discord, météo…) — vide : les plus populaires"
+                                                   Foreground="{StaticResource Muted}" FontSize="12.5" IsHitTestVisible="False" VerticalAlignment="Center" Margin="32,0,0,0"
+                                                   Visibility="{Binding Text, ElementName=CatalogSearchBox, Converter={StaticResource EmptyToVis}}"/>
+                                    </Grid>
+                                </Border>
+                            </DockPanel>
+                            <TextBlock x:Name="CatalogStatusText" FontSize="11.5" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="2,8,0,0"
+                                       Text="Plugins publiés sur GitHub avec le sujet « sysdeck-plugin » ou « streamdeck-plugin ». Les plugins « Vérifiés » ont été testés avec SysDeck ; les autres viennent de la communauté."/>
+                            <StackPanel x:Name="CatalogList" Margin="0,4,0,0"/>
+                        </StackPanel>
                     </StackPanel>
                 </ScrollViewer>
 

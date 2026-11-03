@@ -90,6 +90,7 @@ public static class ShortcutIcons
     /// <summary>Contrôle de <paramref name="size"/> pixels de côté montrant l'icône de la tuile (null s'il n'y en a aucune).</summary>
     public static FrameworkElement? Create(ShortcutItem item, double size)
     {
+        if (item.DisplayImage is { } image) return new Image { Source = image, Width = size, Height = size, Stretch = Stretch.Uniform };
         if (!string.IsNullOrEmpty(item.IconGlyph))
         {
             // Marque inconnue : on retombe sur l'icône par défaut (image choisie, sinon icône du programme).
@@ -97,10 +98,21 @@ public static class ShortcutIcons
             if (CreateBrand(item.IconGlyph, size, item.IconColor) is { } brand) return brand;
         }
 
-        var source = !string.IsNullOrWhiteSpace(item.CustomIconPath)
-            ? IconExtractor.GetCustomIcon(item.CustomIconPath)
-            : IconExtractor.GetIcon(item.Path);
-        return source is null ? null : new Image { Source = source, Width = size, Height = size };
+        var custom = !string.IsNullOrWhiteSpace(item.CustomIconPath);
+        var source = custom ? IconExtractor.GetCustomIcon(item.CustomIconPath!) : IconExtractor.GetIcon(item.Path);
+        if (source is null) return null;
+        if (custom && !string.IsNullOrWhiteSpace(item.ImageTint)) return CreateTinted(source, size, item.ImageTint);
+        return new Image { Source = source, Width = size, Height = size };
+    }
+
+    /// <summary>Image recolorée d'une seule couleur : sa transparence sert de masque à un aplat de <paramref name="color"/>.</summary>
+    public static FrameworkElement CreateTinted(ImageSource source, double size, string color)
+    {
+        var brush = new SolidColorBrush(ThemeService.Parse(color, Colors.White));
+        brush.Freeze();
+        var mask = new ImageBrush(source) { Stretch = Stretch.Uniform };
+        mask.Freeze();
+        return new System.Windows.Shapes.Rectangle { Width = size, Height = size, Fill = brush, OpacityMask = mask };
     }
 
     /// <summary>Vrai pour un chemin de fichier image (icône importée), faux pour un symbole ou un émoji.</summary>

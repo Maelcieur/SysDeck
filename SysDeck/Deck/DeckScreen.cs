@@ -1,5 +1,4 @@
-﻿using System.Collections.ObjectModel;
-using System.Collections.Specialized;
+﻿using System.Collections.Specialized;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -8,6 +7,7 @@ using SysDeck.Controls;
 using SysDeck.Models;
 using SysDeck.Services;
 using HorizontalAlignment = System.Windows.HorizontalAlignment;
+using Image = System.Windows.Controls.Image;
 using VerticalAlignment = System.Windows.VerticalAlignment;
 
 namespace SysDeck.Deck;
@@ -30,7 +30,6 @@ public sealed partial class DeckScreen : Grid
     private readonly Func<string, UIElement?> _buildModule;
     private readonly Func<string, ModuleAppearance> _appearance;
     private readonly Action<UIElement, ModuleAppearance> _applyModuleSettings;
-    private readonly ObservableCollection<ShortcutItem> _shortcuts;
     private ImageSource? _mediaArtwork;
 
     private readonly Border _backgroundImage = new();
@@ -52,7 +51,7 @@ public sealed partial class DeckScreen : Grid
     /// <param name="appearance">Apparence du module propre à la Switch.</param>
     /// <param name="applyModuleSettings">Réglages propres à certains modules (icônes, style des jauges…) appliqués au contenu.</param>
     public DeckScreen(AppConfig config, Action save, Func<string, UIElement?> buildModule, Func<string, ModuleAppearance> appearance,
-        Action<UIElement, ModuleAppearance> applyModuleSettings, ObservableCollection<ShortcutItem> shortcuts)
+        Action<UIElement, ModuleAppearance> applyModuleSettings)
     {
         _settings = config.Deck;
         _config = config;
@@ -60,7 +59,6 @@ public sealed partial class DeckScreen : Grid
         _buildModule = buildModule;
         _appearance = appearance;
         _applyModuleSettings = applyModuleSettings;
-        _shortcuts = shortcuts;
 
         Width = ScreenWidth;
         Height = ScreenHeight;
@@ -90,8 +88,22 @@ public sealed partial class DeckScreen : Grid
         Children.Add(overlay);
     }
 
+    /// <summary>
+    /// Fond et horloge de la page affichée (chaque page a les siens) ; le fond n'est recréé que s'il a changé, pour ne
+    /// pas relancer un GIF animé à chaque synchronisation.
+    /// </summary>
+    public void ApplyPageLook()
+    {
+        var key = $"{_settings.BackgroundColor}|{_settings.BackgroundImage}|{_settings.BackgroundDim}";
+        if (key != _appliedBackground) ApplyBackground();
+        ApplyClockOpacity();
+    }
+
+    private string? _appliedBackground;
+
     public void ApplyBackground()
     {
+        _appliedBackground = $"{_settings.BackgroundColor}|{_settings.BackgroundImage}|{_settings.BackgroundDim}";
         Background = new SolidColorBrush(ThemeService.Parse(_settings.BackgroundColor, Color.FromRgb(0x0B, 0x0C, 0x10)));
         // GIF : fond animé (l'écran entier change à chaque image, envoyé au rythme des Fps).
         var brush = AnimatedGif.CreateBrush(_settings.BackgroundImage, (int)ScreenWidth, ApplyBackground)
@@ -175,10 +187,8 @@ public sealed partial class DeckScreen : Grid
                 var clock = Card(new DeckClock());
                 clock.Chrome.Opacity = _settings.ClockOpacity;
                 return (clock.Frame, null);
-            case "shortcuts":
-                return (new DeckShortcutsPanel(() => _shortcuts, _shortcuts, () => _settings.TileSize), null);
             case "apps":
-                return (new DeckShortcutsPanel(() => _settings.Page.Apps, null, () => _settings.TileSize, () => _settings.AppsOpacity, grid: true), null);
+                return (new DeckShortcutsPanel(() => _settings.Page.Apps, null, () => _settings.TileSize, () => _settings.AppsOpacity, grid: true, look: () => _settings), null);
         }
 
         var module = _buildModule(id);
@@ -290,14 +300,17 @@ public sealed class DeckShortcutsPanel : Panel
     private readonly Func<IEnumerable<ShortcutItem>> _items;
     private readonly Func<double> _tileSize;
     private readonly Func<double>? _backgroundOpacity;
+    private readonly Func<DeckSettings?>? _look;
     private readonly bool _grid;
 
     /// <param name="changes">Liste à suivre pour se reconstruire seul, sinon null (Rebuild appelé de l'extérieur).</param>
     /// <param name="backgroundOpacity">Opacité du fond des tuiles (null = opaque).</param>
     /// <param name="grid">Vrai : tuiles placées dans leur case de la grille (<see cref="TileGrid"/>) ; faux : alignées à la suite.</param>
+    /// <param name="look">Apparence des tuiles (style verre, taille d'icône, noms) ; null = à plat, icône à moitié, noms affichés.</param>
     public DeckShortcutsPanel(Func<IEnumerable<ShortcutItem>> items, INotifyCollectionChanged? changes, Func<double> tileSize,
-        Func<double>? backgroundOpacity = null, bool grid = false)
+        Func<double>? backgroundOpacity = null, bool grid = false, Func<DeckSettings?>? look = null)
     {
+        _look = look;
         _items = items;
         _tileSize = tileSize;
         _backgroundOpacity = backgroundOpacity;
@@ -320,6 +333,7 @@ public sealed class DeckShortcutsPanel : Panel
     public void Rebuild()
     {
         Children.Clear();
+        _stuck.Clear();
         var size = Math.Clamp(_tileSize(), 60, 300);
         foreach (var item in _items())
             Children.Add(BuildTile(item, size));
@@ -366,6 +380,12 @@ public sealed class DeckShortcutsPanel : Panel
     /// <summary>Applique l'opacité du fond aux tuiles déjà construites (l'icône et le nom restent opaques).</summary>
     public void ApplyBackgroundOpacity()
     {
+        // Verre : l'opacité de la face dépend aussi de la couleur et de l'état de la tuile, plus simple de tout redessiner.
+        if (Children.OfType<Border>().Any(t => t.Child is Grid root && root.Children.OfType<Image>().Any()))
+        {
+            Rebuild();
+            return;
+        }
         foreach (var tile in Children.OfType<Border>())
             if (tile.Child is Grid { Children: [Border background, ..] })
                 background.Opacity = BackgroundOpacity;
@@ -373,14 +393,34 @@ public sealed class DeckShortcutsPanel : Panel
 
     private Border BuildTile(ShortcutItem item, double size)
     {
+        var look = _look?.Invoke();
+        var glass = look is { TileStyle: DeckTileStyle.Glass } && TileGlass.Available;
+        var iconScale = DeckSettings.ClampIconScale(item.IconScale) ?? look?.TileIconScale ?? 0.5;
+        var showName = (look?.ShowTileNames ?? true) && !item.HideName;
+
+        // Face de la tuile : toute la tuile à plat ; en verre, l'intérieur du bord chromé.
+        var inset = glass ? size * TileGlass.FaceInset : 0;
+        var face = size - 2 * inset;
+        var corner = glass ? size * TileGlass.FaceCorner : size * 0.16;
+
         // Pas de fond sur la tuile elle-même : son opacité s'appliquerait aussi à l'icône et au nom.
-        var background = new Border { CornerRadius = new CornerRadius(size * 0.16), Opacity = BackgroundOpacity };
+        var background = new Border { CornerRadius = new CornerRadius(corner), Opacity = BackgroundOpacity, Margin = new Thickness(inset) };
         var armed = TileRuntime.Confirm.IsArmed(item);
-        var look = TileRuntime.IntegrationLookOf(item);
-        var muted = (item.IsMuteTile && TileRuntime.IsMuted(item)) || look == IntegrationLook.Alert;
-        var highlighted = look == IntegrationLook.Highlight;
+        var stateLook = TileRuntime.IntegrationLookOf(item);
+        var muted = (item.IsMuteTile && TileRuntime.IsMuted(item)) || stateLook == IntegrationLook.Alert;
+        var highlighted = stateLook == IntegrationLook.Highlight;
+        var active = muted || highlighted;
         var alert = Color.FromRgb(0xE5, 0x48, 0x3E);
-        if (muted)
+        var colored = true;
+        // Fond « Transparent » choisi pour la tuile : ni couleur ni face de verre, seuls le bord, l'icône et le nom restent.
+        var transparent = IsTransparent(item.TileColor);
+        if (active && !string.IsNullOrWhiteSpace(item.ActiveColor) && !IsTransparent(item.ActiveColor))
+        {
+            // Couleur active choisie pour la tuile.
+            background.Background = Gradient(ThemeService.Parse(item.ActiveColor, alert));
+            background.Opacity = 1;
+        }
+        else if (muted)
         {
             // Micro / sortie coupé : fond rouge, bien visible de loin.
             background.Background = new LinearGradientBrush(Color.FromRgb(0xC6, 0x3A, 0x32), Color.FromRgb(0x8E, 0x24, 0x1F), 90);
@@ -392,18 +432,21 @@ public sealed class DeckShortcutsPanel : Panel
             background.SetResourceReference(Border.BackgroundProperty, "AccentBrush");
             background.Opacity = 1;
         }
+        else if (transparent) colored = false;
         else if (!string.IsNullOrWhiteSpace(item.TileColor))
         {
             // Couleur propre : légèrement plus claire en haut, comme le fond du thème.
-            var color = ThemeService.Parse(item.TileColor, Colors.Black);
-            var lighter = Color.FromArgb(color.A, (byte)Math.Min(255, color.R + 28), (byte)Math.Min(255, color.G + 28), (byte)Math.Min(255, color.B + 28));
-            background.Background = new LinearGradientBrush(lighter, color, 90);
+            background.Background = Gradient(ThemeService.Parse(item.TileColor, Colors.Black));
         }
-        else background.SetResourceReference(Border.BackgroundProperty, "PanelBrush");
+        else
+        {
+            background.SetResourceReference(Border.BackgroundProperty, "PanelBrush");
+            colored = false;
+        }
 
         var name = new TextBlock
         {
-            Text = armed ? "Appuyer encore pour confirmer" : item.Name,
+            Text = armed ? "Appuyer encore pour confirmer" : TileRuntime.DisplayName(item),
             FontSize = Math.Max(11, size * 0.11),
             TextTrimming = TextTrimming.CharacterEllipsis,
             HorizontalAlignment = HorizontalAlignment.Center,
@@ -416,10 +459,58 @@ public sealed class DeckShortcutsPanel : Panel
             name.FontWeight = FontWeights.SemiBold;
             name.Foreground = new SolidColorBrush(alert);
         }
-        else if (muted || highlighted) name.Foreground = Brushes.White;
+        else if (muted || highlighted || glass) name.Foreground = Brushes.White;
         else name.SetResourceReference(TextBlock.ForegroundProperty, "TextBrush");
-        var display = TileRuntime.ForDisplay(item);
-        if ((muted || highlighted) && string.IsNullOrWhiteSpace(display.IconColor) && display != item) display.IconColor = "#FFFFFFFF";
+        // Active : sa deuxième icône si elle en a une (ex. micro barré), sinon l'icône habituelle (qui suit déjà l'état par défaut).
+        var display = active && item.HasActiveIcon ? item.ActiveDisplay() : TileRuntime.ForDisplay(item);
+        if (active && string.IsNullOrWhiteSpace(display.IconColor) && display != item) display.IconColor = "#FFFFFFFF";
+
+        var iconSize = face * iconScale;
+        var icon = ShortcutIcons.Create(display, iconSize) ?? new Border { Width = iconSize, Height = iconSize };
+        icon.HorizontalAlignment = HorizontalAlignment.Center;
+        icon.VerticalAlignment = VerticalAlignment.Center;
+
+        // Contenu de la face, découpé à son arrondi : une image à 100 % remplit la tuile sans déborder du verre.
+        var content = new Grid
+        {
+            Tag = FaceTag,
+            Width = face,
+            Height = face,
+            Margin = new Thickness(inset),
+            Clip = new RectangleGeometry(new Rect(0, 0, face, face), corner, corner)
+        };
+        if (!showName && !armed) content.Children.Add(icon);
+        else if (iconScale <= StackedLimit && !armed)
+            // Petite icône : nom en dessous, l'ensemble centré.
+            content.Children.Add(new StackPanel { VerticalAlignment = VerticalAlignment.Center, Children = { icon, name } });
+        else
+        {
+            // Grande icône (ou confirmation) : l'icône garde sa place, le texte passe par-dessus sur un fond sombre.
+            content.Children.Add(icon);
+            name.Margin = new Thickness(6, 0, 6, face * 0.06);
+            if (armed) name.VerticalAlignment = VerticalAlignment.Center;
+            else name.Foreground = Brushes.White;
+            content.Children.Add(new Border
+            {
+                VerticalAlignment = armed ? VerticalAlignment.Stretch : VerticalAlignment.Bottom,
+                Padding = new Thickness(0, armed ? 0 : face * 0.14, 0, 0),
+                Background = armed
+                    ? new SolidColorBrush(Color.FromArgb(0xD0, 0x10, 0x10, 0x14))
+                    : new LinearGradientBrush(Color.FromArgb(0, 0, 0, 0), Color.FromArgb(0xB4, 0, 0, 0), 90),
+                Child = name
+            });
+        }
+
+        var root = new Grid { Children = { background } };
+        if (glass)
+        {
+            // Face du verre posée sur la couleur (un peu plus légère sur une tuile colorée pour que la couleur reste vive) ;
+            // elle suit l'opacité du fond et disparaît sur une tuile transparente. Le bord chromé, lui, reste toujours.
+            var faceOpacity = active ? 0.8 : transparent ? 0 : BackgroundOpacity * (colored ? 0.8 : 1);
+            root.Children.Add(new Image { Tag = GlassFaceTag, Source = TileGlass.Face(false), Stretch = Stretch.Fill, Opacity = faceOpacity });
+            root.Children.Add(new Image { Tag = GlassRimTag, Source = TileGlass.Rim(false), Stretch = Stretch.Fill });
+        }
+        root.Children.Add(content);
 
         var tile = new Border
         {
@@ -427,38 +518,71 @@ public sealed class DeckShortcutsPanel : Panel
             Width = size,
             Height = size,
             Margin = new Thickness(6),
-            CornerRadius = new CornerRadius(size * 0.16),
-            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(glass ? corner + inset : size * 0.16),
+            BorderThickness = new Thickness(glass ? 0 : 1),
             RenderTransformOrigin = new Point(0.5, 0.5),
-            Child = new Grid
-            {
-                Children =
-                {
-                    background,
-                    new StackPanel
-                    {
-                        VerticalAlignment = VerticalAlignment.Center,
-                        Children = { ShortcutIcons.Create(display, size * 0.5) ?? new Border { Width = size * 0.5, Height = size * 0.5 }, name }
-                    }
-                }
-            }
+            Child = root
         };
         if (armed)
         {
             tile.BorderBrush = new SolidColorBrush(alert);
             tile.BorderThickness = new Thickness(3);
         }
-        else tile.SetResourceReference(Border.BorderBrushProperty, "BorderBrush2");
-        if (TileRuntime.IntegrationOffline(item)) tile.Opacity = 0.4; // OBS, Twitch ou Voicemod déconnecté : tuile atténuée
+        else if (!glass) tile.SetResourceReference(Border.BorderBrushProperty, "BorderBrush2");
+        if (TileRuntime.IntegrationOffline(item)) tile.Opacity = 0.4; // OBS, Twitch, Voicemod ou plugin déconnecté : tuile atténuée
         RenderOptions.SetBitmapScalingMode(tile, BitmapScalingMode.HighQuality);
+        // Active : le bouton en verre reste enfoncé, comme une touche verrouillée.
+        if (glass && active && item.ActivePressed)
+        {
+            _stuck.Add(tile);
+            ApplyDown(tile, true);
+        }
         return tile;
     }
 
-    /// <summary>Tuile enfoncée (doigt posé dessus) : légèrement réduite ; null relâche toutes les tuiles.</summary>
+    /// <summary>Tuiles actives qui restent enfoncées (reconstruites à chaque <see cref="Rebuild"/>).</summary>
+    private readonly HashSet<Border> _stuck = new();
+
+    /// <summary>Dégradé de fond d'une couleur : légèrement plus claire en haut, comme le fond du thème.</summary>
+    private static LinearGradientBrush Gradient(Color color)
+    {
+        var lighter = Color.FromArgb(color.A, (byte)Math.Min(255, color.R + 28), (byte)Math.Min(255, color.G + 28), (byte)Math.Min(255, color.B + 28));
+        return new LinearGradientBrush(lighter, color, 90);
+    }
+
+    /// <summary>Au-delà de cette taille d'icône, le nom passe par-dessus l'icône au lieu d'en dessous.</summary>
+    internal const double StackedLimit = 0.6;
+
+    private const string GlassFaceTag = "glass-face", GlassRimTag = "glass-rim", FaceTag = "face";
+
+    /// <summary>Vrai pour une couleur de tuile entièrement transparente (choix « Transparent » de la palette).</summary>
+    internal static bool IsTransparent(string? hex)
+        => !string.IsNullOrWhiteSpace(hex) && ThemeService.Parse(hex, Colors.Black).A == 0;
+
+    /// <summary>
+    /// Tuile enfoncée (doigt posé dessus) ; null relâche toutes les tuiles. À plat : légèrement réduite. En verre :
+    /// image « appuyée », tuile un peu réduite et contenu enfoncé de quelques pixels, comme une vraie touche.
+    /// </summary>
     public void SetPressed(Border? pressed)
     {
         foreach (var tile in Children.OfType<Border>())
-            tile.RenderTransform = tile == pressed ? new ScaleTransform(0.92, 0.92) : Transform.Identity;
+            ApplyDown(tile, tile == pressed || _stuck.Contains(tile));
+    }
+
+    private static void ApplyDown(Border tile, bool down)
+    {
+        var layers = (tile.Child as Grid)?.Children;
+        var glass = layers?.OfType<Image>().ToList() ?? new List<Image>();
+        if (layers is null || glass.Count == 0)
+        {
+            tile.RenderTransform = down ? new ScaleTransform(0.92, 0.92) : Transform.Identity;
+            return;
+        }
+        foreach (var layer in glass)
+            layer.Source = GlassFaceTag.Equals(layer.Tag) ? TileGlass.Face(down) : TileGlass.Rim(down);
+        tile.RenderTransform = down ? new ScaleTransform(0.96, 0.96) : Transform.Identity;
+        if (layers.OfType<Grid>().FirstOrDefault(g => FaceTag.Equals(g.Tag)) is { } content)
+            content.RenderTransform = down ? new TranslateTransform(0, tile.Width * 0.015) : Transform.Identity;
     }
 }
 

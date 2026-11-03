@@ -39,6 +39,10 @@ public sealed class ProfileDeckScreen
     public double BackgroundDim { get; set; } = 0.35;
     public double ClockOpacity { get; set; } = 1;
     public double AppsOpacity { get; set; } = 1;
+    /// <summary>Apparence des tuiles ; absentes des anciens profils (null = inchangées).</summary>
+    public Deck.DeckTileStyle? TileStyle { get; set; }
+    public double? TileIconScale { get; set; }
+    public bool? ShowTileNames { get; set; }
 }
 
 /// <summary>Accès à une image de fond référencée par un profil (module du bureau, de la Switch ou fond de l'écran Switch).</summary>
@@ -93,7 +97,10 @@ public sealed class Profile
             BackgroundImage = config.Deck.BackgroundImage,
             BackgroundDim = config.Deck.BackgroundDim,
             ClockOpacity = config.Deck.ClockOpacity,
-            AppsOpacity = config.Deck.AppsOpacity
+            AppsOpacity = config.Deck.AppsOpacity,
+            TileStyle = config.Deck.TileStyle,
+            TileIconScale = config.Deck.TileIconScale,
+            ShowTileNames = config.Deck.ShowTileNames
         },
         Dock = new ProfileDock
         {
@@ -134,11 +141,27 @@ public sealed class Profile
 
         if (DeckScreen is { } screen)
         {
-            config.Deck.BackgroundColor = string.IsNullOrWhiteSpace(screen.BackgroundColor) ? "#0B0C10" : screen.BackgroundColor;
-            config.Deck.BackgroundImage = screen.BackgroundImage;
-            config.Deck.BackgroundDim = Math.Clamp(screen.BackgroundDim, 0, 1);
-            config.Deck.ClockOpacity = Math.Clamp(screen.ClockOpacity, 0, 1);
-            config.Deck.AppsOpacity = double.IsNaN(screen.AppsOpacity) ? 1 : Math.Clamp(screen.AppsOpacity, 0, 1);
+            var deck = config.Deck;
+            deck.BackgroundColor = string.IsNullOrWhiteSpace(screen.BackgroundColor) ? "#0B0C10" : screen.BackgroundColor;
+            deck.BackgroundImage = screen.BackgroundImage;
+            deck.BackgroundDim = double.IsNaN(screen.BackgroundDim) ? 0.35 : Math.Clamp(screen.BackgroundDim, 0, 1);
+            deck.ClockOpacity = double.IsNaN(screen.ClockOpacity) ? 1 : Math.Clamp(screen.ClockOpacity, 0, 1);
+            deck.AppsOpacity = double.IsNaN(screen.AppsOpacity) ? 1 : Math.Clamp(screen.AppsOpacity, 0, 1);
+            if (screen.TileStyle is { } style && Enum.IsDefined(style)) deck.TileStyle = style;
+            if (Deck.DeckSettings.ClampIconScale(screen.TileIconScale) is { } scale) deck.TileIconScale = scale;
+            if (screen.ShowTileNames is { } names) deck.ShowTileNames = names;
+            // Un profil est un style complet : appliqué à la page affichée, puis à toutes les autres (chacune reste retouchable).
+            foreach (var page in deck.Pages)
+            {
+                page.BackgroundColor = deck.BackgroundColor;
+                page.BackgroundImage = deck.BackgroundImage;
+                page.BackgroundDim = deck.BackgroundDim;
+                page.ClockOpacity = deck.ClockOpacity;
+                page.AppsOpacity = deck.AppsOpacity;
+                page.TileStyle = deck.TileStyle;
+                page.TileIconScale = deck.TileIconScale;
+                page.ShowTileNames = deck.ShowTileNames;
+            }
         }
 
         // Valeurs bornées : un profil importé peut avoir été modifié à la main.

@@ -15,7 +15,8 @@ quota Claude et correction de texte par IA. Tout est personnalisable depuis les 
 
 Avec le **payload SwitchDeck**, une Nintendo Switch branchée en USB-C devient un second écran tactile
 1280×720 : le PC dessine les modules et les tuiles, la Switch les affiche et renvoie le tactile.
-Les tuiles pilotent aussi **OBS Studio**, **Twitch** et **Voicemod**, comme un stream deck.
+Les tuiles, en **boutons de verre 3D** façon Stream Deck, pilotent aussi **OBS Studio**, **Twitch** et **Voicemod**,
+et des **plugins** : ceux de SysDeck et les plugins **Stream Deck d'Elgato** open source, à installer depuis un catalogue GitHub.
 
 ## Aperçu
 
@@ -31,9 +32,9 @@ Les tuiles pilotent aussi **OBS Studio**, **Twitch** et **Voicemod**, comme un s
 
 | | |
 |---|---|
-| ![Éditeur Switch](docs/switch-editeur.jpg)<br><sub>Éditeur de l'écran Switch (aperçu en direct)</sub> | ![Modules](docs/parametres-modules.png)<br><sub>Choix des modules</sub> |
+| ![Page Switch](docs/parametres-switch.png)<br><sub>Page Switch : aperçu en direct, pages, réglages propres à chaque page</sub> | ![Modules](docs/parametres-modules.png)<br><sub>Choix des modules</sub> |
 | ![Personnaliser](docs/personnaliser.png)<br><sub>Personnalisation d'un module</sub> | ![Énergie](docs/energie.png)<br><sub>Réglages de la consommation électrique</sub> |
-| ![Nouvelle tuile](docs/nouvelle-tuile.png)<br><sub>Types de tuiles Switch</sub> | ![Icône](docs/icone-tuile.png)<br><sub>Icône d'une tuile : symbole, logo, émoji ou image</sub> |
+| ![Catalogue de plugins](docs/plugins-catalogue.png)<br><sub>Catalogue de plugins (GitHub), dont ceux du Stream Deck</sub> | ![Icône](docs/icone-tuile.png)<br><sub>Icône d'une tuile : symbole, logo, émoji ou image</sub> |
 </details>
 
 ## Sommaire
@@ -91,7 +92,15 @@ Le dossier [`payload/`](payload) contient un payload bare-metal lancé depuis
 [hekate](https://github.com/CTCaer/hekate). Une fois lancé, la Switch attend SysDeck sur le port USB-C.
 
 - Pages de modules et de tuiles (applications, liens, raccourcis clavier, commandes, son/micro muet,
-  OBS Studio, Twitch, Voicemod).
+  OBS Studio, Twitch, Voicemod, plugins).
+- **Page Switch des Paramètres façon Stream Deck** : aperçu en direct au centre, pages en dessous, bibliothèque
+  d'actions à droite (clic ou glisser sur une case) et inspecteur de la tuile sélectionnée (nom, action, icône,
+  réglages du plugin). Le menu de gauche se masque (☰ ou Ctrl+B).
+- **Boutons en verre 3D** qui s'enfoncent à l'appui, ou tuiles à plat ; fond transparent possible.
+- **Chaque page a son style** : taille des tuiles et des icônes (jusqu'à remplir la tuile), verre ou plat, noms,
+  fond (couleur, image), horloge. « Appliquer ce style à toutes les pages » en un clic.
+- **Tuile active** (micro coupé, live en cours, scène active…) : couleur et deuxième icône au choix, bouton qui
+  reste enfoncé.
 - Glissement entre pages, curseurs au doigt, boutons VOL± = volume de Windows.
 - **Mode nuit** : PC éteint, la Switch affiche une image et l'heure (horloge interne recalée par le PC).
 - Menu (VOL+ et VOL- en attente) : éteindre, redémarrer, revenir à hekate.
@@ -109,7 +118,7 @@ depuis hekate (*Payloads*). Le pilote WinUSB est choisi automatiquement par Wind
 ## Applications connectées (stream deck)
 
 Dans **Paramètres → Applications connectées**, **+ Ajouter une application** active OBS Studio, Twitch ou
-Voicemod. On crée ensuite des tuiles de ce type dans la page Switch (*Nouvelle tuile*). Les tuiles
+Voicemod. On crée ensuite des tuiles de ce type depuis la bibliothèque d'actions de la page Switch. Les tuiles
 affichent l'état en direct (scène active, live ou enregistrement en cours, mode actif, micro coupé…) et
 s'atténuent quand l'application n'est pas connectée.
 
@@ -124,6 +133,23 @@ s'atténuent quand l'application n'est pas connectée.
   recherche de catégories avec jaquettes. Depuis le bureau, une petite fenêtre de saisie s'ouvre sur le PC.
 - **Voicemod** : voix et sons choisis dans les listes de Voicemod, avec leur image comme icône. Les sons
   sont classés par soundboard, les vôtres en tête.
+
+## Plugins et packs d'icônes
+
+- **Plugins** : un plugin est un petit programme (exe, Node.js, Python ou PowerShell) relié à SysDeck par un
+  WebSocket local. Ses actions apparaissent dans la bibliothèque de la page Switch ; il peut changer le titre,
+  l'image et l'état de ses tuiles en direct.
+  - **Catalogue** (Paramètres → Plugins) : recherche sur GitHub (sujets `sysdeck-plugin`, `streamdeck-plugin`),
+    installation en un clic de la dernière version et mises à jour. Les plugins « Vérifiés » sont listés dans
+    [plugins/catalogue.json](plugins/catalogue.json).
+  - **Plugins Stream Deck d'Elgato** : les plugins open source (`.streamDeckPlugin` non chiffré, dossier
+    `.sdPlugin`) fonctionnent, avec leur page de réglages affichée dans l'inspecteur (WebView2). Node.js est
+    téléchargé une fois sur nodejs.org si le PC n'en a pas. Ceux du Marketplace d'Elgato sont chiffrés et ne
+    fonctionnent pas ; les actions de molette (Stream Deck +) non plus.
+  - Écrire un plugin : [docs/plugins.md](docs/plugins.md) et l'exemple [plugins/exemple-compteur](plugins/exemple-compteur).
+- **Packs d'icônes** : dans le choix d'icône d'une tuile, **Pack d'icônes…** importe un pack au format du
+  Stream Deck (`.streamDeckIconPack`, icônes SVG comprises), un zip ou un dossier d'images. Chaque pack devient
+  une catégorie, avec recherche par nom et mots-clés. Une image (icône de pack monochrome) peut être recolorée.
 
 ## Compiler
 
@@ -178,7 +204,8 @@ Le protocole USB est défini deux fois et doit rester identique :
 │   ├── Controls/            Contrôles réutilisables : jauges, graphe, éditeur de thème, disposition libre
 │   ├── Deck/                Module Switch : protocole et lien USB, rendu de l'écran, tuiles, clavier, mode nuit
 │   ├── Services/            Logique métier et accès système (capteurs, audio, médias, consommation, profils,
-│   │                        OBS, Twitch, Voicemod)
+│   │                        OBS, Twitch, Voicemod, packs d'icônes, SVG)
+│   ├── Plugins/             Plugins : manifest (SysDeck et Stream Deck), hôte WebSocket, Node.js, catalogue GitHub
 │   ├── Infrastructure/      Transversal : chemins, journal, fichiers JSON sûrs, instance unique
 │   ├── Interop/             Appels Win32/COM (bureau, raccourci global, clavier simulé, sortie audio)
 │   ├── Converters/, Models/, Themes/, Assets/
@@ -186,7 +213,8 @@ Le protocole USB est défini deux fois et doit rester identique :
 │   └── installer/           Script Inno Setup
 ├── SysDeck.Tests/           Tests xUnit
 ├── payload/                 Payload Switch en C (GPL-2.0)
-└── docs/                    Images de la documentation
+├── plugins/                 Plugin d'exemple et liste des plugins vérifiés du catalogue
+└── docs/                    Images de la documentation, guide des plugins
 ```
 
 Règles suivies :
@@ -207,6 +235,9 @@ Tout est dans `%AppData%\SysDeck` :
 | `shortcuts.json` | Raccourcis de la barre |
 | `power-usage.json` | Historique de consommation |
 | `Icons/`, `Backgrounds/`, `Fonts/` | Copies des icônes, images de fond et polices importées |
+| `IconPacks/` | Packs d'icônes importés (SVG convertis en PNG) |
+| `Plugins/`, `logs/plugins/` | Plugins installés et leur journal |
+| `Runtime/`, `WebView2/` | Node.js téléchargé pour les plugins, profil du moteur des pages de réglages |
 | `logs/sysdeck.log` | Journal (1 Mo max, l'ancien est conservé en `sysdeck.old.log`) |
 
 La variable d'environnement `SYSDECK_DATA_DIR` permet d'utiliser un autre dossier (tests, profil
@@ -233,6 +264,9 @@ portable) ; une instance par dossier de données.
   [Emoji.Wpf](https://github.com/samhocevar/emoji.wpf) (WTFPL).
 - [PresentMon](https://github.com/GameTechDev/PresentMon) (Intel, MIT) pour la mesure des FPS.
 - Logos de marques : [Simple Icons](https://simpleicons.org) (CC0) — les marques appartiennent à leurs propriétaires.
+- [SharpVectors](https://github.com/ElinamLLC/SharpVectors) (BSD-3-Clause) pour les icônes SVG,
+  [WebView2](https://developer.microsoft.com/microsoft-edge/webview2/) (Microsoft) pour les pages de réglages des plugins,
+  [Node.js](https://nodejs.org) (MIT, téléchargé à la demande) pour les plugins en JavaScript.
 
-Nintendo Switch est une marque de Nintendo. OBS Studio, Twitch et Voicemod sont des marques de leurs
+Nintendo Switch est une marque de Nintendo. Stream Deck et Elgato sont des marques de Corsair. OBS Studio, Twitch et Voicemod sont des marques de leurs
 propriétaires respectifs. Ce projet n'est ni affilié ni approuvé par Nintendo, OBS, Twitch ou Voicemod.

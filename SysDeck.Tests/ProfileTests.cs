@@ -496,10 +496,10 @@ public sealed class ProfileTests : IDisposable
     // ---------- Thèmes prêts à l'emploi ----------
 
     [Fact]
-    public void ThemePresets_AreEightDistinctValidThemes()
+    public void ThemePresets_AreNineDistinctValidThemes()
     {
-        Assert.Equal(8, ThemePresets.All.Count);
-        Assert.Equal(8, ThemePresets.All.Select(p => p.Name).Distinct().Count());
+        Assert.Equal(9, ThemePresets.All.Count);
+        Assert.Equal(9, ThemePresets.All.Select(p => p.Name).Distinct().Count());
         foreach (var preset in ThemePresets.All)
         {
             Assert.False(string.IsNullOrWhiteSpace(preset.Description));

@@ -34,6 +34,14 @@ public sealed partial class WidgetManager : IDisposable, IProfileHost
         new("power", "Consommation électrique"),
         new("claude", "Claude (quota)"),
         new("visualizer", "Visualiseur audio"),
+        new("tileclock", "Horloge à cases"),
+        new("analogclock", "Horloge ronde"),
+        new("calendar", "Calendrier"),
+        new("weather", "Météo"),
+        new("temperatures", "Températures CPU / GPU"),
+        new("airquality", "Qualité de l'air"),
+        new("simhub", "SimHub (course)"),
+        new("sensorbars", "Barres de capteurs"),
         new("shortcuts", "Raccourcis"),
     };
 
@@ -115,12 +123,24 @@ public sealed partial class WidgetManager : IDisposable, IProfileHost
             ["power"] = (() => new PowerWidgetContent(), () => new Point(300, 580)),
             ["claude"] = (() => new ClaudeWidgetContent(), () => new Point(620, 40)),
             ["visualizer"] = (BuildVisualizerContent, () => new Point(620, 580)),
+            ["tileclock"] = (() => new TileClockWidgetContent(), () => new Point(900, 40)),
+            ["analogclock"] = (() => new AnalogClockWidgetContent(), () => new Point(900, 200)),
+            ["calendar"] = (() => new CalendarWidgetContent(), () => new Point(1120, 200)),
+            ["weather"] = (() => new WeatherWidgetContent(), () => new Point(900, 460)),
+            ["temperatures"] = (() => new TemperatureWidgetContent(), () => new Point(1220, 460)),
+            ["airquality"] = (() => new AirQualityWidgetContent(), () => new Point(900, 700)),
+            ["simhub"] = (() => new SimHubWidgetContent(), () => new Point(1220, 700)),
+            ["sensorbars"] = (() => new SensorBarsWidgetContent(), () => new Point(1500, 40)),
             ["shortcuts"] = (BuildShortcutsContent,
                 () => new Point(SystemParameters.WorkArea.Width / 2 - 150, SystemParameters.WorkArea.Height - 110)),
         };
 
         // Abonnement unique : le module Lecture en cours peut être masqué puis réaffiché sans le dupliquer.
         _media.NowPlayingChanged += OnNowPlayingChanged;
+        _media.TimelineChanged += timeline =>
+        {
+            foreach (var m in Live<MediaWidgetContent>()) m.SetTimeline(timeline);
+        };
         _claude.Updated += PushClaudeUsage;
         _claude.Updated += s =>
         {
@@ -159,6 +179,7 @@ public sealed partial class WidgetManager : IDisposable, IProfileHost
         // force la création du handle natif sans jamais afficher la fenêtre
         new WindowInteropHelper(_hiddenOwner).EnsureHandle();
 
+        StartExtraWidgets();
         CreateWidgets();
 
         // Écran de la Switch : ses modules sont des instances propres, construites et alimentées comme celles du bureau.
@@ -214,7 +235,8 @@ public sealed partial class WidgetManager : IDisposable, IProfileHost
     /// <summary>Les lectures coûteuses ne tournent que si un module (bureau ou Switch) les affiche.</summary>
     private void UpdateSensorDemand()
     {
-        _hardware.MemoryEnabled = Live<RamWidgetContent>().Any();
+        _hardware.AllSensorsEnabled = Live<SensorBarsWidgetContent>().Any();
+        _hardware.MemoryEnabled = Live<RamWidgetContent>().Any() || _hardware.AllSensorsEnabled;
         if (!Live<GpuWidgetContent>().Any()) _fps.Stop();
         // Une alerte activée garde la lecture en route même si le module n'est pas affiché.
         _claude.Enabled = Live<ClaudeWidgetContent>().Any() || _config.Alerts.AnyClaude;
@@ -235,6 +257,7 @@ public sealed partial class WidgetManager : IDisposable, IProfileHost
 
     private void RefreshAll()
     {
+        RefreshExtraWidgets();
         RefreshSensors();
         RefreshAudioDevices();
         RefreshVolumeMixer();
@@ -256,7 +279,7 @@ public sealed partial class WidgetManager : IDisposable, IProfileHost
         }
     }
 
-    private bool IsVisible(string id) => _config.Layout.FirstOrDefault(w => w.Id == id)?.Visible ?? true;
+    private bool IsVisible(string id) => _config.Layout.FirstOrDefault(w => w.Id == id)?.Visible ?? !HiddenByDefault.Contains(id);
 
     private void ShowWidget(string id)
     {
@@ -398,7 +421,12 @@ public sealed partial class WidgetManager : IDisposable, IProfileHost
     private UIElement BuildMediaContent()
     {
         var media = new MediaWidgetContent();
-        media.SetIconSet(GetAppearance("media").MediaIconSet);
+        var look = GetAppearance("media");
+        media.ApplySettings(look.MediaIconSet, look.MediaLayout, look.MediaProgress, look.MediaButtonBackground);
+        media.ShuffleRequested += () => _ = _media.ToggleShuffleAsync();
+        media.RepeatRequested += () => _ = _media.CycleRepeatAsync();
+        media.SeekRequested += position => _ = _media.SeekAsync(position);
+        media.SetTimeline(_media.Timeline);
         media.PlayPauseRequested += () => _ = _media.TogglePlayPauseAsync();
         media.NextRequested += () => _ = _media.NextAsync();
         media.PreviousRequested += () => _ = _media.PreviousAsync();
@@ -800,6 +828,8 @@ public sealed partial class WidgetManager : IDisposable, IProfileHost
                     snapshot.GpuCoreClockMhz, snapshot.GpuMemoryClockMhz, snapshot.GpuMemoryUsedMb / 1024f);
             foreach (var ram in Live<RamWidgetContent>())
                 ram.Update(snapshot.RamLoad, snapshot.RamUsedGb, snapshot.RamTotalGb);
+            PushTemperatures(snapshot.CpuTemperature, snapshot.GpuTemperature);
+            PushSensorBars(snapshot);
             ShowAlerts(Alerts.CheckTemperatures(snapshot.CpuTemperature, snapshot.GpuTemperature));
         }
         catch (Exception ex)
@@ -1164,7 +1194,7 @@ public sealed partial class WidgetManager : IDisposable, IProfileHost
     {
         switch (content)
         {
-            case MediaWidgetContent media: media.SetIconSet(a.MediaIconSet); break;
+            case MediaWidgetContent media: media.ApplySettings(a.MediaIconSet, a.MediaLayout, a.MediaProgress, a.MediaButtonBackground); break;
             case VolumeMixerWidgetContent mixer: mixer.VolumeShape = a.VolumeStyle; break;
             case VisualizerWidgetContent visualizer: visualizer.ApplySettings(a.VisualizerStyle, a.VisualizerBars, a.VisualizerSensitivity); break;
             case DiskWidgetContent disk: disk.SetGaugeStyle(a.DiskStyle); break;
@@ -1213,6 +1243,7 @@ public sealed partial class WidgetManager : IDisposable, IProfileHost
         CloseToasts();
         _hardwareTimer.Stop();
         _mouseTimer.Stop();
+        StopExtraWidgets();
         StopTileTimers();
         _volumeMixerTimer.Stop();
         _fpsTimer.Stop();

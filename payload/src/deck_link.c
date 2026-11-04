@@ -48,6 +48,11 @@ static u16 touch_x, touch_y;
 // Vrai jusqu'à la première réponse d'une session : le PC doit alors renvoyer tout l'affichage et la luminosité.
 static bool session_new;
 
+// Joy-Con (v6) : alimentés pendant la session seulement (en attente ou en nuit, la Switch est sur batterie).
+static bool jc_on;
+static u32 jc_pressed; // Appuis accumulés depuis la dernière réponse.
+static u32 jc_last;
+
 static void _touch_push(u16 type, u16 x, u16 y)
 {
 	// File pleine : on écrase le dernier déplacement plutôt que de perdre un appui ou un relâchement.
@@ -96,6 +101,52 @@ static void _touch_reset()
 	touch_down = false;
 }
 
+// Lit les Joy-Con (le pilote limite lui-même le rythme des échanges) et retient les nouveaux appuis.
+static void _jc_update()
+{
+	if (!jc_on)
+		return;
+	jc_gamepad_rpt_t *pad = joycon_poll();
+	if (!pad)
+		return;
+	jc_pressed |= pad->buttons & ~jc_last;
+	jc_last = pad->buttons;
+}
+
+void deck_link_jc_power(bool on)
+{
+	if (on == jc_on)
+		return;
+	jc_on = on;
+	jc_pressed = 0;
+	jc_last = 0;
+	if (on)
+		jc_init_hw();
+	else
+		jc_deinit();
+}
+
+u8 jc_debug_state(bool left); // joycon.c (copie locale du pilote de la BDK)
+
+static void _fill_jc(deck_reply_t *rpl)
+{
+	_jc_update();
+	jc_gamepad_rpt_t *pad = jc_on ? joycon_poll() : NULL;
+	if (!pad)
+		return;
+	rpl->jc_dbg_l = jc_debug_state(true);
+	rpl->jc_dbg_r = jc_debug_state(false);
+	rpl->jc_buttons = pad->buttons & 0xFFFFFF;
+	rpl->jc_pressed = jc_pressed & 0xFFFFFF;
+	rpl->lstick_x = pad->lstick_x;
+	rpl->lstick_y = pad->lstick_y;
+	rpl->rstick_x = pad->rstick_x;
+	rpl->rstick_y = pad->rstick_y;
+	rpl->jc_flags = (pad->conn_l ? DECK_JC_LEFT : 0) | (pad->conn_r ? DECK_JC_RIGHT : 0) | (pad->sio_mode ? DECK_JC_LITE : 0);
+	rpl->jc_batt_l = pad->batt_info_l;
+	rpl->jc_batt_r = pad->batt_info_r;
+}
+
 static int _send_reply(u32 seq, u16 status)
 {
 	_touch_update();
@@ -116,6 +167,7 @@ static int _send_reply(u32 seq, u16 status)
 	rpl->buttons  = btn_read_vol();
 	rpl->ev_count = touch_ev_count;
 	memcpy(rpl->ev, touch_ev, touch_ev_count * sizeof(deck_touch_ev_t));
+	_fill_jc(rpl);
 
 	u32 written = 0;
 	int res = usb_ops.usb_device_ep1_in_write(in_buf, DECK_BLOCK_SIZE, &written, XFER_TIMEOUT);
@@ -123,6 +175,7 @@ static int _send_reply(u32 seq, u16 status)
 	{
 		touch_ev_count = 0;
 		session_new = false;
+		jc_pressed = 0;
 	}
 
 	return res;
@@ -198,6 +251,7 @@ static deck_link_res_t _wait_cmd(bool active, bool *received)
 			return DECK_LINK_DISCONNECTED;
 
 		_touch_update();
+		_jc_update();
 
 		bool bad = usb_ops.usb_device_get_suspended();
 

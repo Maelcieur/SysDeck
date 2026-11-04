@@ -10,13 +10,14 @@ Widgets de bureau pour Windows + Nintendo Switch transformée en écran tactile 
 ---
 
 SysDeck (WPF, .NET 8) affiche des widgets rattachés au bureau (sous les fenêtres, comme les icônes) :
-surveillance du matériel, audio, lecture en cours, consommation électrique en euros, barre de raccourcis,
-quota Claude et correction de texte par IA. Tout est personnalisable depuis les Paramètres.
+surveillance du matériel, audio, lecture en cours, horloges, calendrier, météo, consommation électrique en euros,
+barre de raccourcis, quota Claude et correction de texte par IA. Tout est personnalisable depuis les Paramètres.
 
 Avec le **payload SwitchDeck**, une Nintendo Switch branchée en USB-C devient un second écran tactile
 1280×720 : le PC dessine les modules et les tuiles, la Switch les affiche et renvoie le tactile.
 Les tuiles, en **boutons de verre 3D** façon Stream Deck, pilotent aussi **OBS Studio**, **Twitch** et **Voicemod**,
 et des **plugins** : ceux de SysDeck et les plugins **Stream Deck d'Elgato** open source, à installer depuis un catalogue GitHub.
+Les Joy-Con fixés sur la Switch peuvent aussi lancer des actions de SysDeck.
 
 ## Aperçu
 
@@ -56,13 +57,21 @@ et des **plugins** : ceux de SysDeck et les plugins **Stream Deck d'Elgato** ope
 | `cpu`, `gpu`, `ram` | Processeur, carte graphique, mémoire | LibreHardwareMonitor (+ `Tools/CpuTempBridge.ps1` pour la température AMD) |
 | `network` | Débit réseau | Compteurs des interfaces réseau |
 | `disk` | Disques | `DriveInfo` |
-| `media` | Lecture en cours | API Windows.Media.Control (Spotify, navigateurs, VLC…) |
+| `media` | Lecture en cours : 4 dispositions, barre de temps, aléatoire/répétition | API Windows.Media.Control (Spotify, navigateurs, VLC…) |
 | `volumemixer` | Volume par application | Core Audio (NAudio) |
 | `audio` | Sortie audio | Core Audio + IPolicyConfig |
 | `mouse` | Batterie souris Logitech | HID++ 2.0 (HidSharp) |
 | `power` | Consommation en € | Puissance GPU mesurée, CPU estimé, journal Windows pour le passé |
 | `claude` | Quota d'utilisation Claude | Jeton de Claude Code (lu seulement) |
 | `visualizer` | Visualiseur audio | Capture de la sortie audio (NAudio) |
+| `tileclock` | Horloge à cases colorées (HH:MM:SS) | Horloge du système |
+| `analogclock` | Horloge ronde à aiguilles avec la date | Horloge du système |
+| `calendar` | Calendrier du mois | Horloge du système |
+| `weather` | Météo et prévisions sur 4 jours | [Open-Meteo](https://open-meteo.com) (gratuit, sans compte) |
+| `airquality` | Qualité de l'air (indice européen, PM2.5, PM10, NO₂, O₃) | Open-Meteo, même ville que la météo |
+| `temperatures` | Courbes de température CPU et GPU sur un même graphe | LibreHardwareMonitor |
+| `sensorbars` | Barres pour n'importe quel capteur (températures, charges, RAM, VRAM, ventilateurs…) | LibreHardwareMonitor |
+| `simhub` | Course automobile : rapport, vitesse, régime, temps au tour, position, carburant | [SimHub](https://www.simhubdash.com) + le plugin [SimHub Property Server](https://github.com/pre-martin/SimHubPropertyServer) |
 | `shortcuts` | Barre de raccourcis | `shortcuts.json` |
 
 - **Correction IA** : sélectionner un texte dans n'importe quelle application puis **Ctrl+Espace**
@@ -72,7 +81,17 @@ et des **plugins** : ceux de SysDeck et les plugins **Stream Deck d'Elgato** ope
   Les émojis servent aussi d'icônes pour les tuiles de la Switch.
 - **Sur le bureau** : **clic droit** sur un module pour le personnaliser, changer sa taille ou celle des textes,
   modifier la disposition, verrouiller les positions ou le masquer ; **Ctrl+molette** pour l'agrandir ou le réduire.
-- **Profils et thèmes** : enregistrement, export/import (`.sysdeckprofile`), 8 thèmes prêts à l'emploi.
+- **Profils et thèmes** : enregistrement, export/import (`.sysdeckprofile`), 9 thèmes prêts à l'emploi (dont « Edge noir » :
+  cartes noires mates, jauges fines, accent orange).
+- **Réglages des modules** : les options des horloges, de la météo, de la qualité de l'air, des températures, des barres de
+  capteurs, de SimHub et du lecteur sont dans la personnalisation du module (onglet Style). Les nouveaux modules sont
+  masqués tant qu'on ne les active pas.
+- **Lecture en cours** : dispositions Compact, Bannière (grande pochette), Vinyle (disque qui tourne avec la pochette en
+  étiquette) ou Pochette et disque ; barre de temps fine, épaisse ou en segments (un clic avance ou recule) ; boutons
+  avec ou sans fond ; aléatoire et répétition. Pochette, morceau, barre de temps et boutons se déplacent.
+- **Barres de capteurs** : n'importe quelle mesure, une barre horizontale (ou verticale) chacune ; segments, pleine ou
+  dégradé, couleur par barre, halo, couleur d'alerte au-delà d'un seuil.
+- **Sélecteur de couleur** : le sélecteur de Windows garde maintenant ses couleurs personnalisées.
 - **Alertes** : température CPU/GPU, batterie de la souris, quota Claude.
 
 ## Compatibilité
@@ -85,6 +104,9 @@ mémoire, réseau, disques et carte graphique (NVIDIA, AMD ou Intel). Quelques e
 - **Température du processeur, CPU Intel** : aucun pont n'est fourni ; la température risque de rester vide,
   sauf peut-être en lançant SysDeck en administrateur avec l'Intégrité de la mémoire désactivée (non testé).
 - **Batterie de la souris** : seulement les souris Logitech compatibles HID++.
+- **Ventilateurs** : ceux de la carte graphique sont lus sans réglage. Ceux de la carte mère (CPU, boîtier) demandent le
+  pilote de bas niveau que l'Intégrité de la mémoire bloque ; ils n'apparaissent dans la liste des capteurs que si Windows
+  le permet.
 
 ## Module Switch (SwitchDeck)
 
@@ -101,6 +123,14 @@ Le dossier [`payload/`](payload) contient un payload bare-metal lancé depuis
   fond (couleur, image), horloge. « Appliquer ce style à toutes les pages » en un clic.
 - **Tuile active** (micro coupé, live en cours, scène active…) : couleur et deuxième icône au choix, bouton qui
   reste enfoncé.
+- **Joy-Con** (payload v6) : les Joy-Con fixés sur la Switch (ou les commandes d'une Switch Lite) lancent des actions.
+  L'onglet « Manettes (Joy-Con) » dessine les deux manettes : clic sur une touche (ou action de la bibliothèque glissée
+  dessus) pour lui donner une action de tuile, un changement de page, un curseur qui se promène sur les tuiles ou le
+  volume. Sticks : curseur, volume, souris ou défilement. Affectations communes à toutes les pages ou propres à une page.
+- **Thèmes Switch** (onglet « Thèmes ») : l'atelier part de la page affichée ; on place les widgets et on règle leurs
+  couleurs, le fond et les tuiles en direct sur la Switch, puis on enregistre. À la fermeture de l'atelier, la Switch
+  retrouve exactement ce qu'elle affichait avant (même après un plantage). Un thème enregistré s'applique à n'importe
+  quelle page, avec la même position des widgets ; les tuiles de la page sont gardées.
 - Glissement entre pages, curseurs au doigt, boutons VOL± = volume de Windows.
 - **Mode nuit** : PC éteint, la Switch affiche une image et l'heure (horloge interne recalée par le PC).
 - Menu (VOL+ et VOL- en attente) : éteindre, redémarrer, revenir à hekate.
@@ -233,6 +263,8 @@ Tout est dans `%AppData%\SysDeck` :
 |---|---|
 | `config.json` | Réglages, thème, apparence des modules, positions, Switch, applications connectées. La clé Gemini, le mot de passe OBS et les jetons Twitch y sont chiffrés (DPAPI, compte Windows courant) et ne sont jamais exportés dans les profils. |
 | `shortcuts.json` | Raccourcis de la barre |
+| `switch-themes.json` | Thèmes Switch enregistrés (`switch-theme-studio.json` n'existe que pendant l'atelier de thème) |
+| `custom-colors.json` | Couleurs personnalisées du sélecteur de couleur |
 | `power-usage.json` | Historique de consommation |
 | `Icons/`, `Backgrounds/`, `Fonts/` | Copies des icônes, images de fond et polices importées |
 | `IconPacks/` | Packs d'icônes importés (SVG convertis en PNG) |
@@ -250,6 +282,11 @@ portable) ; une instance par dossier de données.
   activer l'option « Température du processeur » de l'installateur (SDK AMD Ryzen Master requis).
 - **Ctrl+Espace sans effet** : le raccourci est pris par une autre application (voir le journal).
 - **Switch non détectée** : vérifier que le payload affiche « En attente du PC » et utiliser un câble USB-C de données.
+- **Joy-Con sans effet** : copier le dernier `switchdeck.bin` (protocole v6) sur la carte SD ; l'onglet Manettes prévient
+  si le payload est trop ancien.
+- **Module SimHub : « SimHub non détecté »** : lancer SimHub avec le plugin SimHub Property Server activé
+  (port 18082 par défaut, modifiable dans les réglages du module).
+- **Météo ou qualité de l'air vide** : choisir la ville dans la personnalisation du module (onglet Style), puis « Rechercher ».
 - **Application connectée en erreur** : la carte de l'application (Paramètres → Applications connectées)
   indique la raison. Vérifier qu'OBS ou Voicemod est lancé. Pour Twitch, se déconnecter puis se reconnecter
   après une mise à jour qui demande de nouveaux droits (émotes).
@@ -267,6 +304,7 @@ portable) ; une instance par dossier de données.
 - [SharpVectors](https://github.com/ElinamLLC/SharpVectors) (BSD-3-Clause) pour les icônes SVG,
   [WebView2](https://developer.microsoft.com/microsoft-edge/webview2/) (Microsoft) pour les pages de réglages des plugins,
   [Node.js](https://nodejs.org) (MIT, téléchargé à la demande) pour les plugins en JavaScript.
+- Données météo et qualité de l'air : [Open-Meteo.com](https://open-meteo.com) (CC BY 4.0).
 
-Nintendo Switch est une marque de Nintendo. Stream Deck et Elgato sont des marques de Corsair. OBS Studio, Twitch et Voicemod sont des marques de leurs
-propriétaires respectifs. Ce projet n'est ni affilié ni approuvé par Nintendo, OBS, Twitch ou Voicemod.
+Nintendo Switch et Joy-Con sont des marques de Nintendo. Stream Deck et Elgato sont des marques de Corsair. OBS Studio, Twitch, Voicemod et SimHub sont
+des marques de leurs propriétaires respectifs. Ce projet n'est ni affilié ni approuvé par Nintendo, Corsair, OBS, Twitch, Voicemod ou SimHub.

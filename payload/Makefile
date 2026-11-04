@@ -29,7 +29,7 @@ OBJS += bpmp ccplex clock di vic i2c irq timer \
 		fuse kfuse \
 		bq24193 max17050 max7762x max77620-rtc regulator_5v \
 		sdmmc sdmmc_driver sd emmc \
-		touch hw_init
+		touch joycon hw_init
 
 # Utilitaires.
 OBJS += btn util sprintf

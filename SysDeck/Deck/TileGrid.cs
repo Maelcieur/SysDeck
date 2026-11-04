@@ -87,6 +87,34 @@ public static class TileGrid
         return new TileArrangement(columns, rows, cells, hidden);
     }
 
+    /// <summary>Tuile en haut à gauche (ordre de lecture) ; null si la page n'en a aucune.</summary>
+    public static ShortcutItem? First(IReadOnlyDictionary<ShortcutItem, (int Col, int Row)> cells)
+        => cells.OrderBy(c => c.Value.Row).ThenBy(c => c.Value.Col).Select(c => c.Key).FirstOrDefault();
+
+    /// <summary>
+    /// Tuile voisine dans une direction (curseur des Joy-Con) : la plus proche de ce côté, en préférant la même ligne
+    /// ou colonne ; les cases vides sont sautées. Null s'il n'y a rien de ce côté.
+    /// </summary>
+    public static ShortcutItem? Neighbor(IReadOnlyDictionary<ShortcutItem, (int Col, int Row)> cells, ShortcutItem from, int dx, int dy)
+    {
+        if (!cells.TryGetValue(from, out var origin)) return null;
+        ShortcutItem? best = null;
+        var bestScore = int.MaxValue;
+        foreach (var (item, cell) in cells)
+        {
+            var along = dx != 0 ? (cell.Col - origin.Col) * dx : (cell.Row - origin.Row) * dy;
+            if (along <= 0) continue;
+            var across = Math.Abs(dx != 0 ? cell.Row - origin.Row : cell.Col - origin.Col);
+            var score = along + across * 3;
+            if (score < bestScore)
+            {
+                bestScore = score;
+                best = item;
+            }
+        }
+        return best;
+    }
+
     /// <summary>Première case libre en lisant de gauche à droite puis de haut en bas, null si la grille est pleine.</summary>
     public static (int Col, int Row)? FirstFree(IReadOnlyList<ShortcutItem> items, int columns, int rows)
     {

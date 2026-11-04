@@ -105,6 +105,8 @@ public static class ButtonPart
             new("pause", "Pause (pendant la lecture)", 16, Disc: true),
             new("next", "Suivant", 12),
             new("stopSpotify", "Fermer Spotify", 12),
+            new("shuffle", "Aléatoire", 12),
+            new("repeat", "Répétition", 12),
         },
     };
 

@@ -34,6 +34,7 @@ public static class Movable
         ["disc"] = "Pochette",
         ["track"] = "Morceau",
         ["controls"] = "Boutons",
+        ["progress"] = "Barre de temps",
         ["session"] = "Coût depuis l'allumage",
         ["usageToday"] = "Heures du jour",
         ["lifetime"] = "Depuis la mise en service",

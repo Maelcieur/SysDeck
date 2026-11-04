@@ -19,7 +19,7 @@
 
 #include <utils/types.h>
 
-#define DECK_PROTO_VERSION 5
+#define DECK_PROTO_VERSION 6
 #define DECK_BLOCK_SIZE    512
 
 #define DECK_CMD_MAGIC   0x4B434453 // "SDCK"
@@ -125,6 +125,13 @@ typedef struct _deck_touch_ev_t
 #define DECK_REPLY_CHARGING    BIT(0)
 #define DECK_REPLY_NEW_SESSION BIT(1)
 
+// (v6) Joy-Con fixés sur les rails (ou commandes de la Switch Lite) : état lu par le pilote Joy-Con de la BDK.
+// Bits de jc_buttons / jc_pressed : ceux de jc_gamepad_rpt_t (Y=0, X, B, A, SR_R, SL_R, R, ZR, -=8, +, R3, L3, HOME, CAPTURE,
+// bas=16, haut, droite, gauche, SR_L, SL_L, L, ZL=23).
+#define DECK_JC_LEFT  BIT(0) // Joy-Con (L) connecté.
+#define DECK_JC_RIGHT BIT(1) // Joy-Con (R) connecté.
+#define DECK_JC_LITE  BIT(2) // Commandes intégrées (Switch Lite) : axe Y des sticks inversé.
+
 typedef struct _deck_reply_t
 {
 	u32 magic;
@@ -137,6 +144,15 @@ typedef struct _deck_reply_t
 	u8  buttons;   // Boutons BDK (BTN_VOL_UP, BTN_VOL_DOWN...) actuellement enfoncés.
 	u8  ev_count;
 	deck_touch_ev_t ev[DECK_MAX_EVENTS];
+
+	// (v6) Joy-Con, octets 404 et suivants.
+	u32 jc_buttons;             // Boutons enfoncés maintenant.
+	u32 jc_pressed;             // Boutons enfoncés depuis la réponse précédente (un appui bref n'est jamais perdu).
+	u16 lstick_x, lstick_y;     // Sticks bruts (12 bits, centre ~2048) : calibrés côté PC.
+	u16 rstick_x, rstick_y;
+	u8  jc_flags;               // DECK_JC_*.
+	u8  jc_batt_l, jc_batt_r;   // Batterie brute (niveau 0-4 dans les bits 1-3, bit 0 = en charge).
+	u8  jc_dbg_l, jc_dbg_r;     // Diagnostic du pilote (jc_debug_state) : bit 7 détecté, bit 6 connecté, bits 0-3 étape.
 } __attribute__((packed)) deck_reply_t;
 
 #endif

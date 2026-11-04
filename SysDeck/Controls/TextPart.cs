@@ -84,6 +84,8 @@ public static class TextPart
         {
             new("track", "Titre du morceau"),
             new("artist", "Artiste / source"),
+            new("album", "Album · application"),
+            new("time", "Temps (écoulé / durée)"),
         },
         ["volumemixer"] = new TextPartInfo[]
         {
@@ -94,6 +96,50 @@ public static class TextPart
         {
             new("title", "Titre", "SORTIE AUDIO"),
             new("device", "Nom des périphériques"),
+        },
+        ["tileclock"] = new TextPartInfo[] { new("digits", "Chiffres") },
+        ["analogclock"] = new TextPartInfo[] { new("date", "Date") },
+        ["calendar"] = new TextPartInfo[]
+        {
+            new("month", "Mois"),
+            new("weekday", "Jours de la semaine"),
+            new("day", "Numéros des jours"),
+        },
+        ["weather"] = new TextPartInfo[]
+        {
+            new("title", "Ville"),
+            new("temp", "Température"),
+            new("desc", "État du ciel"),
+            new("details", "Ressenti, humidité, vent"),
+            new("day", "Jours des prévisions"),
+            new("range", "Maximum / minimum"),
+        },
+        ["temperatures"] = new TextPartInfo[]
+        {
+            new("title", "Titre", "TEMPÉRATURES"),
+            new("cpu", "Température processeur"),
+            new("gpu", "Température carte graphique"),
+        },
+        ["airquality"] = new TextPartInfo[]
+        {
+            new("title", "Ville"),
+            new("aqi", "Indice"),
+            new("level", "Niveau (bon, moyen…)"),
+            new("pollutant", "Polluants"),
+        },
+        ["simhub"] = new TextPartInfo[]
+        {
+            new("title", "Jeu"),
+            new("gear", "Rapport"),
+            new("speed", "Vitesse"),
+            new("rpm", "Régime"),
+            new("lap", "Temps au tour"),
+            new("info", "Position, carburant"),
+        },
+        ["sensorbars"] = new TextPartInfo[]
+        {
+            new("label", "Noms des barres"),
+            new("value", "Valeurs"),
         },
         ["visualizer"] = new TextPartInfo[]
         {

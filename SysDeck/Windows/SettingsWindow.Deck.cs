@@ -23,6 +23,7 @@ public partial class SettingsWindow
     {
         var settings = Deck.Settings;
         DeckEditor.Attach(Deck);
+        InitSwitchThemes();
         DeckEditor.LayoutChanged += () => { ScheduleSave(); RefreshDeckApps(); };
         DeckEditor.VisibilityChanged += RefreshDeckElementsList;
         DeckEditor.ElementLayoutChanged += _ => ScheduleSave();
@@ -223,6 +224,7 @@ public partial class SettingsWindow
     {
         RefreshDeckPages();
         LoadPageLook(); // chaque page a son style : les réglages affichés suivent
+        RefreshJoyConForPage();
         DeckEditor.Rebuild();
         RefreshDeckElementsList();
         RefreshDeckApps();

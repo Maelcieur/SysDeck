@@ -15,7 +15,7 @@ namespace SysDeck.Deck;
 /// </summary>
 public static class DeckProtocol
 {
-    public const int Version = 5;
+    public const int Version = 6;
 
     /// <summary>Octet « charging » de la réponse : bit 0 = en charge, bit 1 = première réponse d'une nouvelle session
     /// (la Switch est restée connectée entre deux sessions : le PC doit renvoyer tout l'affichage et la luminosité).</summary>
@@ -76,8 +76,48 @@ public static class DeckProtocol
 
     public readonly record struct TouchEvent(TouchType Type, int X, int Y);
 
+    public const byte JoyConLeft = 1, JoyConRight = 2, JoyConLite = 4; // bits de JoyConState.Flags (DECK_JC_*)
+
+    /// <summary>
+    /// (v6) Joy-Con sur les rails ou commandes de la Switch Lite : touches enfoncées, appuis depuis la réponse
+    /// précédente (bits <see cref="Deck.JoyConButton"/>), sticks bruts 12 bits, batteries brutes (niveau 0-4 dans les
+    /// bits 1-3, bit 0 = en charge).
+    /// </summary>
+    public readonly record struct JoyConState(uint Buttons, uint Pressed, int LeftX, int LeftY, int RightX, int RightY,
+        byte Flags, byte BatteryLeft, byte BatteryRight, byte DebugLeft = 0, byte DebugRight = 0)
+    {
+        /// <summary>Diagnostic du pilote d'un Joy-Con (bit 7 détecté sur le rail, bit 6 connecté, bits 0-3 étape) en clair.</summary>
+        public static string DescribeDebug(byte debug)
+        {
+            if ((debug & 0x80) == 0) return "non détecté sur le rail";
+            var step = (debug & 0xF) switch
+            {
+                0 => "début", 1 => "poignée de main faite", 2 => "infos lues", 3 => "vitesse changée",
+                4 => "HID non connecté", 5 => "HID connecté", 6 => "prêt", _ => $"étape {debug & 0xF}"
+            };
+            return $"détecté, {((debug & 0x40) != 0 ? "connecté" : "pas connecté")} ({step})";
+        }
+
+        public bool LeftConnected => (Flags & JoyConLeft) != 0;
+        public bool RightConnected => (Flags & JoyConRight) != 0;
+        public bool Lite => (Flags & JoyConLite) != 0;
+        public bool AnyConnected => (Flags & (JoyConLeft | JoyConRight)) != 0;
+        public bool IsDown(Deck.JoyConButton button) => (Buttons & (1u << (int)button)) != 0;
+        public bool WasPressed(Deck.JoyConButton button) => (Pressed & (1u << (int)button)) != 0;
+
+        /// <summary>Batterie d'un Joy-Con en % approximatif (0, 25, 50, 75, 100) ; -1 si absent.</summary>
+        public static int BatteryPercent(byte raw, bool connected) => connected ? Math.Clamp((raw >> 1) & 7, 0, 4) * 25 : -1;
+
+        public static bool BatteryCharging(byte raw) => (raw & 1) != 0;
+    }
+
     public sealed record Reply(
-        Status Status, uint Seq, int Battery, bool Charging, byte Buttons, TouchEvent[] Events, bool NewSession = false);
+        Status Status, uint Seq, int Battery, bool Charging, byte Buttons, TouchEvent[] Events, bool NewSession = false)
+    {
+        /// <summary>Version du protocole du payload (5 = sans Joy-Con).</summary>
+        public int Version { get; init; }
+        public JoyConState JoyCon { get; init; }
+    }
 
     /// <summary>Taille des données arrondie au bloc supérieur.</summary>
     public static int PaddedLength(int length) => (length + BlockSize - 1) / BlockSize * BlockSize;
@@ -168,6 +208,21 @@ public static class DeckProtocol
                 BinaryPrimitives.ReadUInt16LittleEndian(ev[4..]));
         }
 
-        return new Reply(status, seq, battery == 0xFF ? -1 : battery, charging, buttons, events, newSession);
+        int version = BinaryPrimitives.ReadUInt16LittleEndian(block[4..]);
+        var joyCon = version >= 6
+            ? new JoyConState(
+                BinaryPrimitives.ReadUInt32LittleEndian(block[404..]),
+                BinaryPrimitives.ReadUInt32LittleEndian(block[408..]),
+                BinaryPrimitives.ReadUInt16LittleEndian(block[412..]),
+                BinaryPrimitives.ReadUInt16LittleEndian(block[414..]),
+                BinaryPrimitives.ReadUInt16LittleEndian(block[416..]),
+                BinaryPrimitives.ReadUInt16LittleEndian(block[418..]),
+                block[420], block[421], block[422], block[423], block[424])
+            : default;
+        return new Reply(status, seq, battery == 0xFF ? -1 : battery, charging, buttons, events, newSession)
+        {
+            Version = version,
+            JoyCon = joyCon
+        };
     }
 }

@@ -693,6 +693,39 @@
 
                                 <!-- Icônes des boutons (module Lecture en cours uniquement) -->
                                 <StackPanel x:Name="MediaIconsCard" Visibility="Collapsed">
+                                    <ContentControl Style="{StaticResource SectionHeader}" Content="Style du lecteur"/>
+                                    <Border Style="{StaticResource RowCard}" local:SettingsSearch.Module="media" local:SettingsSearch.Keywords="lecteur style disposition vinyle pochette bannière barre temps progression fond boutons">
+                                        <StackPanel Style="{StaticResource RowsPanel}">
+                                            <controls:SettingRow Label="Disposition" Stacked="True">
+                                                <WrapPanel>
+                                                    <RadioButton Style="{StaticResource Chip}" Content="Compact"
+                                                                 IsChecked="{Binding MediaLayout, Converter={StaticResource Equals}, ConverterParameter=Compact}"/>
+                                                    <RadioButton Style="{StaticResource Chip}" Content="Bannière (grande pochette)"
+                                                                 IsChecked="{Binding MediaLayout, Converter={StaticResource Equals}, ConverterParameter=Banner}"/>
+                                                    <RadioButton Style="{StaticResource Chip}" Content="Vinyle"
+                                                                 IsChecked="{Binding MediaLayout, Converter={StaticResource Equals}, ConverterParameter=Vinyl}"/>
+                                                    <RadioButton Style="{StaticResource Chip}" Content="Pochette et disque"
+                                                                 IsChecked="{Binding MediaLayout, Converter={StaticResource Equals}, ConverterParameter=Sleeve}"/>
+                                                </WrapPanel>
+                                            </controls:SettingRow>
+                                            <controls:SettingRow Label="Barre de temps" Description="Temps écoulé et durée du morceau ; un clic sur la barre avance ou recule dans le morceau." Stacked="True">
+                                                <WrapPanel>
+                                                    <RadioButton Style="{StaticResource Chip}" Content="Aucune"
+                                                                 IsChecked="{Binding MediaProgress, Converter={StaticResource Equals}, ConverterParameter=None}"/>
+                                                    <RadioButton Style="{StaticResource Chip}" Content="Fine"
+                                                                 IsChecked="{Binding MediaProgress, Converter={StaticResource Equals}, ConverterParameter=Line}"/>
+                                                    <RadioButton Style="{StaticResource Chip}" Content="Épaisse avec curseur"
+                                                                 IsChecked="{Binding MediaProgress, Converter={StaticResource Equals}, ConverterParameter=Thick}"/>
+                                                    <RadioButton Style="{StaticResource Chip}" Content="Segments"
+                                                                 IsChecked="{Binding MediaProgress, Converter={StaticResource Equals}, ConverterParameter=Segments}"/>
+                                                </WrapPanel>
+                                            </controls:SettingRow>
+                                            <controls:SettingRow Label="Fond des boutons" Description="Éteint : seulement les icônes, sans rond ni carré derrière.">
+                                                <CheckBox Style="{StaticResource ToggleSwitch}" Margin="0" IsChecked="{Binding MediaButtonBackground}"/>
+                                            </controls:SettingRow>
+                                        </StackPanel>
+                                    </Border>
+
                                     <ContentControl Style="{StaticResource SectionHeader}" Content="Icônes des boutons"/>
                                     <Border Style="{StaticResource RowCard}" local:SettingsSearch.Module="media" local:SettingsSearch.Keywords="boutons précédent suivant lecture pause stop icônes musique">
                                         <StackPanel Style="{StaticResource RowsPanel}">
@@ -1135,6 +1168,144 @@
                                     </Border>
                                 </StackPanel>
 
+                                <!-- Horloge à cases uniquement (réglages communs PC et Switch) -->
+                                <StackPanel x:Name="TileClockCard" Visibility="Collapsed">
+                                    <ContentControl Style="{StaticResource SectionHeader}" Content="Horloge à cases"/>
+                                    <Border Style="{StaticResource RowCard}" local:SettingsSearch.Module="tileclock" local:SettingsSearch.Keywords="horloge cases couleur secondes">
+                                        <StackPanel Style="{StaticResource RowsPanel}">
+                                            <controls:SettingRow Label="Couleur des cases" Description="Commune au PC et à la Switch.">
+                                                <controls:ColorSwatch Style="{StaticResource ColorDot}" Hex="{Binding TileClockColor}" Margin="0"/>
+                                            </controls:SettingRow>
+                                            <controls:SettingRow Label="Afficher les secondes">
+                                                <CheckBox Style="{StaticResource ToggleSwitch}" Margin="0" IsChecked="{Binding TileClockSeconds}"/>
+                                            </controls:SettingRow>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+
+                                <!-- Météo uniquement -->
+                                <StackPanel x:Name="WeatherCard" Visibility="Collapsed">
+                                    <ContentControl Style="{StaticResource SectionHeader}" Content="Ville (météo et qualité de l'air)"/>
+                                    <Border Style="{StaticResource RowCard}" local:SettingsSearch.Module="weather" local:SettingsSearch.Keywords="météo ville open-meteo">
+                                        <StackPanel Style="{StaticResource RowsPanel}">
+                                            <controls:SettingRow Label="Ville" Description="Données Open-Meteo (gratuites, sans compte), mises à jour toutes les 15 minutes.">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBox x:Name="WeatherCityBox" Width="170" Height="30" VerticalContentAlignment="Center" KeyDown="WeatherCityBox_KeyDown"/>
+                                                    <Button Content="Rechercher" Margin="8,0,0,0" Click="WeatherSearch_Click"/>
+                                                </StackPanel>
+                                            </controls:SettingRow>
+                                            <Border Style="{StaticResource RowBorder}" BorderThickness="0">
+                                                <TextBlock x:Name="WeatherStatusText" TextWrapping="Wrap" Foreground="{DynamicResource SubTextBrush}"/>
+                                            </Border>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+
+                                <!-- Barres de capteurs uniquement (réglages communs PC et Switch) -->
+                                <StackPanel x:Name="SensorBarsCard" Visibility="Collapsed">
+                                    <ContentControl Style="{StaticResource SectionHeader}" Content="Données affichées"/>
+                                    <Border Style="{StaticResource RowCard}" local:SettingsSearch.Module="sensorbars" local:SettingsSearch.Keywords="capteurs barres données ventilateur température vram ram">
+                                        <StackPanel Style="{StaticResource RowsPanel}">
+                                            <controls:SettingRow Description="Une barre par donnée. Les ventilateurs de la carte graphique sont lus directement ; ceux de la carte mère seulement si Windows autorise le pilote de mesure (Intégrité de la mémoire désactivée)."/>
+                                            <StackPanel x:Name="SensorBarsItems"/>
+                                            <Border Style="{StaticResource RowBorder}" BorderThickness="0">
+                                                <Button Content="Ajouter une donnée" HorizontalAlignment="Left" Click="SensorBarAdd_Click"/>
+                                            </Border>
+                                        </StackPanel>
+                                    </Border>
+                                    <ContentControl Style="{StaticResource SectionHeader}" Content="Style des barres"/>
+                                    <Border Style="{StaticResource RowCard}" local:SettingsSearch.Module="sensorbars" local:SettingsSearch.Keywords="barres style segments dégradé halo alerte largeur hauteur arrondi">
+                                        <StackPanel Style="{StaticResource RowsPanel}">
+                                            <controls:SettingRow Label="Sens" Stacked="True">
+                                                <WrapPanel>
+                                                    <RadioButton Style="{StaticResource Chip}" Content="Horizontales" IsChecked="{Binding Orientation, Converter={StaticResource Equals}, ConverterParameter=Horizontal}"/>
+                                                    <RadioButton Style="{StaticResource Chip}" Content="Verticales" IsChecked="{Binding Orientation, Converter={StaticResource Equals}, ConverterParameter=Vertical}"/>
+                                                </WrapPanel>
+                                            </controls:SettingRow>
+                                            <controls:SettingRow Label="Forme" Stacked="True">
+                                                <WrapPanel>
+                                                    <RadioButton Style="{StaticResource Chip}" Content="Segments" IsChecked="{Binding Style, Converter={StaticResource Equals}, ConverterParameter=Segments}"/>
+                                                    <RadioButton Style="{StaticResource Chip}" Content="Pleine" IsChecked="{Binding Style, Converter={StaticResource Equals}, ConverterParameter=Solid}"/>
+                                                    <RadioButton Style="{StaticResource Chip}" Content="Dégradé" IsChecked="{Binding Style, Converter={StaticResource Equals}, ConverterParameter=Gradient}"/>
+                                                </WrapPanel>
+                                            </controls:SettingRow>
+                                            <controls:SettingRow Label="Nombre de segments">
+                                                <DockPanel Width="260">
+                                                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding Segments}"/>
+                                                    <Slider Minimum="4" Maximum="40" Value="{Binding Segments}" IsSnapToTickEnabled="True" TickFrequency="1"/>
+                                                </DockPanel>
+                                            </controls:SettingRow>
+                                            <controls:SettingRow Label="Épaisseur des barres">
+                                                <DockPanel Width="260">
+                                                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding BarWidth, StringFormat={}{0:0} px}"/>
+                                                    <Slider Minimum="6" Maximum="80" Value="{Binding BarWidth}" IsSnapToTickEnabled="True" TickFrequency="1"/>
+                                                </DockPanel>
+                                            </controls:SettingRow>
+                                            <controls:SettingRow Label="Longueur des barres">
+                                                <DockPanel Width="260">
+                                                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding BarHeight, StringFormat={}{0:0} px}"/>
+                                                    <Slider Minimum="60" Maximum="500" Value="{Binding BarHeight}" IsSnapToTickEnabled="True" TickFrequency="5"/>
+                                                </DockPanel>
+                                            </controls:SettingRow>
+                                            <controls:SettingRow Label="Espacement">
+                                                <DockPanel Width="260">
+                                                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding Spacing, StringFormat={}{0:0} px}"/>
+                                                    <Slider Minimum="4" Maximum="60" Value="{Binding Spacing}" IsSnapToTickEnabled="True" TickFrequency="1"/>
+                                                </DockPanel>
+                                            </controls:SettingRow>
+                                            <controls:SettingRow Label="Arrondi">
+                                                <DockPanel Width="260">
+                                                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding CornerRadius, StringFormat={}{0:0} px}"/>
+                                                    <Slider Minimum="0" Maximum="40" Value="{Binding CornerRadius}" IsSnapToTickEnabled="True" TickFrequency="1"/>
+                                                </DockPanel>
+                                            </controls:SettingRow>
+                                            <controls:SettingRow Label="Halo lumineux">
+                                                <CheckBox Style="{StaticResource ToggleSwitch}" Margin="0" IsChecked="{Binding Glow}"/>
+                                            </controls:SettingRow>
+                                            <controls:SettingRow Label="Couleur d'alerte" Description="La barre change de couleur au-delà du seuil.">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <controls:ColorSwatch Style="{StaticResource ColorDot}" Hex="{Binding AlertColor}" Margin="0,0,12,0"/>
+                                                    <CheckBox Style="{StaticResource ToggleSwitch}" Margin="0" IsChecked="{Binding Alert}"/>
+                                                </StackPanel>
+                                            </controls:SettingRow>
+                                            <controls:SettingRow Label="Seuil d'alerte">
+                                                <DockPanel Width="260">
+                                                    <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding AlertPercent, StringFormat={}{0:0} %}"/>
+                                                    <Slider Minimum="10" Maximum="100" Value="{Binding AlertPercent}" IsSnapToTickEnabled="True" TickFrequency="5"/>
+                                                </DockPanel>
+                                            </controls:SettingRow>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+
+                                <!-- SimHub uniquement -->
+                                <StackPanel x:Name="SimHubCard" Visibility="Collapsed">
+                                    <ContentControl Style="{StaticResource SectionHeader}" Content="SimHub"/>
+                                    <Border Style="{StaticResource RowCard}" local:SettingsSearch.Module="simhub" local:SettingsSearch.Keywords="simhub course simracing property server port">
+                                        <StackPanel Style="{StaticResource RowsPanel}">
+                                            <controls:SettingRow Description="Le module lit SimHub grâce au plugin gratuit « SimHub Property Server » (github.com/pre-martin/SimHubPropertyServer) : copier PropertyServer.dll dans le dossier de SimHub, puis l'activer dans SimHub › Settings › Plugins."/>
+                                            <controls:SettingRow Label="Port du plugin" Description="18082 par défaut.">
+                                                <TextBox Width="90" Height="30" VerticalContentAlignment="Center" Text="{Binding SimHubPort, UpdateSourceTrigger=LostFocus}"/>
+                                            </controls:SettingRow>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+
+                                <!-- Températures CPU / GPU uniquement -->
+                                <StackPanel x:Name="TemperatureCard" Visibility="Collapsed">
+                                    <ContentControl Style="{StaticResource SectionHeader}" Content="Courbes"/>
+                                    <Border Style="{StaticResource RowCard}" local:SettingsSearch.Module="temperatures" local:SettingsSearch.Keywords="courbe couleur température processeur carte graphique cpu gpu">
+                                        <StackPanel Style="{StaticResource RowsPanel}">
+                                            <controls:SettingRow Label="Courbe du processeur" Description="Commune au PC et à la Switch.">
+                                                <controls:ColorSwatch Style="{StaticResource ColorDot}" Hex="{Binding CpuCurveColor}" Margin="0"/>
+                                            </controls:SettingRow>
+                                            <controls:SettingRow Label="Courbe de la carte graphique" Description="Commune au PC et à la Switch.">
+                                                <controls:ColorSwatch Style="{StaticResource ColorDot}" Hex="{Binding GpuCurveColor}" Margin="0"/>
+                                            </controls:SettingRow>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+
                                 <!-- Carte (et image de fond) -->
                                 <StackPanel x:Name="StyleCardSection">
                                     <ContentControl Style="{StaticResource SectionHeader}" Content="Carte"/>
@@ -1314,15 +1485,71 @@
                             <TextBlock x:Name="DeckStatusText" DockPanel.Dock="Right" FontSize="12" Foreground="{StaticResource Muted}" VerticalAlignment="Center"/>
                             <StackPanel>
                                 <TextBlock Text="Switch" Style="{StaticResource PageTitle}"/>
-                                <TextBlock Text="Glisse une action de la bibliothèque sur une case, puis clique sur la tuile pour la régler."
+                                <TextBlock x:Name="SwitchViewHint" Text="Glisse une action de la bibliothèque sur une case, puis clique sur la tuile pour la régler."
                                            Style="{StaticResource PageSubtitle}"/>
+                                <!-- Vue : écran de la Switch ou manettes (Joy-Con) -->
+                                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                    <RadioButton x:Name="SwitchViewScreen" Content="Écran" Style="{StaticResource TabButton}" GroupName="SwitchView"
+                                                 IsChecked="True" MinWidth="110" Checked="SwitchView_Checked"/>
+                                    <RadioButton x:Name="SwitchViewJoyCon" Content="Manettes (Joy-Con)" Style="{StaticResource TabButton}" GroupName="SwitchView"
+                                                 MinWidth="150" Checked="SwitchView_Checked"/>
+                                    <RadioButton x:Name="SwitchViewThemes" Content="Thèmes" Style="{StaticResource TabButton}" GroupName="SwitchView"
+                                                 MinWidth="110" Checked="SwitchView_Checked"/>
+                                </StackPanel>
+                                <!-- Atelier de thème ouvert : visible dans tous les onglets de la Switch -->
+                                <Border x:Name="StudioBar" Visibility="Collapsed" Margin="0,10,0,0" Padding="12,10" CornerRadius="10"
+                                        Background="#225B8DEF" BorderBrush="#995B8DEF" BorderThickness="1">
+                                    <DockPanel>
+                                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Button Content="Personnaliser le widget choisi" Click="StudioCustomize_Click" Margin="8,0,0,0"
+                                                    ToolTip="Sélectionne un widget dans l'aperçu, puis règle ses couleurs, son fond, son contour…"/>
+                                            <Button Content="Enregistrer le thème" Style="{StaticResource PrimaryButton}" Click="StudioSave_Click" Margin="8,0,0,0"/>
+                                            <Button Content="Quitter l'atelier" Click="StudioCancel_Click" Margin="8,0,0,0"
+                                                    ToolTip="Ferme l'atelier sans enregistrer : la Switch retrouve son thème d'avant"/>
+                                        </StackPanel>
+                                        <StackPanel>
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="Atelier de thème" FontWeight="SemiBold" Foreground="{StaticResource UiText}" VerticalAlignment="Center"/>
+                                                <TextBox x:Name="StudioNameBox" Width="200" Height="28" Margin="10,0,0,0" VerticalContentAlignment="Center" MaxLength="60"/>
+                                            </StackPanel>
+                                            <TextBlock FontSize="11.5" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,4,0,0"
+                                                       Text="Place et règle les widgets dans l'onglet Écran (en direct sur la Switch). En quittant l'atelier, la Switch retrouve son thème et ses widgets d'avant."/>
+                                        </StackPanel>
+                                    </DockPanel>
+                                </Border>
                             </StackPanel>
                         </DockPanel>
 
                         <!-- Aperçu en direct de l'écran ; les .exe et .lnk glissés depuis l'Explorateur y sont acceptés -->
-                        <Border Grid.Row="1" AllowDrop="True" DragOver="DeckApps_DragOver" Drop="DeckApps_Drop" Background="Transparent">
+                        <Border x:Name="SwitchScreenView" Grid.Row="1" AllowDrop="True" DragOver="DeckApps_DragOver" Drop="DeckApps_Drop" Background="Transparent">
                             <controls:DeckLayoutEditor x:Name="DeckEditor" VerticalAlignment="Center"/>
                         </Border>
+
+                        <!-- Thèmes : thèmes enregistrés (appliquer, modifier, supprimer) et création -->
+                        <ScrollViewer x:Name="SwitchThemesView" Grid.Row="1" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+                            <StackPanel>
+                                <Border Style="{StaticResource Card}" Margin="0,0,0,12">
+                                    <DockPanel>
+                                        <Button x:Name="StudioNewButton" DockPanel.Dock="Right" Content="Créer un thème" Style="{StaticResource PrimaryButton}"
+                                                VerticalAlignment="Center" Click="StudioNew_Click"/>
+                                        <StackPanel Margin="0,0,16,0">
+                                            <TextBlock Text="Nouveau thème" FontWeight="SemiBold" Foreground="{StaticResource UiText}"/>
+                                            <TextBlock FontSize="12" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,4,0,0"
+                                                       Text="L'atelier part de la page affichée : place les widgets, règle leurs couleurs, le fond et les tuiles, en direct sur la Switch. Une fois le thème enregistré, la Switch retrouve exactement son thème d'avant ; le thème s'applique ensuite à n'importe quelle page, avec la même position des widgets."/>
+                                        </StackPanel>
+                                    </DockPanel>
+                                </Border>
+                                <TextBlock Text="MES THÈMES" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Muted}" Margin="2,0,0,6"/>
+                                <TextBlock x:Name="SwitchThemesEmpty" Text="Aucun thème pour l'instant." Foreground="{StaticResource Muted}" FontSize="12.5" Margin="2,4,0,0"/>
+                                <StackPanel x:Name="SwitchThemesList"/>
+                            </StackPanel>
+                        </ScrollViewer>
+
+                        <!-- Manettes : les deux Joy-Con dessinés, une touche se clique (ou reçoit une action glissée) -->
+                        <DockPanel x:Name="SwitchJoyConView" Grid.Row="1" Visibility="Collapsed">
+                            <TextBlock x:Name="JoyConStatusText" DockPanel.Dock="Top" FontSize="12" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                            <ContentControl x:Name="JoyConDiagramHost" Focusable="False"/>
+                        </DockPanel>
 
                         <!-- Pages (comme les points du Stream Deck) et tuiles hors grille -->
                         <StackPanel Grid.Row="2" Margin="0,12,0,0">
@@ -1338,9 +1565,31 @@
                             </StackPanel>
                         </StackPanel>
 
-                        <!-- Inspecteur : réglages de la tuile sélectionnée -->
+                        <!-- Inspecteur : réglages de la tuile sélectionnée (ou de la touche de manette) -->
                         <Border Grid.Row="3" Style="{StaticResource Card}" Margin="0,8,0,0" MinHeight="128">
                             <Grid>
+                                <!-- Touche d'un Joy-Con -->
+                                <Grid x:Name="JoyConInspector" Visibility="Collapsed" Panel.ZIndex="5" Background="{StaticResource CardBg}">
+                                    <TextBlock x:Name="JoyConInspectorEmpty" Text="Clique sur une touche des Joy-Con pour lui donner une action (ou glisse une action de la bibliothèque dessus)."
+                                               Foreground="{StaticResource Muted}" FontSize="12.5" HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                                    <DockPanel x:Name="JoyConInspectorBody" Visibility="Collapsed">
+                                        <StackPanel DockPanel.Dock="Right" Margin="16,0,0,0" MinWidth="190" VerticalAlignment="Top">
+                                            <Button x:Name="JoyConChooseButton" Content="Choisir une action…" Style="{StaticResource PrimaryButton}" Click="JoyConChoose_Click"/>
+                                            <Button x:Name="JoyConEditButton" Content="Régler l'action…" Margin="0,8,0,0" Click="JoyConEdit_Click"/>
+                                            <Button Content="Aucune action" Margin="0,8,0,0" Click="JoyConClear_Click"/>
+                                        </StackPanel>
+                                        <StackPanel>
+                                            <TextBlock x:Name="JoyConInspectorTitle" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource UiAccent}"/>
+                                            <TextBlock x:Name="JoyConInspectorAction" FontSize="15" FontWeight="SemiBold" Foreground="{StaticResource UiText}" Margin="0,6,0,0"
+                                                       TextTrimming="CharacterEllipsis"/>
+                                            <CheckBox x:Name="JoyConPageCheck" Style="{StaticResource ToggleSwitch}" Margin="0,10,0,0" Click="JoyConPage_Click"/>
+                                            <StackPanel x:Name="JoyConStickPanel" Orientation="Horizontal" Margin="0,10,0,0">
+                                                <TextBlock Text="Mouvement du stick" Style="{StaticResource FieldLabel}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                                <ComboBox x:Name="JoyConStickBox" Width="220" SelectionChanged="JoyConStick_Changed"/>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </DockPanel>
+                                </Grid>
                                 <TextBlock x:Name="DeckInspectorEmpty" Text="Sélectionne une tuile dans l'aperçu pour configurer son action."
                                            Foreground="{StaticResource Muted}" FontSize="12.5" HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap"/>
                                 <Grid x:Name="DeckInspector" Visibility="Collapsed">

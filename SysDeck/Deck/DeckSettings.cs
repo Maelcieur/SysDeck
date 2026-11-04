@@ -82,6 +82,9 @@ public sealed class DeckSettings
     /// <summary>Page dont on modifie l'apparence : celle affichée (le modèle tant qu'il n'y a aucune page, à la lecture du fichier).</summary>
     private DeckPage LookToEdit => PageOrNull ?? DefaultLook;
 
+    /// <summary>Joy-Con : affectations des touches et rôle des sticks, communs à toutes les pages (une page peut en remplacer).</summary>
+    public JoyConSettings JoyCon { get; set; } = JoyConSettings.CreateDefault();
+
     /// <summary>Pages de l'écran, chacune avec ses éléments ; on passe de l'une à l'autre en glissant sur la Switch.</summary>
     public List<DeckPage> Pages { get; set; } = new();
 
@@ -137,6 +140,9 @@ public sealed class DeckSettings
             page.ClampLook();
         }
         CurrentPage = Math.Clamp(CurrentPage, 0, Pages.Count - 1);
+        JoyCon ??= JoyConSettings.CreateDefault();
+        JoyCon.Buttons ??= new();
+        foreach (var page in Pages.Where(p => p.JoyCon is not null)) page.JoyCon!.Buttons ??= new();
         // Fichier édité à la main : une valeur hors plage ne doit pas arriver telle quelle à la Switch.
         Brightness = Math.Clamp(Brightness, 0, 100);
         NightBrightness = Math.Clamp(NightBrightness, 1, 100);
@@ -174,6 +180,9 @@ public sealed class DeckPage : INotifyPropertyChanged
 
     /// <summary>Applications de la page (élément « apps »), indépendantes de la barre de raccourcis.</summary>
     public List<ShortcutItem> Apps { get; set; } = new();
+
+    /// <summary>Touches et sticks propres à cette page (null ou absents : ceux de toutes les pages).</summary>
+    public JoyConSettings? JoyCon { get; set; }
 
     // ---------- Apparence de la page ----------
 

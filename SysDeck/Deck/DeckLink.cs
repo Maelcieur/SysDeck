@@ -73,6 +73,16 @@ public sealed class DeckLink : IDisposable
     /// </summary>
     public event Action<int>? VolumeStep;
 
+    /// <summary>(v6) État des Joy-Con à chaque réponse où ils sont branchés, ou au moment où ils se débranchent (thread interface).</summary>
+    public event Action<DeckProtocol.JoyConState>? JoyCon;
+
+    /// <summary>Version du protocole du payload connecté (0 tant qu'aucune réponse) : 5 = payload sans Joy-Con.</summary>
+    public int PayloadVersion { get; private set; }
+
+    private bool _joyConSeen;
+    private byte _joyConFlags;
+    private (byte Left, byte Right) _joyConDebug;
+
     public DeckLink(Dispatcher dispatcher)
     {
         _dispatcher = dispatcher;
@@ -499,6 +509,30 @@ public sealed class DeckLink : IDisposable
             Publish(new DeckStatus(connected, reply.Battery, reply.Charging));
 
         TrackVolumeButtons(reply.Buttons);
+
+        if (reply.Version != PayloadVersion)
+            Log.Info(reply.Version >= 6
+                ? $"Switch : payload protocole v{reply.Version} (Joy-Con pris en charge)"
+                : $"Switch : payload protocole v{reply.Version}, trop ancien pour les Joy-Con (copier le nouveau switchdeck.bin)");
+        PayloadVersion = reply.Version;
+        var joyCon = reply.JoyCon;
+        if (joyCon.DebugLeft != _joyConDebug.Left || joyCon.DebugRight != _joyConDebug.Right)
+        {
+            Log.Info($"Joy-Con (diagnostic) : gauche {DeckProtocol.JoyConState.DescribeDebug(joyCon.DebugLeft)}, " +
+                     $"droit {DeckProtocol.JoyConState.DescribeDebug(joyCon.DebugRight)}");
+            _joyConDebug = (joyCon.DebugLeft, joyCon.DebugRight);
+        }
+        if (joyCon.Flags != _joyConFlags)
+        {
+            Log.Info($"Joy-Con : gauche {(joyCon.LeftConnected ? "connecté" : "absent")}, droit {(joyCon.RightConnected ? "connecté" : "absent")}" +
+                     (joyCon.Lite ? " (Switch Lite)" : ""));
+            _joyConFlags = joyCon.Flags;
+        }
+        if (joyCon.AnyConnected || _joyConSeen)
+        {
+            _joyConSeen = joyCon.AnyConnected;
+            _dispatcher.BeginInvoke(() => JoyCon?.Invoke(joyCon));
+        }
 
         if (reply.Events.Length == 0) return;
         var events = reply.Events;

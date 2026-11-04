@@ -19,12 +19,14 @@ extern u8 launch_reloc[], launch_reloc_end[];
 
 static void _power_off()
 {
+	deck_link_jc_power(false);
 	screen_brightness(0);
 	power_set_state(POWER_OFF_RESET);
 }
 
 static void _reboot()
 {
+	deck_link_jc_power(false);
 	screen_brightness(0);
 	power_set_state(POWER_OFF_REBOOT);
 }
@@ -79,6 +81,7 @@ static void _show_idle()
 // Le PC a dit BYE ou s'est tu : retour à l'attente, l'USB reste connecté.
 static void _on_idle()
 {
+	deck_link_jc_power(false); // sur batterie : les Joy-Con ne se rechargent pas aux dépens de la Switch
 	_ram_fast(false);
 	_show_idle();
 }
@@ -89,6 +92,7 @@ static void _on_connected()
 	_ram_fast(true);
 	screen_brightness(BRIGHTNESS_NORMAL);
 	screen_draw_connected(ram_fast_ok);
+	deck_link_jc_power(true);
 }
 
 // Retour à hekate : même principe que _launch_payload de hekate. Le fichier est lu dans le tas (DRAM), le
@@ -126,6 +130,7 @@ static bool _launch_hekate()
 	u32 len = ALIGN(size, 0x10);
 	memcpy((void *)RELOC_STUB, launch_reloc, launch_reloc_end - launch_reloc);
 
+	deck_link_jc_power(false);
 	screen_brightness(0);
 	hw_deinit(false);
 

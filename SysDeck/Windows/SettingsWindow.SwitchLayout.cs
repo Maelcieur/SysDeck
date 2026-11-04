@@ -68,6 +68,7 @@ public partial class SettingsWindow
         };
         RefreshDeckActions();
         InspectTile(null);
+        InitJoyConView();
     }
 
     // ---------- Inspecteur de la tuile sélectionnée ----------
@@ -164,8 +165,10 @@ public partial class SettingsWindow
     // ---------- Bibliothèque d'actions ----------
 
     /// <summary>Action de la bibliothèque : catégorie, nom, icône (symbole, « brand:… » ou image), aide, et création des tuiles.</summary>
+    /// <param name="Command">Commande de manette (vue Manettes) : rien à créer, la touche reçoit cette commande.</param>
+    /// <param name="Plugin">Action d'un plugin (pas proposée aux touches des Joy-Con).</param>
     private sealed record DeckAction(string Category, string CategoryIcon, string Name, string Icon, string Description,
-        Func<IReadOnlyList<ShortcutItem>?> Create, string? IconColor = null);
+        Func<IReadOnlyList<ShortcutItem>?> Create, string? IconColor = null, JoyConCommand? Command = null, bool Plugin = false);
 
     private readonly HashSet<string> _collapsedActionCategories = new();
     private Point _actionDragStart;
@@ -219,7 +222,7 @@ public partial class SettingsWindow
                 yield return new(plugin.Name, plugin.Manifest.IconPath ?? TileRuntime.PluginGlyph, action.Name, action.IconPath ?? TileRuntime.PluginGlyph,
                     action.Tooltip ?? plugin.Manifest.Description ?? "",
                     () => One(EditTile(new AddPluginTileWindow(this, CreateEmojiPickerForChoice, _widgetManager.PluginHost,
-                        pluginId: plugin.Id, actionId: action.Id), w => w.Result)));
+                        pluginId: plugin.Id, actionId: action.Id), w => w.Result)), Plugin: true);
     }
 
     private void DeckActionSearch_TextChanged(object sender, TextChangedEventArgs e) => RefreshDeckActions();
@@ -230,7 +233,8 @@ public partial class SettingsWindow
         if (DeckActionsList is null) return;
         DeckActionsList.Children.Clear();
         var needle = BrandIcons.Fold(DeckActionSearch.Text);
-        var actions = DeckActions().Where(a => needle.Length == 0
+        // Vue Manettes : commandes de manette en tête, pas de plugins.
+        var actions = (_joyConView ? JoyConActions() : DeckActions()).Where(a => needle.Length == 0
             || BrandIcons.Fold(a.Name).Contains(needle, StringComparison.Ordinal)
             || BrandIcons.Fold(a.Description).Contains(needle, StringComparison.Ordinal)
             || BrandIcons.Fold(a.Category).Contains(needle, StringComparison.Ordinal)).ToList();
@@ -335,6 +339,11 @@ public partial class SettingsWindow
     /// <summary>Crée les tuiles de l'action (fenêtre de réglage si besoin) et les place : case visée, sinon première case libre.</summary>
     private void RunDeckAction(DeckAction action, (int Col, int Row)? cell)
     {
+        if (_joyConView)
+        {
+            AssignJoyCon(action); // vue Manettes : l'action va à la touche choisie
+            return;
+        }
         if (!Deck.AppsGridHasRoom())
         {
             WarnGridFull(1);

@@ -337,7 +337,58 @@ public sealed class DeckShortcutsPanel : Panel
         var size = Math.Clamp(_tileSize(), 60, 300);
         foreach (var item in _items())
             Children.Add(BuildTile(item, size));
+        ApplyCursor();
         InvalidateMeasure();
+    }
+
+    // ---------- Curseur des Joy-Con ----------
+
+    private ShortcutItem? _cursor;
+    private const string CursorTag = "joycon-cursor";
+
+    /// <summary>Tuile entourée par le curseur des Joy-Con (null : aucun curseur).</summary>
+    public void SetCursor(ShortcutItem? tile)
+    {
+        _cursor = tile;
+        ApplyCursor();
+    }
+
+    private void ApplyCursor()
+    {
+        foreach (var tile in Children.OfType<Border>())
+        {
+            if (tile.Child is not Grid root) continue;
+            var ring = root.Children.OfType<Border>().FirstOrDefault(b => CursorTag.Equals(b.Tag));
+            var wanted = _cursor is not null && ReferenceEquals(tile.Tag, _cursor);
+            if (wanted && ring is null)
+            {
+                ring = new Border
+                {
+                    Tag = CursorTag,
+                    BorderThickness = new Thickness(Math.Max(4, tile.Width * 0.04)),
+                    CornerRadius = tile.CornerRadius,
+                    IsHitTestVisible = false
+                };
+                ring.SetResourceReference(Border.BorderBrushProperty, "AccentBrush");
+                Panel.SetZIndex(ring, 100);
+                root.Children.Add(ring);
+            }
+            else if (!wanted && ring is not null) root.Children.Remove(ring);
+        }
+    }
+
+    /// <summary>Enfonce brièvement une tuile (appui par un Joy-Con), comme sous le doigt.</summary>
+    public void FlashPressed(ShortcutItem item)
+    {
+        if (Children.OfType<Border>().FirstOrDefault(t => ReferenceEquals(t.Tag, item)) is not { } tile) return;
+        SetPressed(tile);
+        var timer = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(160) };
+        timer.Tick += (_, _) =>
+        {
+            timer.Stop();
+            SetPressed(null);
+        };
+        timer.Start();
     }
 
     protected override Size MeasureOverride(Size availableSize)

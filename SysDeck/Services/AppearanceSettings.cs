@@ -280,6 +280,15 @@ public sealed class ModuleAppearance : ObservableSettings
     /// <summary>Lecture en cours, icônes des boutons : "Classic", "Solid", "Double", "Chevron" ou "Neon".</summary>
     public string MediaIconSet { get => _mediaIconSet; set => Set(ref _mediaIconSet, value); }
 
+    private string _mediaLayout = "Compact", _mediaProgress = "Line";
+    private bool _mediaButtonBackground = true;
+    /// <summary>Lecture en cours, disposition : "Compact", "Banner" (bannière), "Vinyl" (vinyle) ou "Sleeve" (pochette et disque).</summary>
+    public string MediaLayout { get => _mediaLayout; set => Set(ref _mediaLayout, value); }
+    /// <summary>Barre de temps : "None", "Line" (fine), "Thick" (épaisse avec curseur) ou "Segments".</summary>
+    public string MediaProgress { get => _mediaProgress; set => Set(ref _mediaProgress, value); }
+    /// <summary>Faux : boutons sans fond (seulement l'icône).</summary>
+    public bool MediaButtonBackground { get => _mediaButtonBackground; set => Set(ref _mediaButtonBackground, value); }
+
     private double _fontScale = 1;
     /// <summary>Taille des textes de ce module, multipliée par celle du thème (1 = inchangée).</summary>
     public double FontScale { get => _fontScale; set => Set(ref _fontScale, value); }

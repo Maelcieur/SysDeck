@@ -33,6 +33,14 @@ public partial class SettingsWindow : Window
         ["power"] = "",
         ["claude"] = "",
         ["visualizer"] = "\uE9D9",
+        ["tileclock"] = "\uE916",
+        ["analogclock"] = "\uE823",
+        ["calendar"] = "\uE787",
+        ["weather"] = "\uE9CA",
+        ["temperatures"] = "\uE9D2",
+        ["airquality"] = "\uE9CA",
+        ["simhub"] = "\uE7FC",
+        ["sensorbars"] = "\uE9D9",
     };
 
     private sealed record WidgetRow(string Id, string Label, string Glyph, bool IsVisible, bool CanCustomize);
@@ -86,6 +94,7 @@ public partial class SettingsWindow : Window
         ModuleSelector.ItemsSource = modules;
         EnergyPanel.DataContext = config.Power;
         config.Power.PropertyChanged += OnPowerSettingsChanged;
+        InitExtraWidgets();
         ModuleSelector.SelectedIndex = 0;
 
         // Page Barre de raccourcis

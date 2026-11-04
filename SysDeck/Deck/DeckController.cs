@@ -44,6 +44,8 @@ public sealed partial class DeckController : IDisposable
         Action<UIElement, ModuleAppearance> applyModuleSettings, Action<ShortcutItem> launch)
     {
         _settings = config.Deck;
+        // Atelier de thème resté ouvert (arrêt brutal) : la Switch retrouve son thème d'avant.
+        if (SwitchThemeStudio.RecoverAfterCrash(_settings)) save();
         _desktopAppearance = desktopAppearance;
         _launch = launch;
         if (_settings.IsNew) AddDefaultElements();
@@ -91,6 +93,7 @@ public sealed partial class DeckController : IDisposable
         };
         _link.Touch += OnTouch;
         _link.VolumeStep += step => MasterVolume.Change(step * 2); // boutons VOL± de la Switch : pas de 2 %
+        _link.JoyCon += OnJoyCon;
 
         _nightTimer.Tick += (_, _) => NightTick();
         _nightTimer.Start();

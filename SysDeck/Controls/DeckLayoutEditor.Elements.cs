@@ -92,6 +92,20 @@ public sealed partial class DeckLayoutEditor
             : _deck.Settings.Elements.Where(e => e.Visible).Select(e => _deck.Screen.CardOf(e.Id)).OfType<ModuleCard>();
 
     /// <summary>Recrée les cadres des éléments (modules ajoutés ou retirés, éléments recréés).</summary>
+    private bool _elementBoxesPending;
+
+    /// <summary>Reconstruit les cadres une fois la mise en page faite (une seule fois même si plusieurs demandes arrivent).</summary>
+    private void ScheduleElementBoxes()
+    {
+        if (_elementBoxesPending) return;
+        _elementBoxesPending = true;
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Loaded, () =>
+        {
+            _elementBoxesPending = false;
+            RebuildElementBoxes();
+        });
+    }
+
     public void RebuildElementBoxes()
     {
         _elementOverlay.Children.Clear();
@@ -125,8 +139,13 @@ public sealed partial class DeckLayoutEditor
         foreach (var frame in _elementOverlay.Children.OfType<Border>())
         {
             if (frame.Tag is not ElementBox box) continue;
-            // Élément retiré de l'écran entre-temps (liste recréée) : on attend la prochaine reconstruction.
-            if (!box.Element.IsDescendantOf(_deck.Screen)) { frame.Visibility = Visibility.Collapsed; continue; }
+            // Élément retiré de l'écran entre-temps (liste recréée, module qui change de disposition) : les cadres sont refaits.
+            if (!box.Element.IsDescendantOf(_deck.Screen))
+            {
+                frame.Visibility = Visibility.Collapsed;
+                ScheduleElementBoxes();
+                continue;
+            }
 
             // Élément désactivé par une option (titre décoché…) : aucun cadre.
             if (!Movable.IsDisplayed(box.Element)) { frame.Visibility = Visibility.Collapsed; continue; }

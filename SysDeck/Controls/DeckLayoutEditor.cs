@@ -38,6 +38,9 @@ public sealed partial class DeckLayoutEditor : Border
     /// <summary>Un élément a été masqué depuis le menu (la liste des éléments doit suivre).</summary>
     public event Action? VisibilityChanged;
 
+    /// <summary>Élément sélectionné dans l'aperçu (identifiant du module), null si aucun.</summary>
+    public string? SelectedId => _selected;
+
     public DeckLayoutEditor()
     {
         CornerRadius = new CornerRadius(12);
@@ -55,6 +58,8 @@ public sealed partial class DeckLayoutEditor : Border
     public void Attach(DeckController deck)
     {
         _deck = deck;
+        // Un module change ses éléments (lecteur qui change de disposition, disque branché) : nouveaux cadres.
+        deck.Screen.AddHandler(Movable.ElementsChangedEvent, new RoutedEventHandler((_, _) => ScheduleElementBoxes()), handledEventsToo: true);
         // Aperçu : pinceau qui reproduit en direct le visuel de l'écran Switch (rendu par la carte graphique).
         var preview = new System.Windows.Shapes.Rectangle
         {

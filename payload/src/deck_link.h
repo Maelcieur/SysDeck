@@ -23,4 +23,7 @@ typedef enum _deck_link_res_t
 // ou mode nuit). Ne retourne que si l'hôte disparaît, sur erreur, ou sur action de l'utilisateur.
 deck_link_res_t deck_link_session(void (*on_connected)(), void (*on_idle)());
 
+// Joy-Con (rails ou Switch Lite) : allumés pendant une session avec le PC, éteints en attente.
+void deck_link_jc_power(bool on);
+
 #endif

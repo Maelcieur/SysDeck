@@ -7,7 +7,26 @@ using Windows.Media.Control;
 
 namespace SysDeck.Services;
 
-public sealed record NowPlayingInfo(bool HasSession, string Title, string Subtitle, BitmapImage? Thumbnail, bool IsPlaying, bool IsSpotify);
+public sealed record NowPlayingInfo(bool HasSession, string Title, string Subtitle, BitmapImage? Thumbnail, bool IsPlaying, bool IsSpotify,
+    string Album = "", string Source = "");
+
+/// <summary>
+/// Avancement du morceau : position mesurée à l'instant <see cref="At"/> (à faire avancer tant que ça joue), durée,
+/// et commandes disponibles (aléatoire, répétition : 0 aucune, 1 morceau, 2 liste ; recherche dans le morceau).
+/// </summary>
+public sealed record MediaTimeline(TimeSpan Position, TimeSpan Duration, DateTime At, bool IsPlaying,
+    bool Shuffle, int Repeat, bool CanShuffle, bool CanRepeat, bool CanSeek)
+{
+    public static readonly MediaTimeline Empty = new(TimeSpan.Zero, TimeSpan.Zero, DateTime.Now, false, false, 0, false, false, false);
+
+    /// <summary>Position estimée maintenant (la source ne la renvoie que de temps en temps).</summary>
+    public TimeSpan PositionAt(DateTime now)
+    {
+        var p = IsPlaying ? Position + (now - At) : Position;
+        if (p < TimeSpan.Zero) p = TimeSpan.Zero;
+        return Duration > TimeSpan.Zero && p > Duration ? Duration : p;
+    }
+}
 
 /// <summary>
 /// Lecture en cours au niveau système (Spotify, YouTube/Netflix dans un navigateur, VLC, etc.) via
@@ -18,6 +37,12 @@ public sealed record NowPlayingInfo(bool HasSession, string Title, string Subtit
 public sealed class MediaSessionService
 {
     public event Action<NowPlayingInfo>? NowPlayingChanged;
+
+    /// <summary>Position, durée, aléatoire ou répétition changés (sans recharger la pochette).</summary>
+    public event Action<MediaTimeline>? TimelineChanged;
+
+    /// <summary>Dernier avancement connu.</summary>
+    public MediaTimeline Timeline { get; private set; } = MediaTimeline.Empty;
 
     private GlobalSystemMediaTransportControlsSessionManager? _manager;
     private GlobalSystemMediaTransportControlsSession? _currentSession;
@@ -61,6 +86,7 @@ public sealed class MediaSessionService
         {
             _currentSession.MediaPropertiesChanged -= OnSessionEvent;
             _currentSession.PlaybackInfoChanged -= OnSessionEvent;
+            _currentSession.TimelinePropertiesChanged -= OnTimelineEvent;
         }
 
         // La barre de jeu Xbox (Game Bar) déclare parfois une session multimédia factice, sans
@@ -76,6 +102,7 @@ public sealed class MediaSessionService
         {
             _currentSession.MediaPropertiesChanged += OnSessionEvent;
             _currentSession.PlaybackInfoChanged += OnSessionEvent;
+            _currentSession.TimelinePropertiesChanged += OnTimelineEvent;
         }
 
         _ = RefreshAsync();
@@ -83,6 +110,67 @@ public sealed class MediaSessionService
 
     private void OnSessionEvent(GlobalSystemMediaTransportControlsSession sender, object args)
         => _dispatcher.BeginInvoke(() => _ = RefreshAsync());
+
+    private void OnTimelineEvent(GlobalSystemMediaTransportControlsSession sender, object args)
+        => _dispatcher.BeginInvoke(PublishTimeline);
+
+    /// <summary>Lit l'avancement de la session courante et le publie.</summary>
+    private void PublishTimeline()
+    {
+        var session = _currentSession;
+        var timeline = MediaTimeline.Empty;
+        if (session is not null)
+        {
+            try
+            {
+                var t = session.GetTimelineProperties();
+                var pb = session.GetPlaybackInfo();
+                var playing = pb?.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing;
+                var duration = t.EndTime - t.StartTime;
+                // Date de la mesure : certaines applis ne la remplissent pas (année 1601) ; on prend alors maintenant.
+                var at = t.LastUpdatedTime.Year > 2000 ? t.LastUpdatedTime.LocalDateTime : DateTime.Now;
+                if (at > DateTime.Now) at = DateTime.Now;
+                var repeat = pb?.AutoRepeatMode switch
+                {
+                    Windows.Media.MediaPlaybackAutoRepeatMode.Track => 1,
+                    Windows.Media.MediaPlaybackAutoRepeatMode.List => 2,
+                    _ => 0
+                };
+                timeline = new MediaTimeline(t.Position - t.StartTime, duration > TimeSpan.Zero ? duration : TimeSpan.Zero, at, playing,
+                    pb?.IsShuffleActive == true, repeat, pb?.Controls.IsShuffleEnabled == true, pb?.Controls.IsRepeatEnabled == true,
+                    pb?.Controls.IsPlaybackPositionEnabled == true);
+            }
+            catch
+            {
+                // Session fermée entre-temps : avancement vide.
+            }
+        }
+        Timeline = timeline;
+        TimelineChanged?.Invoke(timeline);
+    }
+
+    public async Task ToggleShuffleAsync()
+    {
+        try { if (_currentSession is not null) await _currentSession.TryChangeShuffleActiveAsync(!Timeline.Shuffle); } catch { }
+    }
+
+    /// <summary>Répétition : aucune → liste → morceau → aucune.</summary>
+    public async Task CycleRepeatAsync()
+    {
+        var next = Timeline.Repeat switch
+        {
+            0 => Windows.Media.MediaPlaybackAutoRepeatMode.List,
+            2 => Windows.Media.MediaPlaybackAutoRepeatMode.Track,
+            _ => Windows.Media.MediaPlaybackAutoRepeatMode.None
+        };
+        try { if (_currentSession is not null) await _currentSession.TryChangeAutoRepeatModeAsync(next); } catch { }
+    }
+
+    /// <summary>Va à une position du morceau.</summary>
+    public async Task SeekAsync(TimeSpan position)
+    {
+        try { if (_currentSession is not null) await _currentSession.TryChangePlaybackPositionAsync(position.Ticks); } catch { }
+    }
 
     private async Task RefreshAsync()
     {
@@ -93,6 +181,7 @@ public sealed class MediaSessionService
         if (session is null)
         {
             Publish(new NowPlayingInfo(false, "", "", null, false, false));
+            PublishTimeline();
             return;
         }
 
@@ -133,7 +222,10 @@ public sealed class MediaSessionService
             Subtitle: subtitle,
             Thumbnail: thumbnail,
             IsPlaying: isPlaying,
-            IsSpotify: isSpotify));
+            IsSpotify: isSpotify,
+            Album: props?.AlbumTitle ?? "",
+            Source: FriendlySourceName(session.SourceAppUserModelId)));
+        PublishTimeline();
     }
 
     private static bool IsValidSession(GlobalSystemMediaTransportControlsSession? session)

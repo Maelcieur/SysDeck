@@ -55,6 +55,20 @@ internal static class InputSimulator
     private static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
 
     private const uint KEYEVENTF_UNICODE = 0x0004;
+    private const int INPUT_MOUSE = 0;
+    private const uint MOUSEEVENTF_MOVE = 0x0001, MOUSEEVENTF_WHEEL = 0x0800;
+
+    /// <summary>Déplace la souris de (dx, dy) pixels (stick d'un Joy-Con).</summary>
+    public static void MoveMouse(int dx, int dy) => SendMouse(new MOUSEINPUT { dx = dx, dy = dy, dwFlags = MOUSEEVENTF_MOVE });
+
+    /// <summary>Molette : <paramref name="delta"/> en crans de 120 (positif = vers le haut).</summary>
+    public static void Wheel(int delta) => SendMouse(new MOUSEINPUT { mouseData = unchecked((uint)delta), dwFlags = MOUSEEVENTF_WHEEL });
+
+    private static void SendMouse(MOUSEINPUT mouse)
+    {
+        var inputs = new[] { new INPUT { type = INPUT_MOUSE, U = new InputUnion { mi = mouse } } };
+        SendInput(1, inputs, Marshal.SizeOf<INPUT>());
+    }
 
     /// <summary>
     /// Tape <paramref name="text"/> dans l'application active comme s'il venait du clavier (caractères

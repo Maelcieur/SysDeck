@@ -10,13 +10,14 @@ Desktop widgets for Windows + a Nintendo Switch turned into a USB touch screen /
 ---
 
 SysDeck (WPF, .NET 8) shows widgets pinned to the desktop (below windows, like desktop icons):
-hardware monitoring, audio, now playing, power cost in euros, a shortcut bar, Claude usage quota
-and AI text correction. Everything can be customized from the Settings window.
+hardware monitoring, audio, now playing, clocks, calendar, weather, power cost in euros, a shortcut bar,
+Claude usage quota and AI text correction. Everything can be customized from the Settings window.
 
 With the **SwitchDeck payload**, a Nintendo Switch plugged in over USB-C becomes a second 1280×720
 touch screen: the PC renders the modules and tiles, the Switch displays them and sends touch input back.
 Tiles, drawn as Stream Deck-style **3D glass buttons**, can also control **OBS Studio**, **Twitch** and **Voicemod**,
 and run **plugins**: SysDeck plugins and open-source **Elgato Stream Deck** plugins, installed from a GitHub catalog.
+The Joy-Con attached to the Switch can trigger SysDeck actions too.
 
 > The user interface is in French.
 
@@ -59,13 +60,21 @@ and run **plugins**: SysDeck plugins and open-source **Elgato Stream Deck** plug
 | `cpu`, `gpu`, `ram` | CPU, GPU, memory | LibreHardwareMonitor (+ `Tools/CpuTempBridge.ps1` for AMD CPU temperature) |
 | `network` | Network throughput | Network interface counters |
 | `disk` | Drives | `DriveInfo` |
-| `media` | Now playing | Windows.Media.Control API (Spotify, browsers, VLC…) |
+| `media` | Now playing: 4 layouts, time bar, shuffle/repeat | Windows.Media.Control API (Spotify, browsers, VLC…) |
 | `volumemixer` | Per-app volume | Core Audio (NAudio) |
 | `audio` | Audio output | Core Audio + IPolicyConfig |
 | `mouse` | Logitech mouse battery | HID++ 2.0 (HidSharp) |
 | `power` | Power cost in € | Measured GPU power, estimated CPU, Windows event log for history |
 | `claude` | Claude usage quota | Claude Code token (read only) |
 | `visualizer` | Audio visualizer | Audio output capture (NAudio) |
+| `tileclock` | Digital clock on colored tiles (HH:MM:SS) | System clock |
+| `analogclock` | Analog clock with date | System clock |
+| `calendar` | Month calendar | System clock |
+| `weather` | Weather and 4-day forecast | [Open-Meteo](https://open-meteo.com) (free, no account) |
+| `airquality` | Air quality (European AQI, PM2.5, PM10, NO₂, O₃) | Open-Meteo, same city as the weather |
+| `temperatures` | CPU and GPU temperature curves on one chart | LibreHardwareMonitor |
+| `sensorbars` | Bars for any sensor (temperatures, loads, RAM, VRAM, fans…) | LibreHardwareMonitor |
+| `simhub` | Sim racing: gear, speed, RPM, lap times, position, fuel | [SimHub](https://www.simhubdash.com) + the [SimHub Property Server](https://github.com/pre-martin/SimHubPropertyServer) plugin |
 | `shortcuts` | Shortcut bar | `shortcuts.json` |
 
 - **AI correction**: select text in any application and press **Ctrl+Space**
@@ -75,7 +84,16 @@ and run **plugins**: SysDeck plugins and open-source **Elgato Stream Deck** plug
   Emojis can also be used as icons for Switch tiles.
 - **On the desktop**: **right-click** a module to customize it, resize it or its text, edit the layout,
   lock positions or hide it; **Ctrl+mouse wheel** to scale it.
-- **Profiles and themes**: save, export/import (`.sysdeckprofile`), 8 built-in themes.
+- **Profiles and themes**: save, export/import (`.sysdeckprofile`), 9 built-in themes (including "Edge noir":
+  matte black cards, thin gauges, orange accent).
+- **Module settings**: the clocks, weather, air quality, temperature, sensor bar, SimHub and media options are in the
+  module's own customization page (Style tab). New modules are hidden until you turn them on.
+- **Now playing**: Compact, Banner (large cover), Vinyl (spinning record with the cover as its label) or Sleeve
+  (cover with the record sliding out) layouts; thin, thick or segmented time bar (click to seek); buttons with or
+  without background; shuffle and repeat. Cover, track, time bar and buttons can be moved.
+- **Sensor bars**: pick any reading, one horizontal (or vertical) bar each; segmented, solid or gradient bars,
+  color per bar, glow, alert color above a threshold.
+- **Color picker**: the Windows color dialog now remembers its custom colors.
 - **Alerts**: CPU/GPU temperature, mouse battery, Claude quota.
 
 ## Compatibility
@@ -88,6 +106,8 @@ Most readings work on any Windows 10/11 PC with no setup: CPU load, memory, netw
 - **CPU temperature, Intel**: no bridge is provided; the temperature will likely stay empty, except perhaps
   when running SysDeck as administrator with Memory Integrity turned off (untested).
 - **Mouse battery**: Logitech mice supporting HID++ only.
+- **Fans**: graphics card fans are read with no setup. Motherboard fans (CPU, case) need the low-level driver that
+  Memory Integrity blocks; they show up in the sensor list only when Windows allows it.
 
 ## Switch module (SwitchDeck)
 
@@ -103,6 +123,14 @@ The [`payload/`](payload) folder contains a bare-metal payload launched from
 - **Each page has its own style**: tile and icon size (up to filling the tile), glass or flat, names, background
   (color, image), clock. "Apply this style to all pages" in one click.
 - **Active tile** (mic muted, live on air, active scene…): custom color and second icon, button that stays pressed.
+- **Joy-Con** (payload v6): the Joy-Con attached to the Switch (or a Switch Lite's controls) trigger actions. The
+  "Manettes (Joy-Con)" tab draws both controllers: click a button (or drop an action from the library on it) to assign
+  a tile action, page change, a cursor moving over the tiles or the volume. Sticks: tile cursor, volume, mouse or
+  scroll. Assignments are shared by all pages or specific to one page.
+- **Switch themes** ("Thèmes" tab): the theme workshop starts from the current page; place the widgets and set their
+  colors, background and tiles live on the Switch, then save. When the workshop closes, the Switch gets back exactly
+  what it showed before (also after a crash). A saved theme applies to any page with the same widget positions; the
+  page's tiles are kept.
 - Swipe between pages, touch sliders, VOL± buttons control the Windows volume.
 - **Night mode**: with the PC off, the Switch shows a picture and the time (internal clock synced by the PC).
 - Menu (VOL+ and VOL- while waiting): power off, reboot, return to hekate.
@@ -233,6 +261,8 @@ Everything lives in `%AppData%\SysDeck`:
 |---|---|
 | `config.json` | Settings, theme, module appearance, positions, Switch, connected apps. The Gemini key, the OBS password and the Twitch tokens are encrypted (DPAPI, current Windows account) and never exported in profiles. |
 | `shortcuts.json` | Shortcut bar entries |
+| `switch-themes.json` | Saved Switch themes (`switch-theme-studio.json` exists only while the theme workshop is open) |
+| `custom-colors.json` | Custom colors of the color picker |
 | `power-usage.json` | Power usage history |
 | `Icons/`, `Backgrounds/`, `Fonts/` | Copies of imported icons, background images and fonts |
 | `IconPacks/` | Imported icon packs (SVG converted to PNG) |
@@ -250,6 +280,11 @@ one instance runs per data folder.
   "CPU temperature" option in the installer (requires the AMD Ryzen Master SDK).
 - **Ctrl+Space does nothing**: another application owns the hotkey (see the log).
 - **Switch not detected**: make sure the payload shows "En attente du PC" and use a USB-C data cable.
+- **Joy-Con do nothing**: copy the latest `switchdeck.bin` (protocol v6) to the SD card; the Joy-Con tab warns when the
+  payload is too old.
+- **SimHub module says "SimHub non détecté"**: start SimHub with the SimHub Property Server plugin enabled
+  (port 18082 by default, changeable in the module settings).
+- **Weather or air quality empty**: set the city in the module's customization page (Style tab), then "Rechercher".
 - **Connected app in error**: the app's card (Settings → Applications connectées) shows the reason. Make sure
   OBS or Voicemod is running. For Twitch, sign out and back in after an update that asks for new permissions
   (emotes).
@@ -267,6 +302,7 @@ one instance runs per data folder.
 - [SharpVectors](https://github.com/ElinamLLC/SharpVectors) (BSD-3-Clause) for SVG icons,
   [WebView2](https://developer.microsoft.com/microsoft-edge/webview2/) (Microsoft) for plugin settings pages,
   [Node.js](https://nodejs.org) (MIT, downloaded on demand) for JavaScript plugins.
+- Weather and air quality data: [Open-Meteo.com](https://open-meteo.com) (CC BY 4.0).
 
-Nintendo Switch is a trademark of Nintendo. Stream Deck and Elgato are trademarks of Corsair. OBS Studio, Twitch and Voicemod are trademarks of their
-respective owners. This project is not affiliated with or endorsed by Nintendo, OBS, Twitch or Voicemod.
+Nintendo Switch and Joy-Con are trademarks of Nintendo. Stream Deck and Elgato are trademarks of Corsair. OBS Studio, Twitch, Voicemod and SimHub are
+trademarks of their respective owners. This project is not affiliated with or endorsed by Nintendo, Corsair, OBS, Twitch, Voicemod or SimHub.

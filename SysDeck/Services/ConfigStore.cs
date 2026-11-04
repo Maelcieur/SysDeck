@@ -217,6 +217,15 @@ public sealed class AppConfig
     /// <summary>Prix de l'électricité et estimation de la consommation (module Consommation).</summary>
     public PowerSettings Power { get; set; } = new();
 
+    /// <summary>Ville du module Météo.</summary>
+    public WeatherSettings Weather { get; set; } = new();
+
+    /// <summary>Couleurs de l'horloge à cases et des courbes de températures.</summary>
+    public ExtraWidgetSettings WidgetExtras { get; set; } = new();
+
+    /// <summary>Module Barres de capteurs : données choisies et style des barres.</summary>
+    public SensorBarsSettings SensorBars { get; set; } = new() { Items = SensorBarsSettings.DefaultItems() };
+
     /// <summary>Apparence propre à chaque module, par identifiant de widget.</summary>
     public Dictionary<string, ModuleAppearance> Modules { get; set; } = new();
 
@@ -301,6 +310,10 @@ public sealed class AppConfig
     {
         var changed = false;
         Layout ??= new();
+        Weather ??= new();
+        WidgetExtras ??= new();
+        SensorBars ??= new() { Items = SensorBarsSettings.DefaultItems() };
+        SensorBars.Items ??= new();
         HiddenAudioDeviceIds ??= new();
         HiddenVolumeMixerApps ??= new();
         RecentEmojis ??= new();

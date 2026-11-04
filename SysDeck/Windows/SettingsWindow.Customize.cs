@@ -27,6 +27,12 @@ public partial class SettingsWindow
         VolumeStyleCard.Visibility = id == "volumemixer" ? Visibility.Visible : Visibility.Collapsed;
         VisualizerCard.Visibility = id == "visualizer" ? Visibility.Visible : Visibility.Collapsed;
         DiskStyleCard.Visibility = id == "disk" ? Visibility.Visible : Visibility.Collapsed;
+        TileClockCard.Visibility = id == "tileclock" ? Visibility.Visible : Visibility.Collapsed;
+        WeatherCard.Visibility = id is "weather" or "airquality" ? Visibility.Visible : Visibility.Collapsed;
+        SimHubCard.Visibility = id == "simhub" ? Visibility.Visible : Visibility.Collapsed;
+        SensorBarsCard.Visibility = id == "sensorbars" ? Visibility.Visible : Visibility.Collapsed;
+        if (id == "sensorbars") BuildSensorBarsEditor();
+        TemperatureCard.Visibility = id == "temperatures" ? Visibility.Visible : Visibility.Collapsed;
         BreadcrumbModuleText.Text = SelectedModule?.Label ?? "";
         BuildTextRows();
         BuildButtonRows();

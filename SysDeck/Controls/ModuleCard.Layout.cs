@@ -42,14 +42,12 @@ public partial class ModuleCard
     private void RefreshMovables()
     {
         _movables = null;
+        // Positions d'abord (nouveaux éléments à leur place), puis les cadres d'édition éventuels.
+        ApplyElementLayouts();
         if (_editMode)
         {
             SetEditMode(false);
             SetEditMode(true);
-        }
-        else
-        {
-            ApplyElementLayouts();
         }
     }
 

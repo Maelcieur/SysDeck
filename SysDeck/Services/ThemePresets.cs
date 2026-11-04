@@ -19,7 +19,7 @@ public sealed record ThemePreset(string Name, string Description, Func<ThemeSett
 }
 
 /// <summary>
-/// Les 8 thèmes prêts à l'emploi. Polices : uniquement celles livrées avec Windows (Segoe UI, Bahnschrift,
+/// Les 9 thèmes prêts à l'emploi. Polices : uniquement celles livrées avec Windows (Segoe UI, Bahnschrift,
 /// Consolas). Chaque thème garde un contraste texte / fond d'au moins 7:1 pour le texte principal et 4,5:1
 /// pour le texte secondaire, sauf « Minimal clair » (fond clair, textes sombres).
 /// </summary>
@@ -102,6 +102,17 @@ public static class ThemePresets
             ShowTiles = true, TileColor = "#FF1B1F2A", TileOpacity = 0.05, ButtonColor = "#1A000000",
             TextFont = "Segoe UI", NumberFont = "Segoe UI Semibold",
             GaugeShape = "Arc", GaugeStyle = "Thin", GaugeThickness = 0.9, ShowTicks = false, TickStyle = "Lines", Glow = false
+        }),
+
+        new ThemePreset("Edge noir", "Cartes noires mates, coins arrondis, jauges fines et accent orange, façon écran de bureau gaming.", () => new ThemeSettings
+        {
+            GaugeStartColor = "#FFFFB238", GaugeEndColor = "#FFF7731E",
+            TextColor = "#FFF5F6F8", SubTextColor = "#FF9EA3AE",
+            PanelColor = "#FF0E0F12", PanelOpacity = 0.97,
+            BorderColor = "#FFFFFFFF", BorderOpacity = 0.08, CornerRadius = 16,
+            ShowTiles = true, TileColor = "#FFFFFFFF", TileOpacity = 0.05, ButtonColor = "#1FFFFFFF",
+            TextFont = "Segoe UI Semibold", NumberFont = "Bahnschrift SemiBold",
+            GaugeShape = "Arc", GaugeStyle = "Thin", GaugeThickness = 0.8, ShowTicks = false, TickStyle = "Lines", Glow = false
         }),
 
         new ThemePreset("Coucher de soleil", "Dégradé orange et rose sur fond prune.", () => new ThemeSettings

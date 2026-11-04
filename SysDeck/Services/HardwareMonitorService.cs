@@ -31,6 +31,9 @@ public sealed class HardwareSnapshot
     /// <summary>Mémoire vidéo utilisée et totale, en Mo.</summary>
     public float? GpuMemoryUsedMb { get; init; }
     public float? GpuMemoryTotalMb { get; init; }
+
+    /// <summary>Tous les capteurs lus (module Barres de capteurs) ; null si cette lecture n'est pas demandée.</summary>
+    public IReadOnlyList<SensorReading>? Sensors { get; init; }
 }
 
 public sealed class HardwareMonitorService : IDisposable
@@ -95,6 +98,27 @@ public sealed class HardwareMonitorService : IDisposable
         }
     }
 
+    private bool _allSensors;
+
+    /// <summary>
+    /// Lecture de tous les capteurs (module Barres de capteurs affiché) : carte mère comprise (ventilateurs, si le
+    /// pilote de bas niveau est permis par Windows), et liste complète dans <see cref="HardwareSnapshot.Sensors"/>.
+    /// </summary>
+    public bool AllSensorsEnabled
+    {
+        get { lock (_sync) return _allSensors; }
+        set
+        {
+            lock (_sync)
+            {
+                if (_disposed || _allSensors == value) return;
+                _allSensors = value;
+                _computer.IsMotherboardEnabled = value;
+                if (value) _computer.IsMemoryEnabled = true;
+            }
+        }
+    }
+
     /// <summary>Peut être appelé depuis un thread de fond ; les lectures sont sérialisées.</summary>
     public HardwareSnapshot Read()
     {
@@ -111,6 +135,7 @@ public sealed class HardwareMonitorService : IDisposable
         float? cpuPower = null, gpuPower = null, cpuClock = null;
         string cpuName = "CPU";
         var gpus = new List<GpuReading>();
+        List<SensorReading>? sensors = _allSensors ? new() : null;
 
         // LibreHardwareMonitor peut lever une exception en essayant d'accéder aux capteurs CPU si
         // son pilote (bloqué par l'Intégrité de la mémoire) est indisponible, selon la génération de
@@ -119,6 +144,7 @@ public sealed class HardwareMonitorService : IDisposable
         try
         {
             _computer.Accept(_visitor);
+            if (sensors is not null) CollectSensors(_computer.Hardware, sensors);
 
             foreach (var hardware in _computer.Hardware)
             {
@@ -197,8 +223,19 @@ public sealed class HardwareMonitorService : IDisposable
             RamLoad = ramLoad,
             // Un capteur présent mais non lisible (pilote bloqué) renvoie 0 : on le traite comme absent.
             CpuPower = cpuPower is > 0 ? cpuPower : null,
-            GpuPower = gpuPower
+            GpuPower = gpuPower,
+            Sensors = sensors
         };
+    }
+
+    private static void CollectSensors(IEnumerable<IHardware> hardware, List<SensorReading> into)
+    {
+        foreach (var h in hardware)
+        {
+            foreach (var sensor in h.Sensors)
+                if (SensorCatalog.FromSensor(h, sensor) is { } reading) into.Add(reading);
+            CollectSensors(h.SubHardware, into);
+        }
     }
 
     /// <summary>

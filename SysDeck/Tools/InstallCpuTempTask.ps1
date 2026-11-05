@@ -15,6 +15,15 @@ $dir = 'C:\ProgramData\SysDeck'
 $script = Join-Path $dir 'CpuTempBridge.ps1'
 
 New-Item -ItemType Directory -Force -Path $dir | Out-Null
+
+# Arrête l'ancienne boucle avant de remplacer la tâche : sinon elle reste en vie à côté de la nouvelle
+# et les deux se disputent les fichiers de température.
+Stop-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
+Get-CimInstance Win32_Process -Filter "Name='powershell.exe'" -ErrorAction SilentlyContinue |
+    # Filtre précis : le processus qui exécute ce script reçoit aussi « CpuTempBridge.ps1 » en paramètre.
+    Where-Object { $_.ProcessId -ne $PID -and $_.CommandLine -like "*-File `"$script`"*" } |
+    ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+
 Copy-Item -Path $Source -Destination $script -Force
 
 $action = New-ScheduledTaskAction -Execute 'powershell.exe' `

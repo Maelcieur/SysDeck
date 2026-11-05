@@ -11,9 +11,21 @@ $ErrorActionPreference = 'SilentlyContinue'
 $exePath = "C:\Program Files\AMD\RyzenMasterSDK\AMDRyzenMasterCLI\bin-prebuilt\AMDRyzenMasterCLI.exe"
 $outDir = "C:\ProgramData\SysDeck"
 $outFile = "$outDir\cputemp.txt"
-$tempFile = "$outDir\cputemp.tmp"
+# Fichier temporaire propre à ce processus : deux copies ne peuvent plus se bloquer l'une l'autre.
+$tempFile = "$outDir\cputemp.$PID.tmp"
+
+# Une seule copie à la fois : une ancienne boucle restée en vie (réinstallation, tâche relancée)
+# gardait le fichier temporaire verrouillé et plus aucune température n'était écrite.
+$createdNew = $false
+$mutex = New-Object System.Threading.Mutex($true, 'Global\SysDeck-CpuTempBridge', [ref]$createdNew)
+if (-not $createdNew) {
+    try { $createdNew = $mutex.WaitOne(0) } catch [System.Threading.AbandonedMutexException] { $createdNew = $true }
+    if (-not $createdNew) { exit }
+}
 
 New-Item -ItemType Directory -Force -Path $outDir | Out-Null
+# Restes d'anciennes versions ou de copies arrêtées brutalement.
+Get-ChildItem -Path $outDir -Filter 'cputemp*.tmp' | Remove-Item -Force
 
 while ($true) {
     try {
@@ -23,9 +35,11 @@ while ($true) {
             $temp = $match.Matches[0].Groups[1].Value
             # Écriture atomique (fichier temporaire + renommage) pour que SysDeck ne lise jamais
             # un fichier à moitié écrit.
-            Set-Content -Path $tempFile -Value $temp -NoNewline
-            Move-Item -Path $tempFile -Destination $outFile -Force
+            [System.IO.File]::WriteAllText($tempFile, $temp)
+            Move-Item -Path $tempFile -Destination $outFile -Force -ErrorAction Stop
         }
-    } catch { }
+    } catch {
+        Remove-Item -Path $tempFile -Force
+    }
     Start-Sleep -Seconds 3
 }

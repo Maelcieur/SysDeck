@@ -209,6 +209,8 @@ public static class TileRuntime
             TileKind.MicMute => IsMuted(item) ? MicOffGlyph : MicGlyph,
             TileKind.OutputMute => IsMuted(item) ? SpeakerOffGlyph : SpeakerGlyph,
             TileKind.Command => CommandGlyph,
+            TileKind.SwitchAction => item.SwitchAction == SwitchActionKind.LaunchHekate ? "" : "",
+            TileKind.TilePageNavigation => item.PageNavigation == Models.TilePageNavigation.Next ? "\uE76C" : "\uE76B",
             TileKind.Obs => ObsGlyph(item),
             TileKind.Twitch => TwitchGlyph(item),
             TileKind.Voicemod => VoicemodGlyph(item),

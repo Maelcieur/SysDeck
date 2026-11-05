@@ -100,6 +100,40 @@ public class JoyConTests
     }
 
     [Fact]
+    public void PageSelectBinding_ResolvesNamedPageAndSurvivesSerialization()
+    {
+        var target = new DeckPage { Name = "Media" };
+        var pages = new[] { new DeckPage { Name = "Home" }, target };
+        var binding = new JoyConBinding { Command = JoyConCommand.PageSelect, TargetPageId = target.Id };
+
+        Assert.Equal("Media", JoyConInfo.Describe(binding, pages));
+
+        var copy = JsonSerializer.Deserialize<JoyConBinding>(JsonSerializer.Serialize(binding))!;
+        Assert.Equal(JoyConCommand.PageSelect, copy.Command);
+        Assert.Equal(target.Id, copy.TargetPageId);
+        Assert.False(copy.IsEmpty);
+    }
+
+    [Fact]
+    public void TilePageNavigation_OverridesOnlyTheJoyConOnItsOwnDeckPage()
+    {
+        var navigation = new ShortcutItem
+        {
+            Kind = TileKind.TilePageNavigation,
+            PageNavigation = TilePageNavigation.Next,
+            MappedJoyConButton = JoyConButton.X
+        };
+        var home = new DeckPage { Apps = [navigation] };
+        var media = new DeckPage();
+
+        Assert.Same(navigation, home.FindMappedTileNavigation(JoyConButton.X));
+        Assert.Null(media.FindMappedTileNavigation(JoyConButton.X));
+
+        var copy = JsonSerializer.Deserialize<ShortcutItem>(JsonSerializer.Serialize(navigation))!;
+        Assert.Equal(JoyConButton.X, copy.MappedJoyConButton);
+    }
+
+    [Fact]
     public void Settings_RoundTripAndOldFilesGetDefaults()
     {
         var settings = new DeckSettings();

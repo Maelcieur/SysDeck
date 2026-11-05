@@ -7,7 +7,7 @@ using SysDeck.Services;
 namespace SysDeck;
 
 /// <summary>Création ou modification d'une tuile Commande : préréglage, nom, ligne de commande, options et icône.</summary>
-public partial class AddCommandTileWindow : Window
+public partial class AddCommandTileWindow : TileEditorWindow
 {
     private const string CustomPreset = "Personnalisée";
 
@@ -16,12 +16,10 @@ public partial class AddCommandTileWindow : Window
     private string _defaultGlyph = TileRuntime.CommandGlyph;
     private bool _loading;
 
-    public ShortcutItem? Result { get; private set; }
-
     public AddCommandTileWindow(Window owner, Func<EmojiPickerWindow> createEmojiPicker, ShortcutItem? existing = null)
+        : base(owner)
     {
         InitializeComponent();
-        Owner = owner;
         _createEmojiPicker = createEmojiPicker;
 
         _loading = true;
@@ -67,17 +65,22 @@ public partial class AddCommandTileWindow : Window
     private void Icon_Click(object sender, RoutedEventArgs e)
     {
         var name = string.IsNullOrWhiteSpace(NameBox.Text) ? "Commande" : NameBox.Text.Trim();
-        if (_icon.Choose(this, name, _createEmojiPicker, _defaultGlyph)) ShowIcon();
+        if (ChooseIconInline(_icon.CreateChooser(DialogOwner, name, _createEmojiPicker, _defaultGlyph), choice =>
+            {
+                _icon.ApplyChoice(choice);
+                ShowIcon();
+            })) return;
+        if (_icon.Choose(DialogOwner, name, _createEmojiPicker, _defaultGlyph)) ShowIcon();
     }
 
-    private void Cancel_Click(object sender, RoutedEventArgs e) => DialogResult = false;
+    private void Cancel_Click(object sender, RoutedEventArgs e) => Complete(false);
 
     private void Add_Click(object sender, RoutedEventArgs e)
     {
         var command = CommandBox.Text.Trim();
         if (command.Length == 0)
         {
-            MessageBox.Show(this, "La commande ne peut pas être vide.", "SysDeck", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(DialogOwner, "La commande ne peut pas être vide.", "SysDeck", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
@@ -89,9 +92,9 @@ public partial class AddCommandTileWindow : Window
             ConfirmTap = ConfirmCheck.IsChecked == true,
             RunAsAdmin = AdminCheck.IsChecked == true
         };
-        if (!_icon.ApplyTo(item, this, _defaultGlyph)) return;
+        if (!_icon.ApplyTo(item, DialogOwner, _defaultGlyph)) return;
 
         Result = item;
-        DialogResult = true;
+        Complete(true);
     }
 }

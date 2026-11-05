@@ -45,8 +45,11 @@ public static class TileGrid
     /// <summary>Côté d'une case : tuile + espacement.</summary>
     public static double CellSize(double tileSize) => tileSize + 2 * TileMargin;
 
-    public static int Columns(double width, double tileSize)
-        => Math.Clamp((int)Math.Floor(width / CellSize(tileSize) + 1e-6), 1, MaxColumns);
+    public static int Columns(double width, double tileSize, int preferred = 0)
+    {
+        var available = Math.Clamp((int)Math.Floor(width / CellSize(tileSize) + 1e-6), 1, MaxColumns);
+        return preferred <= 0 ? available : Math.Min(available, Math.Clamp(preferred, 1, MaxColumns));
+    }
 
     public static int Rows(double height, double tileSize)
         => Math.Clamp((int)Math.Floor(height / CellSize(tileSize) + 1e-6), 1, MaxRows);

@@ -10,22 +10,20 @@ namespace SysDeck;
 /// Depuis la barre du bureau : icône PNG facultative. Depuis les Paramètres › Switch (sélecteur d'émoji fourni) :
 /// choix d'icône complet, et modification d'une tuile existante.
 /// </summary>
-public partial class AddCustomShortcutWindow : Window
+public partial class AddCustomShortcutWindow : TileEditorWindow
 {
     private readonly Func<EmojiPickerWindow>? _createEmojiPicker;
     private readonly TileIconState _icon = new();
-
-    public ShortcutItem? Result { get; private set; }
 
     /// <param name="owner">Fenêtre parente (null = centrée sur l'écran).</param>
     /// <param name="createEmojiPicker">Fournit le sélecteur d'émoji ; active le choix d'icône complet.</param>
     /// <param name="existing">Tuile à modifier (champs pré-remplis) ; null pour en créer une.</param>
     public AddCustomShortcutWindow(Window? owner = null, Func<EmojiPickerWindow>? createEmojiPicker = null, ShortcutItem? existing = null)
+        : base(owner)
     {
         InitializeComponent();
         if (owner is not null)
         {
-            Owner = owner;
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
         }
         _createEmojiPicker = createEmojiPicker;
@@ -62,7 +60,7 @@ public partial class AddCustomShortcutWindow : Window
             Title = "Choisir un exécutable ou un fichier",
             Filter = "Exécutables et raccourcis (*.exe;*.lnk)|*.exe;*.lnk|Tous les fichiers (*.*)|*.*"
         };
-        if (dialog.ShowDialog(this) != true) return;
+        if (dialog.ShowDialog(DialogOwner) != true) return;
 
         LinkBox.Text = dialog.FileName;
         if (string.IsNullOrWhiteSpace(NameBox.Text))
@@ -77,7 +75,7 @@ public partial class AddCustomShortcutWindow : Window
             Title = "Choisir une icône",
             Filter = "Images (*.png;*.ico;*.jpg;*.bmp)|*.png;*.ico;*.jpg;*.jpeg;*.bmp|Tous les fichiers (*.*)|*.*"
         };
-        if (dialog.ShowDialog(this) != true) return;
+        if (dialog.ShowDialog(DialogOwner) != true) return;
 
         IconBox.Text = dialog.FileName;
     }
@@ -86,13 +84,17 @@ public partial class AddCustomShortcutWindow : Window
     {
         if (_createEmojiPicker is null) return;
         var name = string.IsNullOrWhiteSpace(NameBox.Text) ? "Tuile" : NameBox.Text.Trim();
-        if (_icon.Choose(this, name, _createEmojiPicker, null, LinkBox.Text.Trim())) ShowIcon();
+        if (ChooseIconInline(_icon.CreateChooser(DialogOwner, name, _createEmojiPicker, null, LinkBox.Text.Trim()), choice =>
+            {
+                _icon.ApplyChoice(choice);
+                ShowIcon();
+            })) return;
+        if (_icon.Choose(DialogOwner, name, _createEmojiPicker, null, LinkBox.Text.Trim())) ShowIcon();
     }
 
     private void Cancel_Click(object sender, RoutedEventArgs e)
     {
-        DialogResult = false;
-        Close();
+        Complete(false);
     }
 
     private void Add_Click(object sender, RoutedEventArgs e)
@@ -102,7 +104,7 @@ public partial class AddCustomShortcutWindow : Window
 
         if (string.IsNullOrWhiteSpace(link))
         {
-            MessageBox.Show(this, "Le lien ne peut pas être vide.", "SysDeck", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(DialogOwner, "Le lien ne peut pas être vide.", "SysDeck", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
@@ -118,11 +120,10 @@ public partial class AddCustomShortcutWindow : Window
         };
         if (_createEmojiPicker is null)
             item.CustomIconPath = string.IsNullOrWhiteSpace(IconBox.Text) ? null : IconBox.Text.Trim();
-        else if (!_icon.ApplyTo(item, this, defaultGlyph: null))
+        else if (!_icon.ApplyTo(item, DialogOwner, defaultGlyph: null))
             return;
 
         Result = item;
-        DialogResult = true;
-        Close();
+        Complete(true);
     }
 }

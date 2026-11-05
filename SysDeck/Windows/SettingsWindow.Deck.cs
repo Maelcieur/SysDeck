@@ -23,7 +23,6 @@ public partial class SettingsWindow
     {
         var settings = Deck.Settings;
         DeckEditor.Attach(Deck);
-        InitSwitchThemes();
         DeckEditor.LayoutChanged += () => { ScheduleSave(); RefreshDeckApps(); };
         DeckEditor.VisibilityChanged += RefreshDeckElementsList;
         DeckEditor.ElementLayoutChanged += _ => ScheduleSave();
@@ -39,6 +38,10 @@ public partial class SettingsWindow
         DeckEnabledCheck.IsChecked = settings.Enabled;
         DeckBrightnessSlider.Value = settings.Brightness;
         DeckFpsSlider.Value = settings.Fps;
+        DeckSnapCheck.IsChecked = settings.SnapToGrid;
+        DeckTransitionStyleBox.SelectedIndex = (int)settings.PageTransition;
+        DeckTransitionDurationSlider.Value = settings.PageTransitionDuration;
+        DeckTransitionEasingBox.SelectedIndex = (int)settings.PageTransitionEasing;
         DeckNightClockCheck.IsChecked = settings.NightClock;
         DeckNightBrightnessSlider.Value = settings.NightBrightness;
         LoadPageLook();
@@ -85,6 +88,49 @@ public partial class SettingsWindow
         Deck.SetVisible(id, check.IsChecked == true);
         DeckEditor.Rebuild();
         ScheduleSave();
+        DeckPagesList.Items.Refresh();
+    }
+
+    private void DeckSnap_Changed(object sender, RoutedEventArgs e)
+    {
+        if (!_deckPageReady) return;
+        Deck.Settings.SnapToGrid = DeckSnapCheck.IsChecked == true;
+        DeckEditor.Rebuild();
+        ScheduleSave();
+    }
+
+    private void DeckLayoutPreset_Apply(object sender, RoutedEventArgs e)
+    {
+        if (!_deckPageReady || DeckLayoutPresetBox.SelectedItem is not ComboBoxItem { Tag: string preset }) return;
+        Deck.ApplyLayoutPreset(preset);
+        DeckEditor.Rebuild();
+        RefreshDeckPages();
+        ScheduleSave();
+    }
+
+    private void DeckAppsColumns_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (!_deckPageReady || DeckAppsColumnsBox.SelectedIndex < 0) return;
+        Deck.SetAppsColumns(DeckAppsColumnsBox.SelectedIndex == 0 ? 0 : DeckAppsColumnsBox.SelectedIndex + 1);
+        RefreshDeckApps();
+        DeckPagesList.Items.Refresh();
+        ScheduleSave();
+    }
+
+    private void DeckTransitionStyle_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (!_deckPageReady || DeckTransitionStyleBox.SelectedItem is not ComboBoxItem { Tag: string value }
+            || !Enum.TryParse<DeckPageTransition>(value, out var style)) return;
+        Deck.Settings.PageTransition = style;
+        ScheduleSave();
+    }
+
+    private void DeckTransitionEasing_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (!_deckPageReady || DeckTransitionEasingBox.SelectedItem is not ComboBoxItem { Tag: string value }
+            || !Enum.TryParse<DeckTransitionEasing>(value, out var easing)) return;
+        Deck.Settings.PageTransitionEasing = easing;
+        ScheduleSave();
     }
 
     private void DeckEnabled_Changed(object sender, RoutedEventArgs e)
@@ -108,6 +154,11 @@ public partial class SettingsWindow
         var settings = Deck.Settings;
         if (sender == DeckBrightnessSlider) Deck.SetBrightness((int)Math.Round(e.NewValue));
         else if (sender == DeckFpsSlider) Deck.SetFps((int)Math.Round(e.NewValue));
+        else if (sender == DeckTransitionDurationSlider)
+        {
+            settings.PageTransitionDuration = (int)Math.Round(e.NewValue);
+            ScheduleSave();
+        }
         else if (sender == DeckTileSlider)
         {
             settings.TileSize = Math.Round(e.NewValue);
@@ -150,6 +201,7 @@ public partial class SettingsWindow
         _deckPageReady = false;
         try
         {
+            DeckAppsColumnsBox.SelectedIndex = settings.Page.AppsColumns == 0 ? 0 : settings.Page.AppsColumns - 1;
             PageLookTitle.Text = $"Page « {settings.Page.Name} »";
             DeckTileStyleBox.SelectedIndex = settings.TileStyle == DeckTileStyle.Flat ? 1 : 0;
             DeckTileSlider.Value = settings.TileSize;
@@ -269,6 +321,7 @@ public partial class SettingsWindow
         if (_syncingPages || !_deckPageReady) return;
         Deck.Settings.Page.Name = DeckPageNameBox.Text;
         PageLookTitle.Text = $"Page « {DeckPageNameBox.Text} »";
+        DeckPagesList.Items.Refresh();
         ScheduleSave();
     }
 
@@ -280,6 +333,7 @@ public partial class SettingsWindow
         RefreshHiddenApps();
         InspectTile(_inspected);
         DeckEditor.RefreshGrid();
+        DeckPagesList.Items.Refresh();
     }
 
     /// <summary>Précision affichée à côté du nom d'une tuile : combinaison, commande, périphérique, arguments.</summary>
@@ -287,6 +341,16 @@ public partial class SettingsWindow
     {
         TileKind.Hotkey => HotkeyGesture.Parse(tile.Hotkey, requireModifier: false)?.ToString() ?? tile.Hotkey ?? "",
         TileKind.Command => (tile.Command ?? "") + (tile.RunAsAdmin ? " · admin" : "") + (tile.ConfirmTap ? " · confirmation" : ""),
+        TileKind.SwitchAction => tile.SwitchAction switch
+        {
+            SwitchActionKind.EnterRcm => "Éteindre et démarrer en mode RCM · confirmation obligatoire",
+            SwitchActionKind.LaunchHekate => "Lancer hekate depuis la carte SD · confirmation obligatoire",
+            _ => "Action Switch non définie"
+        },
+        TileKind.TilePageNavigation => (tile.PageNavigation == Models.TilePageNavigation.Next
+            ? "Afficher la sous-page suivante du widget des tuiles"
+            : "Afficher la sous-page précédente du widget des tuiles")
+            + (tile.MappedJoyConButton is { } button ? $" · Joy-Con {JoyConInfo.Label(button)}" : ""),
         TileKind.MicMute => string.IsNullOrEmpty(tile.DeviceId) ? "micro par défaut" : "micro choisi",
         TileKind.OutputMute => string.IsNullOrEmpty(tile.DeviceId) ? "sortie par défaut" : "sortie choisie",
         TileKind.Obs => AddObsTileWindow.Describe(tile),
@@ -321,13 +385,10 @@ public partial class SettingsWindow
         ScheduleSave();
     }
 
-    private static ShortcutItem? EditTile<TWindow>(TWindow window, Func<TWindow, ShortcutItem?> result) where TWindow : Window
-        => window.ShowDialog() == true ? result(window) : null;
-
     private EmojiPickerWindow CreateEmojiPickerForChoice()
         => new(() => _widgetManager.Config.RecentEmojis, _widgetManager.Config.EmojiPicker);
 
-    /// <summary>Modifie une tuile sur place (même position sur la page) avec la fenêtre de son type.</summary>
+    /// <summary>Modifie une tuile dans le panneau intégré de la page Switch.</summary>
     private void DeckTileEdit_Click(object sender, RoutedEventArgs e)
     {
         if (sender is FrameworkElement { Tag: ShortcutItem app }) EditDeckTile(app);
@@ -335,19 +396,27 @@ public partial class SettingsWindow
 
     private void EditDeckTile(ShortcutItem app)
     {
-        var edited = app.Kind switch
+        TileEditorWindow editor = app.Kind switch
         {
-            TileKind.Hotkey => EditTile(new AddHotkeyShortcutWindow(this, CreateEmojiPickerForChoice, app), w => w.Result),
-            TileKind.Command => EditTile(new AddCommandTileWindow(this, CreateEmojiPickerForChoice, app), w => w.Result),
-            TileKind.MicMute => EditTile(new AddMuteTileWindow(this, CreateEmojiPickerForChoice, output: false, app), w => w.Result),
-            TileKind.OutputMute => EditTile(new AddMuteTileWindow(this, CreateEmojiPickerForChoice, output: true, app), w => w.Result),
-            TileKind.Obs => EditTile(new AddObsTileWindow(this, CreateEmojiPickerForChoice, _widgetManager.Obs, app), w => w.Result),
-            TileKind.Twitch => EditTile(new AddTwitchTileWindow(this, CreateEmojiPickerForChoice, _widgetManager.Twitch, app), w => w.Result),
-            TileKind.Voicemod => EditTile(new AddVoicemodTileWindow(this, CreateEmojiPickerForChoice, _widgetManager.Voicemod, app), w => w.Result),
-            TileKind.Plugin => EditTile(new AddPluginTileWindow(this, CreateEmojiPickerForChoice, _widgetManager.PluginHost, app), w => w.Result),
-            _ => EditTile(new AddCustomShortcutWindow(this, CreateEmojiPickerForChoice, app), w => w.Result)
+            TileKind.Hotkey => new AddHotkeyShortcutWindow(this, CreateEmojiPickerForChoice, app),
+            TileKind.Command => new AddCommandTileWindow(this, CreateEmojiPickerForChoice, app),
+            TileKind.MicMute => new AddMuteTileWindow(this, CreateEmojiPickerForChoice, output: false, app),
+            TileKind.OutputMute => new AddMuteTileWindow(this, CreateEmojiPickerForChoice, output: true, app),
+            TileKind.Obs => new AddObsTileWindow(this, CreateEmojiPickerForChoice, _widgetManager.Obs, app),
+            TileKind.Twitch => new AddTwitchTileWindow(this, CreateEmojiPickerForChoice, _widgetManager.Twitch, app),
+            TileKind.Voicemod => new AddVoicemodTileWindow(this, CreateEmojiPickerForChoice, _widgetManager.Voicemod, app),
+            TileKind.Plugin => new AddPluginTileWindow(this, CreateEmojiPickerForChoice, _widgetManager.PluginHost, app),
+            _ => new AddCustomShortcutWindow(this, CreateEmojiPickerForChoice, app)
         };
-        if (edited is null) return;
+        ShowInlineEditor(editor, accepted =>
+        {
+            if (accepted && editor.Result is { } edited)
+                ApplyDeckTileEdit(app, edited);
+        });
+    }
+
+    private void ApplyDeckTileEdit(ShortcutItem app, ShortcutItem edited)
+    {
 
         var previousImage = app.CustomIconPath;
         app.Name = edited.Name;
@@ -395,7 +464,15 @@ public partial class SettingsWindow
     {
         if (sender is not FrameworkElement { Tag: ShortcutItem app }) return;
         var chooser = new IconChooserWindow(this, app.Name, CreateEmojiPickerForChoice, app, tileOptions: true);
-        if (chooser.ShowDialog() != true || chooser.Result is not { } choice) return;
+        PresentInlineIconChooser(chooser, accepted =>
+        {
+            if (accepted && chooser.Result is { } choice)
+                ApplyDeckIconChoice(app, choice);
+        });
+    }
+
+    private void ApplyDeckIconChoice(ShortcutItem app, IconChoice choice)
+    {
 
         app.IconColor = choice.IconColor;
         app.TileColor = choice.TileColor;

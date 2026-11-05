@@ -15,7 +15,9 @@ typedef enum _deck_link_res_t
 	DECK_LINK_DISCONNECTED, // Hôte perdu (câble, PC éteint) ou erreur de transfert.
 	DECK_LINK_POWER_OFF,    // Bouton POWER.
 	DECK_LINK_REBOOT,       // VOL+ et VOL- pendant la session.
-	DECK_LINK_IDLE          // Interne : silence du PC, retour à l'attente sans réinitialiser l'USB.
+	DECK_LINK_IDLE,         // Interne : silence du PC, retour à l'attente sans réinitialiser l'USB.
+	DECK_LINK_ENTER_RCM,    // Action envoyée depuis une tuile.
+	DECK_LINK_LAUNCH_HEKATE // Action envoyée depuis une tuile.
 } deck_link_res_t;
 
 // Attend l'énumération par un PC, puis reste connecté tant que l'hôte est là (sans limite, même sans commande) :
@@ -23,7 +25,7 @@ typedef enum _deck_link_res_t
 // ou mode nuit). Ne retourne que si l'hôte disparaît, sur erreur, ou sur action de l'utilisateur.
 deck_link_res_t deck_link_session(void (*on_connected)(), void (*on_idle)());
 
-// Joy-Con (rails ou Switch Lite) : allumés pendant une session avec le PC, éteints en attente.
+// Joy-Con (rails ou Switch Lite) : allumés pendant une session, ou en attente si la Switch est alimentée en USB.
 void deck_link_jc_power(bool on);
 
 #endif

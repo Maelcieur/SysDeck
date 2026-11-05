@@ -27,9 +27,9 @@
     <SolidColorBrush x:Key="UiText" Color="#E7E8EB"/>
     <SolidColorBrush x:Key="Muted" Color="#9A9DA7"/>
     <SolidColorBrush x:Key="UiTextTertiary" Color="#6A6D77"/>
-    <SolidColorBrush x:Key="UiAccent" Color="#5B8DEF"/>
-    <SolidColorBrush x:Key="UiAccentFg" Color="#0E1626"/>
-    <SolidColorBrush x:Key="UiAccentSoft" Color="#225B8DEF"/>
+    <SolidColorBrush x:Key="UiAccent" Color="#78879A"/>
+    <SolidColorBrush x:Key="UiAccentFg" Color="#121820"/>
+    <SolidColorBrush x:Key="UiAccentSoft" Color="#2478879A"/>
     <SolidColorBrush x:Key="UiDanger" Color="#E5706B"/>
     <SolidColorBrush x:Key="UiSuccess" Color="#58B77D"/>
     <SolidColorBrush x:Key="UiHover" Color="#0AFFFFFF"/>
@@ -79,6 +79,58 @@
                 <ControlTemplate TargetType="ContentControl">
                     <TextBlock Text="{TemplateBinding Content}" FontFamily="Segoe UI" FontSize="14" FontWeight="SemiBold"
                                Foreground="{StaticResource UiText}" VerticalAlignment="Center"/>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="SectionExpander" TargetType="Expander">
+        <Setter Property="Foreground" Value="{StaticResource UiText}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Expander">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <ToggleButton x:Name="HeaderSite" Grid.Row="0" IsChecked="{Binding IsExpanded, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                      Content="{TemplateBinding Header}" Foreground="{TemplateBinding Foreground}"
+                                      Focusable="False" Background="Transparent" BorderThickness="0" HorizontalContentAlignment="Stretch"
+                                      Padding="0" Cursor="Hand">
+                            <ToggleButton.Template>
+                                <ControlTemplate TargetType="ToggleButton">
+                                    <Grid MinHeight="30" Background="Transparent">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="24"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Path x:Name="Chevron" Width="10" Height="10" Margin="2,0,9,0"
+                                              HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              Data="M2,1 L6,5 L2,9" Stroke="{StaticResource UiAccent}" StrokeThickness="2.2"
+                                              StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                                        <ContentPresenter Grid.Column="1" ContentSource="Content" RecognizesAccessKey="True"
+                                                          VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    </Grid>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Foreground" Value="{StaticResource UiText}"/>
+                                            <Setter TargetName="Chevron" Property="Stroke" Value="{StaticResource UiText}"/>
+                                        </Trigger>
+                                        <Trigger Property="IsChecked" Value="True">
+                                            <Setter TargetName="Chevron" Property="Data" Value="M1,2 L5,6 L9,2"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </ToggleButton.Template>
+                        </ToggleButton>
+                        <ContentPresenter x:Name="ExpandSite" Grid.Row="1" ContentSource="Content" Margin="0,8,0,2" Visibility="Collapsed"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsExpanded" Value="True">
+                            <Setter TargetName="ExpandSite" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>

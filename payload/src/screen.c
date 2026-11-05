@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include <bdk.h>
+#include <power/bq24193.h>
 
 #include "gfx/gfx.h"
 #include "screen.h"
@@ -105,6 +106,12 @@ bool screen_charging()
 
 	// 1 : pré-charge, 2 : charge rapide.
 	return status == 1 || status == 2;
+}
+
+bool screen_has_external_power()
+{
+	u8 status = i2c_recv_byte(I2C_1, BQ24193_I2C_ADDR, BQ24193_Status);
+	return (status & BQ24193_STATUS_PG_MASK) != 0;
 }
 
 static void _draw_header()

@@ -24,7 +24,7 @@ public sealed partial class DeckController
 
     public DeckProtocol.JoyConState JoyCon { get; private set; }
 
-    /// <summary>Version du protocole du payload connecté : 5 = payload sans Joy-Con (à mettre à jour), 0 = pas encore de réponse.</summary>
+    /// <summary>Version du protocole du payload connecté : avant 6 = sans Joy-Con, avant 7 = sans actions système, 0 = pas encore de réponse.</summary>
     public int PayloadVersion => _link.PayloadVersion;
 
     private void OnJoyCon(DeckProtocol.JoyConState state)
@@ -40,6 +40,14 @@ public sealed partial class DeckController
         foreach (var button in Enum.GetValues<JoyConButton>())
         {
             var binding = JoyConInfo.Resolve(button, global, page);
+            var mappedNavigation = _settings.Page.FindMappedTileNavigation(button);
+            if (mappedNavigation is not null)
+            {
+                if (state.WasPressed(button) && mappedNavigation.PageNavigation is { } direction)
+                    NavigateAppsSubpage(direction == TilePageNavigation.Next ? 1 : -1);
+                if (!state.IsDown(button)) _held.Remove(button);
+                continue;
+            }
             if (state.WasPressed(button))
             {
                 _held[button] = (now, now);
@@ -75,6 +83,14 @@ public sealed partial class DeckController
                 {
                     SetCursor(null);
                     SetPage((_settings.CurrentPage + (binding.Command == JoyConCommand.PageNext ? 1 : -1) + count) % count);
+                }
+                break;
+            case JoyConCommand.PageSelect:
+                var target = _settings.Pages.FindIndex(page => page.Id == binding.TargetPageId);
+                if (target >= 0)
+                {
+                    SetCursor(null);
+                    SetPage(target);
                 }
                 break;
             case JoyConCommand.CursorUp: MoveCursor(0, -1); break;
@@ -136,7 +152,7 @@ public sealed partial class DeckController
     private void MoveCursor(int dx, int dy)
     {
         var (columns, rows) = AppsGrid();
-        var cells = TileGrid.Arrange(_settings.Page.Apps, columns, rows).Cells;
+        var cells = TileGrid.Arrange(CurrentAppsSubpage(), columns, rows).Cells;
         // Premier mouvement (ou tuile disparue) : le curseur apparaît sur la première tuile, sans bouger.
         var next = _cursor is not null && cells.ContainsKey(_cursor) ? TileGrid.Neighbor(cells, _cursor, dx, dy) ?? _cursor : TileGrid.First(cells);
         SetCursor(next);
@@ -145,7 +161,7 @@ public sealed partial class DeckController
     private void PressCursor()
     {
         var (columns, rows) = AppsGrid();
-        var cells = TileGrid.Arrange(_settings.Page.Apps, columns, rows).Cells;
+        var cells = TileGrid.Arrange(CurrentAppsSubpage(), columns, rows).Cells;
         if (_cursor is null || !cells.ContainsKey(_cursor))
         {
             SetCursor(TileGrid.First(cells)); // A sans curseur : il apparaît d'abord

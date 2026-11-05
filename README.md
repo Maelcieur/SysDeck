@@ -71,6 +71,8 @@ The Joy-Con attached to the Switch can trigger SysDeck actions too.
 | `analogclock` | Analog clock with date | System clock |
 | `calendar` | Month calendar | System clock |
 | `weather` | Weather and 4-day forecast | [Open-Meteo](https://open-meteo.com) (free, no account) |
+| `moon` | Moon phase: real Moon picture shaded to the current phase, phase name, illumination, next phases | Computed offline (Meeus terms, within a few hours) |
+| `sun` | Sunrise and sunset: sun path, times, day length, next event | Open-Meteo, same city as the weather |
 | `airquality` | Air quality (European AQI, PM2.5, PM10, NO₂, O₃) | Open-Meteo, same city as the weather |
 | `temperatures` | CPU and GPU temperature curves on one chart | LibreHardwareMonitor |
 | `sensorbars` | Bars for any sensor (temperatures, loads, RAM, VRAM, fans…) | LibreHardwareMonitor |
@@ -116,21 +118,32 @@ The [`payload/`](payload) folder contains a bare-metal payload launched from
 
 - Pages of modules and tiles (apps, links, keyboard shortcuts, commands, speaker/mic mute,
   OBS Studio, Twitch, Voicemod, plugins).
-- **Stream Deck-style Switch settings page**: live preview in the middle, pages below, an action library on the
-  right (click, or drag onto a cell) and an inspector for the selected tile (name, action, icon, plugin settings).
-  The left menu can be hidden (☰ or Ctrl+B).
+- The **Tuiles de la page** (page tiles) widget can have its own subpages, independent of the Switch's full-screen pages.
+  In a tile's inspector, choose **Page du widget → Nouvelle page** to move it and create a subpage, then add
+  **Page précédente** and **Page suivante** actions from the library to navigate between them. The arrows wrap at either end.
+  Each arrow tile can also be mapped to a Joy-Con button: it controls that arrow on the Switch page where it is mapped,
+  and the button's usual Joy-Con assignment is restored on other pages.
+- Switch system actions in the page library: power off into RCM, or relaunch hekate from
+  `bootloader/update.bin` or `payload.bin` on the SD card. Both require a second tap to prevent accidental activation.
+- **Stream Deck-style Switch settings page**: live preview in the middle, page previews below, and a resizable
+  right-hand panel for the action library and settings for the selected tile or Joy-Con control. Click or drag an
+  action onto a tile; the left menu can be hidden (☰ or Ctrl+B).
+- **Page layout editor**: drag and resize modules and their elements directly in the live preview, use the
+  alignment grid and guides, or Ctrl-click to select and move/resize several elements together. Apply a balanced,
+  gaming, monitoring or compact layout as a starting point, then adjust it freely. The tile grid can use automatic
+  sizing or a chosen number of columns.
+- **Page transitions**: choose none, slide, fade, slide-and-fade or zoom, then adjust duration and easing.
 - **3D glass buttons** that press in when touched, or flat tiles; transparent background available.
 - **Each page has its own style**: tile and icon size (up to filling the tile), glass or flat, names, background
   (color, image), clock. "Apply this style to all pages" in one click.
 - **Active tile** (mic muted, live on air, active scene…): custom color and second icon, button that stays pressed.
 - **Joy-Con** (payload v6): the Joy-Con attached to the Switch (or a Switch Lite's controls) trigger actions. The
-  "Manettes (Joy-Con)" tab draws both controllers: click a button (or drop an action from the library on it) to assign
-  a tile action, page change, a cursor moving over the tiles or the volume. Sticks: tile cursor, volume, mouse or
-  scroll. Assignments are shared by all pages or specific to one page.
-- **Switch themes** ("Thèmes" tab): the theme workshop starts from the current page; place the widgets and set their
-  colors, background and tiles live on the Switch, then save. When the workshop closes, the Switch gets back exactly
-  what it showed before (also after a crash). A saved theme applies to any page with the same widget positions; the
-  page's tiles are kept.
+  "Manettes (Joy-Con)" view shows just the two controllers in a neutral style: click a button (or drop an action from
+  the library on it) to assign a tile action, page change, direct jump to a chosen page (e.g. X → Home, Y → Media),
+  a cursor moving over the tiles or the volume. Sticks:
+  tile cursor, volume, mouse or scroll. Assignments are shared by all pages or specific to one page. With the PC off,
+  the Joy-Con can charge when the Switch detects external USB power; they stay off on battery to preserve the console's charge.
+- The new Switch system actions require SwitchDeck payload protocol v7 or later.
 - Swipe between pages, touch sliders, VOL± buttons control the Windows volume.
 - **Night mode**: with the PC off, the Switch shows a picture and the time (internal clock synced by the PC).
 - Menu (VOL+ and VOL- while waiting): power off, reboot, return to hekate.
@@ -261,7 +274,6 @@ Everything lives in `%AppData%\SysDeck`:
 |---|---|
 | `config.json` | Settings, theme, module appearance, positions, Switch, connected apps. The Gemini key, the OBS password and the Twitch tokens are encrypted (DPAPI, current Windows account) and never exported in profiles. |
 | `shortcuts.json` | Shortcut bar entries |
-| `switch-themes.json` | Saved Switch themes (`switch-theme-studio.json` exists only while the theme workshop is open) |
 | `custom-colors.json` | Custom colors of the color picker |
 | `power-usage.json` | Power usage history |
 | `Icons/`, `Backgrounds/`, `Fonts/` | Copies of imported icons, background images and fonts |
@@ -284,7 +296,7 @@ one instance runs per data folder.
   payload is too old.
 - **SimHub module says "SimHub non détecté"**: start SimHub with the SimHub Property Server plugin enabled
   (port 18082 by default, changeable in the module settings).
-- **Weather or air quality empty**: set the city in the module's customization page (Style tab), then "Rechercher".
+- **Weather, air quality or sun empty**: set the city in the module's customization page (Style tab), then "Rechercher".
 - **Connected app in error**: the app's card (Settings → Applications connectées) shows the reason. Make sure
   OBS or Voicemod is running. For Twitch, sign out and back in after an update that asks for new permissions
   (emotes).
@@ -302,7 +314,8 @@ one instance runs per data folder.
 - [SharpVectors](https://github.com/ElinamLLC/SharpVectors) (BSD-3-Clause) for SVG icons,
   [WebView2](https://developer.microsoft.com/microsoft-edge/webview2/) (Microsoft) for plugin settings pages,
   [Node.js](https://nodejs.org) (MIT, downloaded on demand) for JavaScript plugins.
-- Weather and air quality data: [Open-Meteo.com](https://open-meteo.com) (CC BY 4.0).
+- Weather, air quality, sunrise and sunset data: [Open-Meteo.com](https://open-meteo.com) (CC BY 4.0).
+- Moon picture: LROC color map from NASA's Scientific Visualization Studio ([CGI Moon Kit](https://svs.gsfc.nasa.gov/4720)), projected to a disc.
 
 Nintendo Switch and Joy-Con are trademarks of Nintendo. Stream Deck and Elgato are trademarks of Corsair. OBS Studio, Twitch, Voicemod and SimHub are
 trademarks of their respective owners. This project is not affiliated with or endorsed by Nintendo, Corsair, OBS, Twitch, Voicemod or SimHub.

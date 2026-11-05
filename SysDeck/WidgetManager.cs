@@ -9,6 +9,7 @@ using SysDeck.Interop;
 using SysDeck.Models;
 using SysDeck.Services;
 using SysDeck.Widgets;
+using SysDeck.Controls;
 
 namespace SysDeck;
 
@@ -42,6 +43,8 @@ public sealed partial class WidgetManager : IDisposable, IProfileHost
         new("airquality", "Qualité de l'air"),
         new("simhub", "SimHub (course)"),
         new("sensorbars", "Barres de capteurs"),
+        new("moon", "Phases de la Lune"),
+        new("sun", "Lever et coucher du soleil"),
         new("shortcuts", "Raccourcis"),
     };
 
@@ -131,6 +134,8 @@ public sealed partial class WidgetManager : IDisposable, IProfileHost
             ["airquality"] = (() => new AirQualityWidgetContent(), () => new Point(900, 700)),
             ["simhub"] = (() => new SimHubWidgetContent(), () => new Point(1220, 700)),
             ["sensorbars"] = (() => new SensorBarsWidgetContent(), () => new Point(1500, 40)),
+            ["moon"] = (() => new MoonWidgetContent(), () => new Point(1500, 300)),
+            ["sun"] = (() => new SunWidgetContent(), () => new Point(1500, 520)),
             ["shortcuts"] = (BuildShortcutsContent,
                 () => new Point(SystemParameters.WorkArea.Width / 2 - 150, SystemParameters.WorkArea.Height - 110)),
         };
@@ -596,6 +601,33 @@ public sealed partial class WidgetManager : IDisposable, IProfileHost
                 if (CommandRunner.Run(item) is { } error)
                     ShowWarning($"Impossible d'exécuter « {item.Name} » :\n{error}");
                 return true;
+            case TileKind.SwitchAction:
+                if (fromDesktop)
+                {
+                    ShowWarning("Cette action ne peut être lancée que depuis une tuile de la page Switch.");
+                    return true;
+                }
+                if (!Deck.IsConnected)
+                {
+                    ShowWarning("La Switch n'est pas connectée.");
+                    return true;
+                }
+                if (Deck.PayloadVersion < DeckProtocol.Version)
+                {
+                    ShowWarning("Mets à jour le payload SwitchDeck sur la carte SD pour utiliser cette action.");
+                    return true;
+                }
+                if (item.SwitchAction is not { } switchAction || !Deck.RequestSwitchAction(switchAction))
+                    ShowWarning("L'action Switch n'a pas pu être envoyée. Réessaie.");
+                return true;
+            case TileKind.TilePageNavigation:
+                if (fromDesktop)
+                    ShowWarning("La navigation des sous-pages est disponible uniquement dans le widget des tuiles de la Switch.");
+                else if (item.PageNavigation is not { } navigation)
+                    ShowWarning($"Aucune direction n'est définie pour « {item.Name} ».");
+                else if (!Deck.NavigateAppsSubpage(navigation == Models.TilePageNavigation.Next ? 1 : -1))
+                    ShowWarning("Ajoute une autre sous-page au widget des tuiles pour pouvoir naviguer.");
+                return true;
             case TileKind.MicMute:
             case TileKind.OutputMute:
                 ToggleMute(item);
@@ -620,7 +652,7 @@ public sealed partial class WidgetManager : IDisposable, IProfileHost
     private void LaunchTile(ShortcutItem item, bool fromDesktop)
     {
         // Second appui exigé : le premier arme la tuile (rouge sur la Switch), le second dans les 3 s exécute.
-        if (item.ConfirmTap && !TileRuntime.Confirm.Press(item))
+        if ((item.ConfirmTap || item.Kind == TileKind.SwitchAction) && !TileRuntime.Confirm.Press(item))
         {
             OnTileArmed(item, fromDesktop);
             return;
@@ -1176,6 +1208,9 @@ public sealed partial class WidgetManager : IDisposable, IProfileHost
     /// <summary>Éléments déplaçables du module affiché (vide s'il est masqué).</summary>
     public IReadOnlyList<string> GetElementKeys(string id)
         => _windows.TryGetValue(id, out var window) ? window.MovableKeys : Array.Empty<string>();
+
+    public ModuleCard? GetModuleCard(string id)
+        => _windows.TryGetValue(id, out var window) ? window.PreviewCard : null;
 
     public void ApplyModuleAppearance(string id)
     {

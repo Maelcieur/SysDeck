@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using SysDeck.Deck;
 
 namespace SysDeck.Models;
 
@@ -104,6 +105,9 @@ public sealed class ShortcutItem
     /// <summary>Ligne de commande d'une tuile <see cref="TileKind.Command"/> (exécutée via <c>cmd.exe /c</c>).</summary>
     public string? Command { get; set; }
 
+    /// <summary>Action de démarrage de la Switch pour une tuile <see cref="TileKind.SwitchAction"/>.</summary>
+    public SwitchActionKind? SwitchAction { get; set; }
+
     /// <summary>Commande exécutée avec élévation (demande UAC).</summary>
     public bool RunAsAdmin { get; set; }
 
@@ -118,6 +122,15 @@ public sealed class ShortcutItem
 
     /// <summary>Ligne de la case dans la grille d'applications de la Switch (0 = première) ; null = pas encore placée.</summary>
     public int? GridRow { get; set; }
+
+    /// <summary>Index de la sous-page du widget des tuiles dans laquelle cette tuile apparaît.</summary>
+    public int AppsSubpage { get; set; }
+
+    /// <summary>Sens d'une action de navigation entre les sous-pages du widget des tuiles.</summary>
+    public TilePageNavigation? PageNavigation { get; set; }
+
+    /// <summary>Bouton Joy-Con qui déclenche cette navigation uniquement sur la page complète qui contient la tuile.</summary>
+    public JoyConButton? MappedJoyConButton { get; set; }
 
     /// <summary>Action OBS d'une tuile <see cref="TileKind.Obs"/> ; null pour les autres types.</summary>
     public ObsAction? ObsAction { get; set; }
@@ -200,7 +213,27 @@ public enum TileKind
     /// <summary>Action sur Voicemod (changeur de voix, voix, son du soundboard, micro…).</summary>
     Voicemod,
     /// <summary>Action fournie par un plugin installé (programme séparé relié par WebSocket local).</summary>
-    Plugin
+    Plugin,
+    /// <summary>Action d'alimentation ou de démarrage de la Nintendo Switch.</summary>
+    SwitchAction,
+    /// <summary>Navigation entre les sous-pages du widget des tuiles.</summary>
+    TilePageNavigation
+}
+
+/// <summary>Navigation relative dans le widget des tuiles.</summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum TilePageNavigation
+{
+    Previous,
+    Next
+}
+
+/// <summary>Action matérielle exécutée par le payload SwitchDeck.</summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum SwitchActionKind
+{
+    EnterRcm = 1,
+    LaunchHekate = 2
 }
 
 /// <summary>Action d'une tuile Voicemod.</summary>

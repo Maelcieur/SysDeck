@@ -33,6 +33,7 @@ void screen_blit(u32 x, u32 y, u32 w, u32 h, const u32 *pixels);
 
 int  screen_battery_percent();
 bool screen_charging();
+bool screen_has_external_power();
 
 void screen_draw_waiting(bool usb_ready);
 void screen_draw_connected(bool ram_fast);

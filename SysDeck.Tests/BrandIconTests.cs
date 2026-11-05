@@ -45,6 +45,16 @@ public class BrandIconTests
     }
 
     [Fact]
+    public void SwitchHomebrewIcons_AreAvailableInDedicatedCategory()
+    {
+        var icons = ShortcutIcons.Library.Single(category => category.Category == "Switch et homebrew").Items;
+        Assert.Contains(icons, icon => icon.Name == "Nintendo Switch" && BrandIcons.Resolve(icon.Glyph) is not null);
+        Assert.Contains(icons, icon => icon.Name.Contains("hekate", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(icons, icon => icon.Name == "Atmosphère");
+        Assert.Contains(icons, icon => icon.Name == "Mode RCM");
+    }
+
+    [Fact]
     public void Resolve_DiscordUsesOfficialColorUnlessUserColorGiven()
     {
         Assert.Equal("#FF5865F2", BrandIcons.ResolveColor("brand:discord", null));

@@ -56,9 +56,19 @@ public sealed class TileIconState
     /// <summary>Ouvre le sélecteur d'icône ; faux si annulé.</summary>
     public bool Choose(Window owner, string name, Func<EmojiPickerWindow> createEmojiPicker, string? defaultGlyph, string? path = null)
     {
-        var chooser = new IconChooserWindow(owner, name, createEmojiPicker, Preview(defaultGlyph, path), tileOptions: true);
+        var chooser = CreateChooser(owner, name, createEmojiPicker, defaultGlyph, path);
         if (chooser.ShowDialog() != true || chooser.Result is not { } choice) return false;
 
+        ApplyChoice(choice);
+        return true;
+    }
+
+    public IconChooserWindow CreateChooser(Window owner, string name, Func<EmojiPickerWindow> createEmojiPicker,
+        string? defaultGlyph, string? path = null)
+        => new(owner, name, createEmojiPicker, Preview(defaultGlyph, path), tileOptions: true);
+
+    public void ApplyChoice(IconChoice choice)
+    {
         IconColor = choice.IconColor;
         TileColor = choice.TileColor;
         IconScale = choice.IconScale;
@@ -72,7 +82,6 @@ public sealed class TileIconState
             case IconChoiceKind.Glyph: Glyph = choice.Value; ImagePath = null; break;
             default: Glyph = ImagePath = null; break;
         }
-        return true;
     }
 
     /// <summary>

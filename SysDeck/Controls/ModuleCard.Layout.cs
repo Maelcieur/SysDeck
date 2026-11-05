@@ -4,6 +4,8 @@ using SysDeck.Services;
 
 namespace SysDeck.Controls;
 
+public sealed record ModulePreviewPart(string Key, string Label, string Section, Rect Bounds);
+
 // Disposition libre des éléments déplaçables (Movable) et mode édition avec leurs cadres.
 public partial class ModuleCard
 {
@@ -13,6 +15,53 @@ public partial class ModuleCard
 
     /// <summary>Éléments déplaçables du module (édition depuis l'aperçu de la Switch).</summary>
     public IReadOnlyList<FrameworkElement> MovableElements => Movables.ToList();
+
+    public IReadOnlyList<ModulePreviewPart> GetPreviewParts()
+    {
+        if (!IsLoaded) return Array.Empty<ModulePreviewPart>();
+
+        var parts = new List<ModulePreviewPart>();
+        foreach (var element in Movables)
+        {
+            if (Movable.GetKey(element) is not { } key || !Movable.IsDisplayed(element)) continue;
+            AddPreviewPart(parts, key, Movable.LabelFor(key), "elements", element);
+        }
+
+        if (TextPart.ByModule.TryGetValue(_id, out var textInfos))
+        {
+            foreach (var text in FindVisualChildren<TextBlock>(ContentHost))
+            {
+                if (TextPart.GetKey(text) is not { } key || textInfos.FirstOrDefault(part => part.Key == key) is not { } info)
+                    continue;
+                AddPreviewPart(parts, key, info.Label, "texts", text);
+            }
+        }
+
+        if (ButtonPart.ByModule.TryGetValue(_id, out var buttonInfos))
+        {
+            foreach (var button in FindVisualChildren<Button>(ContentHost))
+            {
+                if (ButtonPart.GetKey(button) is not { } key || buttonInfos.FirstOrDefault(part => part.Key == key) is not { } info)
+                    continue;
+                AddPreviewPart(parts, key, info.Label, "buttons", button);
+            }
+        }
+
+        return parts;
+    }
+
+    private void AddPreviewPart(List<ModulePreviewPart> parts, string key, string label, string section, FrameworkElement element)
+    {
+        if (!element.IsVisible || element.ActualWidth <= 0 || element.ActualHeight <= 0) return;
+        var bounds = element.TransformToAncestor(this).TransformBounds(new Rect(element.RenderSize));
+        if (bounds.IsEmpty || bounds.Width <= 0 || bounds.Height <= 0) return;
+
+        var existing = parts.FindIndex(part => part.Key == key && part.Section == section);
+        if (existing < 0)
+            parts.Add(new ModulePreviewPart(key, label, section, bounds));
+        else
+            parts[existing] = parts[existing] with { Bounds = Rect.Union(parts[existing].Bounds, bounds) };
+    }
 
     /// <summary>Taille actuelle de la carte, pour initialiser la taille manuelle à partir de l'automatique.</summary>
     public Size CurrentCardSize => new(Chrome.ActualWidth, Chrome.ActualHeight);

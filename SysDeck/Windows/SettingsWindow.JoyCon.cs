@@ -49,15 +49,10 @@ public partial class SettingsWindow
     {
         if (!IsInitialized || SwitchScreenView is null || SwitchJoyConView is null) return;
         _joyConView = SwitchViewJoyCon.IsChecked == true;
-        var themes = SwitchViewThemes.IsChecked == true;
-        SwitchThemesView.Visibility = themes ? Visibility.Visible : Visibility.Collapsed;
-        if (themes) RefreshSwitchThemes();
-        SwitchScreenView.Visibility = _joyConView || themes ? Visibility.Collapsed : Visibility.Visible;
+        SwitchScreenView.Visibility = _joyConView ? Visibility.Collapsed : Visibility.Visible;
         SwitchJoyConView.Visibility = _joyConView ? Visibility.Visible : Visibility.Collapsed;
         JoyConInspector.Visibility = _joyConView ? Visibility.Visible : Visibility.Collapsed;
-        SwitchViewHint.Text = themes
-            ? "Crée des thèmes (position des widgets, couleurs, fond) et applique-les à une page."
-            : _joyConView
+        SwitchViewHint.Text = _joyConView
             ? "Clique sur une touche des Joy-Con fixés sur la Switch, puis choisis son action (ou glisse-la depuis la bibliothèque)."
             : "Glisse une action de la bibliothèque sur une case, puis clique sur la tuile pour la régler.";
         if (_joyConView)
@@ -104,7 +99,7 @@ public partial class SettingsWindow
     {
         var settings = Deck.Settings;
         var page = settings.Page.JoyCon;
-        var text = JoyConInfo.Describe(JoyConInfo.Resolve(button, settings.JoyCon, page));
+        var text = JoyConInfo.Describe(JoyConInfo.Resolve(button, settings.JoyCon, page), settings.Pages);
         if (page?.Buttons.ContainsKey(button) == true) text += " (cette page)";
         if (button is JoyConButton.LStick or JoyConButton.RStick)
             text = $"{JoyConInfo.Label(JoyConInfo.ResolveStick(button == JoyConButton.LStick, settings.JoyCon, page))} · clic : {text}";
@@ -124,11 +119,21 @@ public partial class SettingsWindow
         var binding = JoyConInfo.Resolve(b, settings.JoyCon, page);
         _joyConLoading = true;
         JoyConInspectorTitle.Text = (stick ? (b == JoyConButton.LStick ? "STICK GAUCHE" : "STICK DROIT") : $"TOUCHE {JoyConInfo.Label(b)}").ToUpperInvariant();
-        JoyConInspectorAction.Text = (stick ? "Clic : " : "") + JoyConInfo.Describe(binding);
+        JoyConInspectorAction.Text = (stick ? "Clic : " : "") + JoyConInfo.Describe(binding, settings.Pages);
         JoyConPageCheck.Content = $"Propre à la page « {settings.Page.Name} »";
         JoyConPageCheck.IsChecked = page?.Buttons.ContainsKey(b) == true
                                     || stick && (b == JoyConButton.LStick ? page?.LeftStick : page?.RightStick) is not null;
         JoyConStickPanel.Visibility = stick ? Visibility.Visible : Visibility.Collapsed;
+        JoyConTargetPagePanel.Visibility = !stick && binding?.Command == JoyConCommand.PageSelect
+            ? Visibility.Visible : Visibility.Collapsed;
+        JoyConTargetPageBox.Items.Clear();
+        if (binding?.Command == JoyConCommand.PageSelect)
+        {
+            foreach (var targetPage in settings.Pages)
+                JoyConTargetPageBox.Items.Add(new ComboBoxItem { Content = targetPage.Name, Tag = targetPage.Id });
+            JoyConTargetPageBox.SelectedItem = JoyConTargetPageBox.Items.Cast<ComboBoxItem>()
+                .FirstOrDefault(item => Equals(item.Tag, binding.TargetPageId));
+        }
         if (stick) JoyConStickBox.SelectedIndex = (int)JoyConInfo.ResolveStick(b == JoyConButton.LStick, settings.JoyCon, page);
         JoyConEditButton.Visibility = binding is { Command: JoyConCommand.Tile, Tile: not null } ? Visibility.Visible : Visibility.Collapsed;
         _joyConLoading = false;
@@ -165,29 +170,15 @@ public partial class SettingsWindow
         }
         if (action.Command is { } command)
         {
-            SetJoyConBinding(new JoyConBinding { Command = command });
+            SetJoyConBinding(new JoyConBinding
+            {
+                Command = command,
+                TargetPageId = command == JoyConCommand.PageSelect ? Deck.Settings.Page.Id : null
+            });
             return;
         }
         if (action.Create()?.FirstOrDefault() is { } tile)
             SetJoyConBinding(new JoyConBinding { Command = JoyConCommand.Tile, Tile = tile });
-    }
-
-    private void JoyConChoose_Click(object sender, RoutedEventArgs e)
-    {
-        // Les mêmes actions que la bibliothèque, dans un menu par catégorie.
-        var menu = new ContextMenu { PlacementTarget = (UIElement)sender, Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom };
-        foreach (var group in JoyConActions().GroupBy(a => a.Category))
-        {
-            var category = new MenuItem { Header = group.Key };
-            foreach (var action in group)
-            {
-                var item = new MenuItem { Header = action.Name, ToolTip = action.Description };
-                item.Click += (_, _) => AssignJoyCon(action);
-                category.Items.Add(item);
-            }
-            menu.Items.Add(category);
-        }
-        menu.IsOpen = true;
     }
 
     private void JoyConEdit_Click(object sender, RoutedEventArgs e)
@@ -213,7 +204,7 @@ public partial class SettingsWindow
         {
             var page = settings.Page.JoyCon ??= new JoyConSettings();
             if (settings.JoyCon.Buttons.TryGetValue(button, out var common))
-                page.Buttons[button] = new JoyConBinding { Command = common.Command, Tile = common.Tile };
+                page.Buttons[button] = new JoyConBinding { Command = common.Command, Tile = common.Tile, TargetPageId = common.TargetPageId };
             else page.Buttons[button] = new JoyConBinding();
             if (stick)
             {
@@ -244,6 +235,15 @@ public partial class SettingsWindow
         _joyConDiagram?.RefreshLabels();
     }
 
+    private void JoyConTargetPage_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (_joyConLoading || _joyConButton is not { } button
+            || JoyConTargetPageBox.SelectedItem is not ComboBoxItem { Tag: string pageId }) return;
+        var current = JoyConInfo.Resolve(button, Deck.Settings.JoyCon, Deck.Settings.Page.JoyCon);
+        if (current?.Command != JoyConCommand.PageSelect || current.TargetPageId == pageId) return;
+        SetJoyConBinding(new JoyConBinding { Command = JoyConCommand.PageSelect, TargetPageId = pageId });
+    }
+
     /// <summary>Changement de page : les étiquettes et l'inspecteur montrent les affectations de la nouvelle page.</summary>
     private void RefreshJoyConForPage()
     {
@@ -258,7 +258,7 @@ public partial class SettingsWindow
         const string category = "Manette", icon = "";
         foreach (var (command, glyph) in new[]
                  {
-                     (JoyConCommand.PagePrevious, ""), (JoyConCommand.PageNext, ""),
+                     (JoyConCommand.PagePrevious, ""), (JoyConCommand.PageNext, ""), (JoyConCommand.PageSelect, ""),
                      (JoyConCommand.CursorUp, ""), (JoyConCommand.CursorDown, ""),
                      (JoyConCommand.CursorLeft, ""), (JoyConCommand.CursorRight, ""),
                      (JoyConCommand.CursorPress, ""), (JoyConCommand.VolumeUp, ""), (JoyConCommand.VolumeDown, "")

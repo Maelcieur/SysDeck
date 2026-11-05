@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using SysDeck.Controls;
 using SysDeck.Services;
 
@@ -12,6 +13,66 @@ public partial class SettingsWindow
     // ---------- Personnaliser ----------
 
     private ModuleRow? SelectedModule => ModuleSelector.SelectedItem as ModuleRow;
+    private ModulePreviewPart? _selectedPreviewPart;
+    private List<ElementRow> _elementRows = new();
+    private List<TextRow> _textRows = new();
+    private List<ButtonRow> _buttonRows = new();
+    private StackPanel? _widgetOptions;
+
+    private void InitializeCustomizeGroups()
+    {
+        MoveToHost(SizeCard, SizeExpanderHost);
+        MoveToHost(FitCard, FitExpanderHost);
+        MoveToHost(ElementRowsPanel, SelectedElementListHost);
+        MoveToHost(TextRowsPanel, SelectedTextListHost);
+        MoveToHost(ButtonRowsPanel, SelectedButtonListHost);
+        ElementRowsBorder.Visibility = Visibility.Collapsed;
+        ButtonRowsBorder.Visibility = Visibility.Collapsed;
+        MoveToHost(TabElements, ElementsExpanderHost);
+        MoveToHost(TabTexts, TextsExpanderHost);
+        MoveToHost(TabButtons, ButtonsExpanderHost);
+        MoveToHost(StyleColorsSection, ColorsExpanderHost);
+
+        var widgetOptions = _widgetOptions = new StackPanel();
+        OptionsExpanderHost.Content = widgetOptions;
+        MoveToPanel(StyleCardSection, widgetOptions);
+        foreach (var child in TabSize.Children.OfType<FrameworkElement>().ToList())
+        {
+            TabSize.Children.Remove(child);
+            widgetOptions.Children.Add(child);
+        }
+        MoveChildren(TabStyle, widgetOptions);
+        MoveToPanel(StyleGaugesSection, widgetOptions);
+        MoveToPanel(StyleAnimationsSection, widgetOptions);
+    }
+
+    private static void MoveToHost(FrameworkElement element, ContentControl host)
+    {
+        MoveFromParent(element);
+        host.Content = element;
+    }
+
+    private static void MoveToPanel(FrameworkElement element, Panel panel)
+    {
+        MoveFromParent(element);
+        panel.Children.Add(element);
+    }
+
+    private static void MoveFromParent(FrameworkElement element)
+    {
+        if (element.Parent is Panel parent) parent.Children.Remove(element);
+        else if (element.Parent is ContentControl contentParent) contentParent.Content = null;
+        else if (element.Parent is Decorator decoratorParent) decoratorParent.Child = null;
+    }
+
+    private static void MoveChildren(Panel source, Panel destination)
+    {
+        foreach (var child in source.Children.OfType<FrameworkElement>().ToList())
+        {
+            source.Children.Remove(child);
+            destination.Children.Add(child);
+        }
+    }
 
     /// <summary>Apparence modifiée par la page : celle du bureau ou celle de la Switch, selon la cible choisie.</summary>
     private ModuleAppearance? CurrentAppearance
@@ -28,12 +89,21 @@ public partial class SettingsWindow
         VisualizerCard.Visibility = id == "visualizer" ? Visibility.Visible : Visibility.Collapsed;
         DiskStyleCard.Visibility = id == "disk" ? Visibility.Visible : Visibility.Collapsed;
         TileClockCard.Visibility = id == "tileclock" ? Visibility.Visible : Visibility.Collapsed;
-        WeatherCard.Visibility = id is "weather" or "airquality" ? Visibility.Visible : Visibility.Collapsed;
+        WeatherCard.Visibility = id is "weather" or "airquality" or "sun" ? Visibility.Visible : Visibility.Collapsed;
         SimHubCard.Visibility = id == "simhub" ? Visibility.Visible : Visibility.Collapsed;
         SensorBarsCard.Visibility = id == "sensorbars" ? Visibility.Visible : Visibility.Collapsed;
         if (id == "sensorbars") BuildSensorBarsEditor();
         TemperatureCard.Visibility = id == "temperatures" ? Visibility.Visible : Visibility.Collapsed;
         BreadcrumbModuleText.Text = SelectedModule?.Label ?? "";
+        _selectedPreviewPart = null;
+        SelectedPartTitle.Text = "Sélectionnez un élément dans l'aperçu";
+        SelectedPartEmptyText.Visibility = Visibility.Visible;
+        SelectedElementListHost.Visibility = Visibility.Collapsed;
+        SelectedTextListHost.Visibility = Visibility.Collapsed;
+        SelectedButtonListHost.Visibility = Visibility.Collapsed;
+        SelectedElementAdvancedHost.Children.Clear();
+        RestoreAdvancedOptions();
+        RefreshPreviewElements();
         BuildTextRows();
         BuildButtonRows();
         BuildElementRows();
@@ -41,6 +111,7 @@ public partial class SettingsWindow
         BuildAppIconRows();
         UpdateFitCard();
         UpdateCustomizeOptions();
+        ShowModuleSpecificOptions();
     }
 
     /// <summary>
@@ -50,6 +121,8 @@ public partial class SettingsWindow
     private void UpdateFitCard()
     {
         FitCard.Visibility = _customizeSwitch || CurrentAppearance?.AutoSize == false ? Visibility.Visible : Visibility.Collapsed;
+        FitExpander.Visibility = FitCard.Visibility;
+        SizeExpander.Visibility = SizeCard.Visibility;
     }
 
     /// <summary>
@@ -68,11 +141,17 @@ public partial class SettingsWindow
             editor.OnSwitch = _customizeSwitch;
         }
         StyleGaugesSection.Visibility = ModuleCapabilities.HasAnyGaugeOption(id) ? Visibility.Visible : Visibility.Collapsed;
+        StyleAnimationsSection.Visibility = ModuleCapabilities.HasAnyGaugeOption(id) ? Visibility.Visible : Visibility.Collapsed;
 
         var hasTexts = id is not null && Controls.TextPart.ByModule.ContainsKey(id);
         TabTextsButton.Visibility = hasTexts ? Visibility.Visible : Visibility.Collapsed;
+        TabTexts.Visibility = hasTexts ? Visibility.Visible : Visibility.Collapsed;
+        TextsExpander.Visibility = hasTexts ? Visibility.Visible : Visibility.Collapsed;
         // Onglet Boutons : seulement les modules qui ont des boutons (Sortie audio, Volume par application, Lecture en cours).
-        TabButtonsButton.Visibility = id is not null && ModuleCapabilities.HasButtons(id) ? Visibility.Visible : Visibility.Collapsed;
+        var hasButtons = id is not null && ModuleCapabilities.HasButtons(id);
+        TabButtonsButton.Visibility = hasButtons ? Visibility.Visible : Visibility.Collapsed;
+        TabButtons.Visibility = hasButtons ? Visibility.Visible : Visibility.Collapsed;
+        ButtonsExpander.Visibility = hasButtons ? Visibility.Visible : Visibility.Collapsed;
         var tabs = new[]
         {
             TabSizeButton, TabElementsButton, TabTextsButton, TabButtonsButton, TabStyleButton
@@ -83,6 +162,249 @@ public partial class SettingsWindow
         if (tabs.Any(t => t.IsChecked == true && t.Visibility != Visibility.Visible)
             && tabs.FirstOrDefault(t => t.Visibility == Visibility.Visible) is { } visible)
             visible.IsChecked = true;
+    }
+
+    private void PreviewSettings_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { Tag: string section }) return;
+
+        if (section == "background")
+        {
+            ShowBackgroundSettings();
+            return;
+        }
+
+        var (expander, target) = section switch
+        {
+            "size" => (SizeExpander, (FrameworkElement)(SizeCard.Visibility == Visibility.Visible ? SizeCard : FitCard)),
+            "elements" => (ElementsExpander, (FrameworkElement)TabElements),
+            "texts" when TextsExpander.Visibility == Visibility.Visible => (TextsExpander, (FrameworkElement)TabTexts),
+            "buttons" when ButtonsExpander.Visibility == Visibility.Visible => (ButtonsExpander, (FrameworkElement)TabButtons),
+            "buttons" => (ElementsExpander, (FrameworkElement)TabElements),
+            _ => (OptionsExpander, (FrameworkElement)StyleCardSection)
+        };
+
+        expander.IsExpanded = true;
+        target.BringIntoView();
+    }
+
+    private void RefreshPreviewElements()
+    {
+        PreviewWidgetParts.Children.Clear();
+        if (SelectedModule is not { } module)
+        {
+            PreviewWidgetViewbox.Visibility = Visibility.Collapsed;
+            PreviewWidgetEmptyText.Visibility = Visibility.Visible;
+            return;
+        }
+
+        var card = _customizeSwitch
+            ? _widgetManager.Deck.Screen.CardOf(module.Id)
+            : _widgetManager.GetModuleCard(module.Id);
+        if (card is not { IsLoaded: true, ActualWidth: > 0, ActualHeight: > 0 })
+        {
+            PreviewWidgetViewbox.Visibility = Visibility.Collapsed;
+            PreviewWidgetEmptyText.Visibility = Visibility.Visible;
+            PreviewWidgetOptionsButton.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        PreviewWidgetEmptyText.Visibility = Visibility.Collapsed;
+        PreviewWidgetOptionsButton.Visibility = Visibility.Visible;
+        PreviewWidgetViewbox.Visibility = Visibility.Visible;
+        PreviewWidgetSurface.Width = card.ActualWidth;
+        PreviewWidgetSurface.Height = card.ActualHeight;
+        PreviewWidgetSnapshot.Background = new VisualBrush(card)
+        {
+            Stretch = Stretch.Fill,
+            ViewboxUnits = BrushMappingMode.Absolute,
+            Viewbox = new Rect(0, 0, card.ActualWidth, card.ActualHeight)
+        };
+
+        var background = new Button { Background = Brushes.Transparent, BorderThickness = new Thickness(0), Tag = "background" };
+        background.Click += PreviewSettings_Click;
+        PreviewWidgetParts.Children.Add(background);
+        Canvas.SetLeft(background, 0);
+        Canvas.SetTop(background, 0);
+        background.Width = card.ActualWidth;
+        background.Height = card.ActualHeight;
+
+        foreach (var part in card.GetPreviewParts())
+        {
+            var bounds = part.Bounds;
+            bounds.Intersect(new Rect(0, 0, card.ActualWidth, card.ActualHeight));
+            if (bounds.IsEmpty || bounds.Width < 2 || bounds.Height < 2) continue;
+
+            var selected = _selectedPreviewPart is { } current
+                && current.Key == part.Key && current.Section == part.Section;
+            var hotspot = new Button
+            {
+                Style = (Style)FindResource("PreviewHotspot"),
+                Tag = part,
+                ToolTip = $"Modifier : {part.Label}",
+                BorderBrush = selected ? (Brush)FindResource("UiAccent") : Brushes.Transparent,
+                BorderThickness = selected ? new Thickness(2) : new Thickness(1)
+            };
+            hotspot.Click += PreviewPart_Click;
+            PreviewWidgetParts.Children.Add(hotspot);
+            Canvas.SetLeft(hotspot, bounds.X);
+            Canvas.SetTop(hotspot, bounds.Y);
+            hotspot.Width = bounds.Width;
+            hotspot.Height = bounds.Height;
+        }
+    }
+
+    private void PreviewPart_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement { Tag: ModulePreviewPart part }) return;
+        _selectedPreviewPart = part;
+        RefreshPreviewElements();
+        RestoreAdvancedOptions();
+        SelectedElementListHost.Visibility = Visibility.Collapsed;
+        SelectedTextListHost.Visibility = Visibility.Collapsed;
+        SelectedButtonListHost.Visibility = Visibility.Collapsed;
+        SelectedElementAdvancedHost.Children.Clear();
+
+        switch (part.Section)
+        {
+            case "texts":
+                ShowSelectedPart(part.Label, SelectedTextListHost);
+                var textRow = _textRows.FirstOrDefault(row => row.Key == part.Key);
+                TextPartsList.ItemsSource = textRow is null ? Array.Empty<TextRow>() : new[] { textRow };
+                break;
+            case "buttons":
+                ShowSelectedPart(part.Label, SelectedButtonListHost);
+                var buttonRow = _buttonRows.FirstOrDefault(row => row.Info.Key == part.Key);
+                ButtonPartsList.ItemsSource = buttonRow is null ? Array.Empty<ButtonRow>() : new[] { buttonRow };
+                break;
+            default:
+                ShowSelectedPart(part.Label, SelectedElementListHost);
+                var elementRow = _elementRows.FirstOrDefault(row => row.Key == part.Key);
+                ElementsList.ItemsSource = elementRow is null ? Array.Empty<ElementRow>() : new[] { elementRow };
+                ShowElementAdvancedOptions(part.Key);
+                break;
+        }
+    }
+
+    private void PreviewWidgetOptions_Click(object sender, RoutedEventArgs e)
+    {
+        _selectedPreviewPart = null;
+        RefreshPreviewElements();
+        RestoreAdvancedOptions();
+        ShowSelectedPart($"Options du widget · {SelectedModule?.Label}", null);
+        OptionsExpander.IsExpanded = true;
+    }
+
+    private void ShowBackgroundSettings()
+    {
+        _selectedPreviewPart = null;
+        RefreshPreviewElements();
+        RestoreAdvancedOptions();
+        ShowSelectedPart($"Fond et carte · {SelectedModule?.Label}", SelectedElementAdvancedHost);
+        ShowBackgroundOptions();
+    }
+
+    private void ShowSelectedPart(string? title, FrameworkElement? selectedSettings)
+    {
+        SelectedPartTitle.Text = title ?? "";
+        SelectedPartEmptyText.Visibility = selectedSettings is null ? Visibility.Visible : Visibility.Collapsed;
+        SelectedElementListHost.Visibility = selectedSettings == SelectedElementListHost ? Visibility.Visible : Visibility.Collapsed;
+        SelectedTextListHost.Visibility = selectedSettings == SelectedTextListHost ? Visibility.Visible : Visibility.Collapsed;
+        SelectedButtonListHost.Visibility = selectedSettings == SelectedButtonListHost ? Visibility.Visible : Visibility.Collapsed;
+        SelectedElementAdvancedHost.Visibility = selectedSettings == SelectedElementAdvancedHost ? Visibility.Visible : Visibility.Collapsed;
+        SelectedPartPanel.BringIntoView();
+    }
+
+    private void ShowBackgroundOptions()
+    {
+        if (_widgetOptions is not { } options) return;
+        StyleCardSection.Visibility = Visibility.Visible;
+        MoveToPanel(StyleCardSection, SelectedElementAdvancedHost);
+        if (SelectedModule is not { } module) return;
+        if (module.Id == "media")
+        {
+            MediaBackgroundCard.Visibility = Visibility.Visible;
+            MoveToPanel(MediaBackgroundCard, SelectedElementAdvancedHost);
+        }
+    }
+
+    private void ShowModuleSpecificOptions()
+    {
+        if (_widgetOptions is not { } options) return;
+        RestoreAdvancedOptions();
+        foreach (var child in options.Children.OfType<FrameworkElement>())
+            child.Visibility = Visibility.Collapsed;
+
+        if (SelectedModule is not { } module) return;
+        foreach (var child in options.Children.OfType<FrameworkElement>())
+        {
+            var applies = child switch
+            {
+                FrameworkElement element when element == VolumeStyleCard => module.Id == "volumemixer",
+                FrameworkElement element when element == DiskStyleCard => module.Id == "disk",
+                FrameworkElement element when element == VisualizerCard => module.Id == "visualizer",
+                FrameworkElement element when element == MediaIconsCard || element == MediaBackgroundCard => module.Id == "media",
+                FrameworkElement element when element == TileClockCard => module.Id == "tileclock",
+                FrameworkElement element when element == WeatherCard => module.Id is "weather" or "airquality" or "sun",
+                FrameworkElement element when element == SimHubCard => module.Id == "simhub",
+                FrameworkElement element when element == SensorBarsCard => module.Id == "sensorbars",
+                FrameworkElement element when element == TemperatureCard => module.Id == "temperatures",
+                FrameworkElement element when element == StyleGaugesSection => ModuleCapabilities.HasAnyGaugeOption(module.Id),
+                FrameworkElement element when element == StyleAnimationsSection => ModuleCapabilities.HasAnyGaugeOption(module.Id),
+                _ => false
+            };
+            if (applies) child.Visibility = Visibility.Visible;
+        }
+    }
+
+    private void RestoreAdvancedOptions()
+    {
+        if (_widgetOptions is not { } options) return;
+        foreach (var element in new FrameworkElement[]
+        {
+            DiskStyleCard, VisualizerCard, StyleGaugesSection, StyleAnimationsSection,
+            StyleCardSection, MediaBackgroundCard
+        })
+            if (element.Parent != options) MoveToPanel(element, options);
+    }
+
+    private void ShowElementAdvancedOptions(string key)
+    {
+        if (SelectedModule is not { } module) return;
+
+        var gaugeElement = key is "ring" or "temp"
+            || module.Id == "disk" && key.StartsWith("drive:", StringComparison.Ordinal)
+            || module.Id == "claude" && key is ("session" or "week");
+        if (gaugeElement && ModuleCapabilities.HasAnyGaugeOption(module.Id))
+        {
+            StyleGaugesSection.DataContext = CurrentAppearance;
+            StyleAnimationsSection.DataContext = CurrentAppearance;
+            if (module.Id == "disk")
+            {
+                MoveToPanel(DiskStyleCard, SelectedElementAdvancedHost);
+                DiskStyleCard.Visibility = Visibility.Visible;
+            }
+            StyleGaugesSection.Visibility = Visibility.Visible;
+            MoveToPanel(StyleGaugesSection, SelectedElementAdvancedHost);
+            StyleAnimationsSection.Visibility = Visibility.Visible;
+            MoveToPanel(StyleAnimationsSection, SelectedElementAdvancedHost);
+        }
+
+        if (module.Id == "visualizer" && key == "spectrum")
+        {
+            MoveToPanel(VisualizerCard, SelectedElementAdvancedHost);
+            VisualizerCard.Visibility = Visibility.Visible;
+        }
+        if (SelectedElementAdvancedHost.Children.Count > 0)
+        {
+            SelectedElementAdvancedHost.Visibility = Visibility.Visible;
+            SelectedPartEmptyText.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    private void SelectedElementReset_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { DataContext: ElementRow row }) row.ResetAll();
     }
 
     /// <summary>
@@ -157,6 +479,7 @@ public partial class SettingsWindow
     {
         if (SelectedModule is not { } module)
         {
+            _elementRows = new();
             ElementsList.ItemsSource = null;
             return;
         }
@@ -166,9 +489,10 @@ public partial class SettingsWindow
         ElementsEmptyText.Text = _customizeSwitch
             ? "Affiche ce module sur la Switch (page Switch) pour régler ses éléments."
             : "Affiche ce module (page Modules) pour régler ses éléments.";        ElementsEmptyText.Visibility = keys.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-        ElementsList.ItemsSource = keys
+        _elementRows = keys
             .Select(key => new ElementRow(key, appearance.GetElement(key), appearance.NotifyElementsChanged))
             .ToList();
+        ElementsList.ItemsSource = _elementRows;
     }
 
     private void ResetElement_Click(object sender, RoutedEventArgs e)
@@ -178,7 +502,7 @@ public partial class SettingsWindow
 
     // ---------- Textes du module ----------
 
-    private sealed record TextRow(string Label, TextPartStyle Style, bool Editable, string? DefaultText);
+    private sealed record TextRow(string Key, string Label, TextPartStyle Style, bool Editable, string? DefaultText);
 
     private void ResetTextRow_Click(object sender, RoutedEventArgs e)
     {
@@ -196,6 +520,7 @@ public partial class SettingsWindow
 
         if (SelectedModule is not { } module || !Controls.TextPart.ByModule.TryGetValue(module.Id, out var parts))
         {
+            _textRows = new();
             TextPartsList.ItemsSource = null;
             return;
         }
@@ -208,8 +533,9 @@ public partial class SettingsWindow
             PropertyChangedEventHandler handler = (_, _) => OnModuleChanged(module.Id, appearance, nameof(ModuleAppearance.Texts));
             style.PropertyChanged += handler;
             _textSubscriptions.Add((style, handler));
-            rows.Add(new TextRow(part.Label, style, part.IsEditable, part.DefaultText));
+            rows.Add(new TextRow(part.Key, part.Label, style, part.IsEditable, part.DefaultText));
         }
+        _textRows = rows;
         TextPartsList.ItemsSource = rows;
     }
 

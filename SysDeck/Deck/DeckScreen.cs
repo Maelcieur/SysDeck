@@ -2,6 +2,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using SysDeck.Controls;
 using SysDeck.Models;
@@ -149,6 +150,55 @@ public sealed partial class DeckScreen : Grid
         return changed;
     }
 
+    /// <summary>Anime l'arrivée du contenu de la nouvelle page selon les préférences configurées.</summary>
+    public void AnimatePageTransition(int direction, DeckPageTransition style, int durationMs, DeckTransitionEasing easing)
+    {
+        _canvas.BeginAnimation(UIElement.OpacityProperty, null);
+        _canvas.RenderTransform = Transform.Identity;
+        if (direction == 0 || style == DeckPageTransition.None) return;
+
+        var duration = new Duration(TimeSpan.FromMilliseconds(Math.Clamp(durationMs, 100, 1000)));
+        IEasingFunction? curve = easing == DeckTransitionEasing.Linear
+            ? null
+            : new CubicEase { EasingMode = EasingMode.EaseOut };
+        var completed = new EventHandler((_, _) =>
+        {
+            _canvas.RenderTransform = Transform.Identity;
+            _canvas.BeginAnimation(UIElement.OpacityProperty, null);
+        });
+
+        if (style is DeckPageTransition.Slide or DeckPageTransition.SlideFade)
+        {
+            var transform = new TranslateTransform(direction * 72, 0);
+            _canvas.RenderTransform = transform;
+            var animation = new DoubleAnimation(direction * 72, 0, duration) { EasingFunction = curve };
+            animation.Completed += completed;
+            transform.BeginAnimation(TranslateTransform.XProperty, animation);
+        }
+        else if (style == DeckPageTransition.Zoom)
+        {
+            var transform = new ScaleTransform(0.92, 0.92);
+            _canvas.RenderTransformOrigin = new Point(0.5, 0.5);
+            _canvas.RenderTransform = transform;
+            var animation = new DoubleAnimation(0.92, 1, duration) { EasingFunction = curve };
+            animation.Completed += completed;
+            transform.BeginAnimation(ScaleTransform.ScaleXProperty, animation);
+            var verticalAnimation = new DoubleAnimation(0.92, 1, duration) { EasingFunction = curve };
+            verticalAnimation.Completed += completed;
+            transform.BeginAnimation(ScaleTransform.ScaleYProperty, verticalAnimation);
+        }
+
+        if (style is DeckPageTransition.Fade or DeckPageTransition.SlideFade or DeckPageTransition.Zoom)
+        {
+            var animation = new DoubleAnimation(style == DeckPageTransition.SlideFade ? 0.55 : 0, 1, duration)
+            {
+                EasingFunction = curve
+            };
+            if (style != DeckPageTransition.Zoom) animation.Completed += completed;
+            _canvas.BeginAnimation(UIElement.OpacityProperty, animation);
+        }
+    }
+
     private void UpdateDots()
     {
         _dots.Children.Clear();
@@ -188,7 +238,8 @@ public sealed partial class DeckScreen : Grid
                 clock.Chrome.Opacity = _settings.ClockOpacity;
                 return (clock.Frame, null);
             case "apps":
-                return (new DeckShortcutsPanel(() => _settings.Page.Apps, null, () => _settings.TileSize, () => _settings.AppsOpacity, grid: true, look: () => _settings), null);
+                return (new DeckShortcutsPanel(() => _settings.Page.Apps.Where(app => app.AppsSubpage == _settings.Page.CurrentAppsSubpage),
+                    null, () => _settings.TileSize, () => _settings.AppsOpacity, grid: true, look: () => _settings), null);
         }
 
         var module = _buildModule(id);
@@ -406,7 +457,7 @@ public sealed class DeckShortcutsPanel : Panel
 
         if (_grid)
         {
-            var columns = TileGrid.Columns(finalSize.Width, size);
+            var columns = TileGrid.Columns(finalSize.Width, size, _look?.Invoke()?.Page.AppsColumns ?? 0);
             var rows = TileGrid.Rows(finalSize.Height, size);
             var items = tiles.Select(t => (ShortcutItem)t.Tag).ToList();
             var arrangement = TileGrid.Arrange(items, columns, rows);

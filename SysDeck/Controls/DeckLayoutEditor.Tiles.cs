@@ -61,7 +61,7 @@ public sealed partial class DeckLayoutEditor
         var row = (int)Math.Floor((overlayPoint.Y - element.Y) / cell);
         var (columns, rows) = _deck.AppsGrid();
         if (col < 0 || row < 0 || col >= columns || row >= rows) return false;
-        var item = TileGrid.Arrange(_deck.Settings.Page.Apps, columns, rows).At(col, row);
+        var item = TileGrid.Arrange(_deck.CurrentAppsSubpage(), columns, rows).At(col, row);
         if (item is null) return false;
 
         _tileDrag = item;

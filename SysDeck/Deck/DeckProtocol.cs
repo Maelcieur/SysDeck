@@ -15,7 +15,7 @@ namespace SysDeck.Deck;
 /// </summary>
 public static class DeckProtocol
 {
-    public const int Version = 6;
+    public const int Version = 7;
 
     /// <summary>Octet « charging » de la réponse : bit 0 = en charge, bit 1 = première réponse d'une nouvelle session
     /// (la Switch est restée connectée entre deux sessions : le PC doit renvoyer tout l'affichage et la luminosité).</summary>
@@ -38,6 +38,7 @@ public static class DeckProtocol
         Night = 6,     // kit nuit : en-tête + image + glyphes (stocké, sans changer l'affichage)
         NightTime = 7, // recale l'heure de nuit (arg = heure locale en secondes epoch « locale »)
         NightBrightness = 8, // (v5) change seulement la luminosité de veille du kit déjà reçu (arg = 0-100)
+        SwitchAction = 9, // (v7) arg = SwitchActionKind
     }
 
     public const ushort FlagPresent = 1;

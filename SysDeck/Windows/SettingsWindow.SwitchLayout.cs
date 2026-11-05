@@ -40,7 +40,9 @@ public partial class SettingsWindow
     {
         if (!IsInitialized || SwitchActionsPanel is null || SwitchSettingsPanel is null) return;
         var actions = SwitchTabActions.IsChecked == true;
-        SwitchActionsPanel.Visibility = actions ? Visibility.Visible : Visibility.Collapsed;
+        var editing = _inlineEditor is not null || _inlineIconChooser is not null;
+        SwitchActionsPanel.Visibility = actions && !editing ? Visibility.Visible : Visibility.Collapsed;
+        SwitchInlineEditorPanel.Visibility = actions && editing ? Visibility.Visible : Visibility.Collapsed;
         SwitchSettingsPanel.Visibility = actions ? Visibility.Collapsed : Visibility.Visible;
     }
 
@@ -60,9 +62,11 @@ public partial class SettingsWindow
             if (_inspected is { Kind: TileKind.Plugin } tile && (_pluginLaunch is null) == host.IsRunning(tile.PluginId)) ShowPluginPage(tile);
         }
         host.StateChanged += OnPluginsChanged;
+        Deck.AppsSubpageChanged += OnAppsSubpageChanged;
         Closed += (_, _) =>
         {
             host.StateChanged -= OnPluginsChanged;
+            Deck.AppsSubpageChanged -= OnAppsSubpageChanged;
             ClosePluginPage();
             _pluginPage?.Dispose();
         };
@@ -75,6 +79,78 @@ public partial class SettingsWindow
 
     private ShortcutItem? _inspected;
     private bool _inspectorLoading;
+    private TileEditorWindow? _inlineEditor;
+    private IconChooserWindow? _inlineIconChooser;
+
+    private void ShowInlineEditor(TileEditorWindow editor, Action<bool> completed)
+    {
+        _inlineEditor?.CancelInline();
+        _inlineEditor = editor;
+        SwitchTabActions.IsChecked = true;
+        SwitchInlineEditorTitle.Text = editor.Title.Replace("SysDeck — ", "", StringComparison.Ordinal);
+        SwitchActionsPanel.Visibility = Visibility.Collapsed;
+        SwitchSettingsPanel.Visibility = Visibility.Collapsed;
+        SwitchInlineEditorPanel.Visibility = Visibility.Visible;
+
+        Action<bool>? onCompleted = null;
+        Action<IconChooserWindow, Action<IconChoice?>>? onIconChooserRequested = null;
+        onIconChooserRequested = (chooser, callback) => PresentInlineIconChooser(chooser, accepted =>
+            callback(accepted ? chooser.Result : null));
+        editor.IconChooserRequested += onIconChooserRequested;
+        onCompleted = accepted =>
+        {
+            editor.Completed -= onCompleted;
+            editor.IconChooserRequested -= onIconChooserRequested;
+            SwitchInlineEditorHost.Content = null;
+            SwitchInlineEditorPanel.Visibility = Visibility.Collapsed;
+            SwitchActionsPanel.Visibility = Visibility.Visible;
+            _inlineEditor = null;
+            completed(accepted);
+        };
+        editor.Completed += onCompleted;
+        editor.AttachTo(SwitchInlineEditorHost);
+    }
+
+    private void PresentInlineIconChooser(IconChooserWindow chooser, Action<bool> completed)
+    {
+        var previousContent = SwitchInlineEditorHost.Content;
+        var previousTitle = SwitchInlineEditorTitle.Text;
+        var previousChooser = _inlineIconChooser;
+        _inlineIconChooser = chooser;
+        SwitchTabActions.IsChecked = true;
+        SwitchInlineEditorTitle.Text = chooser.ChooserTitle;
+        SwitchActionsPanel.Visibility = Visibility.Collapsed;
+        SwitchSettingsPanel.Visibility = Visibility.Collapsed;
+        SwitchInlineEditorPanel.Visibility = Visibility.Visible;
+
+        Action<IconChooserWindow, Action<bool>>? nestedRequested = null;
+        nestedRequested = (nested, callback) => PresentInlineIconChooser(nested, callback);
+        chooser.NestedChooserRequested += nestedRequested;
+        chooser.AttachTo(SwitchInlineEditorHost, accepted =>
+        {
+            chooser.NestedChooserRequested -= nestedRequested;
+            SwitchInlineEditorHost.Content = null;
+            _inlineIconChooser = previousChooser;
+            if (previousContent is not null)
+            {
+                SwitchInlineEditorHost.Content = previousContent;
+                SwitchInlineEditorTitle.Text = previousTitle;
+                SwitchInlineEditorPanel.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                SwitchInlineEditorPanel.Visibility = Visibility.Collapsed;
+                SwitchActionsPanel.Visibility = Visibility.Visible;
+            }
+            completed(accepted);
+        });
+    }
+
+    private void InlineEditorCancel_Click(object sender, RoutedEventArgs e)
+    {
+        if (_inlineIconChooser is not null) _inlineIconChooser.CancelInline();
+        else _inlineEditor?.CancelInline();
+    }
 
     /// <summary>Affiche les réglages d'une tuile de la page (null : invite à en choisir une).</summary>
     private void InspectTile(ShortcutItem? item)
@@ -89,7 +165,10 @@ public partial class SettingsWindow
 
         _inspectorLoading = true;
         if (DeckInspectorName.Text != item.Name) DeckInspectorName.Text = item.Name;
-        DeckInspectorConfirm.IsChecked = item.ConfirmTap;
+        BuildAppsSubpageSelector(item);
+        BuildJoyConMapSelector(item);
+        DeckInspectorConfirm.IsEnabled = item.Kind is not (TileKind.SwitchAction or TileKind.TilePageNavigation);
+        DeckInspectorConfirm.IsChecked = item.Kind == TileKind.SwitchAction || item.Kind != TileKind.TilePageNavigation && item.ConfirmTap;
         _inspectorLoading = false;
         DeckInspectorKind.Text = KindLabel(item).ToUpperInvariant();
         var detail = item.Kind == TileKind.App ? string.Join(" ", new[] { item.Path, item.Arguments }.Where(s => !string.IsNullOrWhiteSpace(s))) : TileDetail(item);
@@ -97,6 +176,9 @@ public partial class SettingsWindow
         DeckInspectorDetail.Visibility = string.IsNullOrWhiteSpace(detail) ? Visibility.Collapsed : Visibility.Visible;
         foreach (var button in new[] { DeckInspectorEdit, DeckInspectorIconButton, DeckInspectorLeft, DeckInspectorRight, DeckInspectorRemove })
             button.Tag = item;
+        DeckInspectorEdit.IsEnabled = item.Kind is not (TileKind.SwitchAction or TileKind.TilePageNavigation);
+        DeckInspectorEdit.ToolTip = item.Kind is TileKind.SwitchAction or TileKind.TilePageNavigation
+            ? "Cette action est fixe ; son nom et son icône restent personnalisables." : null;
 
         DeckInspectorIcon.Content = ShortcutIcons.Create(TileRuntime.ForDisplay(item), 40);
         DeckInspectorTile.Background = string.IsNullOrWhiteSpace(item.TileColor) || DeckShortcutsPanel.IsTransparent(item.TileColor)
@@ -104,10 +186,70 @@ public partial class SettingsWindow
             : new SolidColorBrush(ThemeService.Parse(item.TileColor, Colors.Black));
     }
 
+    private void BuildAppsSubpageSelector(ShortcutItem item)
+    {
+        DeckInspectorAppsSubpageBox.Items.Clear();
+        var page = Deck.Settings.Page;
+        for (var index = 0; index < page.AppsSubpageCount; index++)
+            DeckInspectorAppsSubpageBox.Items.Add(new ComboBoxItem { Content = $"Page {index + 1}", Tag = index });
+        if (page.AppsSubpageCount < DeckPage.MaxAppsSubpages)
+            DeckInspectorAppsSubpageBox.Items.Add(new ComboBoxItem { Content = "Nouvelle page…", Tag = "new" });
+        DeckInspectorAppsSubpageBox.SelectedItem = DeckInspectorAppsSubpageBox.Items.Cast<ComboBoxItem>()
+            .FirstOrDefault(choice => choice.Tag is int index && index == item.AppsSubpage);
+        DeckInspectorAppsSubpageRow.Visibility = Visibility.Visible;
+    }
+
+    private void BuildJoyConMapSelector(ShortcutItem item)
+    {
+        DeckInspectorJoyConMapRow.Visibility = item.Kind == TileKind.TilePageNavigation ? Visibility.Visible : Visibility.Collapsed;
+        if (item.Kind != TileKind.TilePageNavigation) return;
+
+        DeckInspectorJoyConMapBox.Items.Clear();
+        DeckInspectorJoyConMapBox.Items.Add(new ComboBoxItem { Content = "Aucun", Tag = null });
+        var reserved = Deck.Settings.Page.Apps
+            .Where(tile => !ReferenceEquals(tile, item) && tile.Kind == TileKind.TilePageNavigation)
+            .Select(tile => tile.MappedJoyConButton)
+            .Where(button => button is not null)
+            .ToHashSet();
+        foreach (var button in Enum.GetValues<JoyConButton>().Where(button => !reserved.Contains(button) || button == item.MappedJoyConButton))
+            DeckInspectorJoyConMapBox.Items.Add(new ComboBoxItem { Content = JoyConInfo.Label(button), Tag = button });
+        DeckInspectorJoyConMapBox.SelectedItem = DeckInspectorJoyConMapBox.Items.Cast<ComboBoxItem>()
+            .FirstOrDefault(choice => Equals(choice.Tag, item.MappedJoyConButton));
+    }
+
+    private void DeckInspectorJoyConMap_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (_inspectorLoading || _inspected is not { Kind: TileKind.TilePageNavigation } item
+            || DeckInspectorJoyConMapBox.SelectedItem is not ComboBoxItem { Tag: var tag }) return;
+        var button = tag is JoyConButton mapped ? mapped : (JoyConButton?)null;
+        if (item.MappedJoyConButton == button) return;
+        item.MappedJoyConButton = button;
+        BuildJoyConMapSelector(item);
+        ScheduleSave();
+    }
+
+    private void DeckInspectorAppsSubpage_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (_inspectorLoading || _inspected is null
+            || DeckInspectorAppsSubpageBox.SelectedItem is not ComboBoxItem { Tag: var tag }) return;
+        var subpage = tag is int index ? index
+            : Equals(tag, "new") ? Deck.Settings.Page.AppsSubpageCount
+            : -1;
+        if (subpage < 0 || !Deck.SetTileAppsSubpage(_inspected, subpage)) return;
+        ScheduleSave();
+    }
+
+    private void OnAppsSubpageChanged()
+    {
+        RefreshDeckApps();
+    }
+
     private static string KindLabel(ShortcutItem item) => item.Kind switch
     {
         TileKind.Hotkey => "Raccourci clavier",
         TileKind.Command => "Commande",
+        TileKind.SwitchAction => "Système Switch",
+        TileKind.TilePageNavigation => "Navigation des tuiles",
         TileKind.MicMute => "Micro muet",
         TileKind.OutputMute => "Son muet",
         TileKind.Obs => "OBS Studio",
@@ -128,7 +270,9 @@ public partial class SettingsWindow
     private void DeckInspectorConfirm_Click(object sender, RoutedEventArgs e)
     {
         if (_inspected is null) return;
-        _inspected.ConfirmTap = DeckInspectorConfirm.IsChecked == true;
+        _inspected.ConfirmTap = _inspected.Kind == TileKind.SwitchAction
+            || _inspected.Kind != TileKind.TilePageNavigation && DeckInspectorConfirm.IsChecked == true;
+        DeckInspectorConfirm.IsChecked = _inspected.ConfirmTap;
         ScheduleSave();
     }
 
@@ -140,7 +284,7 @@ public partial class SettingsWindow
         DeckHiddenAppsList.Children.Clear();
         if (hidden.Count == 0) return;
         DeckHiddenAppsText.Text = $"{hidden.Count} tuile(s) hors de la grille, non affichée(s) sur la Switch : agrandis le bloc « Tuiles de la page » " +
-                                  "dans l'aperçu (coin en bas à droite) ou réduis la taille des tuiles.";
+                                  "ou réduis les tuiles, ou sélectionne une tuile et déplace-la vers « Nouvelle page » dans l'inspecteur.";
         foreach (var app in hidden)
         {
             var button = new Button
@@ -168,9 +312,10 @@ public partial class SettingsWindow
     /// <param name="Command">Commande de manette (vue Manettes) : rien à créer, la touche reçoit cette commande.</param>
     /// <param name="Plugin">Action d'un plugin (pas proposée aux touches des Joy-Con).</param>
     private sealed record DeckAction(string Category, string CategoryIcon, string Name, string Icon, string Description,
-        Func<IReadOnlyList<ShortcutItem>?> Create, string? IconColor = null, JoyConCommand? Command = null, bool Plugin = false);
+        Func<IReadOnlyList<ShortcutItem>?> Create, string? IconColor = null, JoyConCommand? Command = null, bool Plugin = false,
+        Func<TileEditorWindow>? Editor = null);
 
-    private readonly HashSet<string> _collapsedActionCategories = new();
+    private readonly HashSet<string> _expandedActionCategories = new();
     private Point _actionDragStart;
     private bool _actionDragged;
 
@@ -178,15 +323,15 @@ public partial class SettingsWindow
 
     private IEnumerable<DeckAction> DeckActions()
     {
-        const string apps = "Applications", system = "Système", keyboard = "Clavier", audio = "Audio";
+        const string apps = "Applications", system = "Système", switchSystem = "Nintendo Switch", tilePages = "Pages des tuiles", keyboard = "Clavier", audio = "Audio";
         const string appsIcon = "", systemIcon = "", keyboardIcon = "", audioIcon = "";
 
         yield return new(apps, appsIcon, "Application installée", "", "Un ou plusieurs .exe ou raccourcis (.lnk).", PickInstalledApps);
         yield return new(apps, appsIcon, "Lien ou fichier", "", "Programme, fichier, dossier, adresse web ou protocole.",
-            () => One(EditTile(new AddCustomShortcutWindow(this, CreateEmojiPickerForChoice), w => w.Result)));
+            () => null, Editor: () => new AddCustomShortcutWindow(this, CreateEmojiPickerForChoice));
 
         yield return new(system, systemIcon, "Commande", TileRuntime.CommandGlyph, "Ligne de commande exécutée sans fenêtre.",
-            () => One(EditTile(new AddCommandTileWindow(this, CreateEmojiPickerForChoice), w => w.Result)));
+            () => null, Editor: () => new AddCommandTileWindow(this, CreateEmojiPickerForChoice));
         foreach (var preset in CommandRunner.Presets)
             yield return new(system, systemIcon, preset.Name, preset.Glyph, preset.Description, () => One(new ShortcutItem
             {
@@ -197,8 +342,46 @@ public partial class SettingsWindow
                 IconGlyph = preset.Glyph
             }));
 
+        yield return new(tilePages, "\uE76C", "Page suivante", "\uE76C", "Affiche la sous-page suivante du widget des tuiles.",
+            () => One(new ShortcutItem
+            {
+                Kind = TileKind.TilePageNavigation,
+                PageNavigation = Models.TilePageNavigation.Next,
+                Name = "Page suivante",
+                IconGlyph = "\uE76C"
+            }));
+        yield return new(tilePages, "\uE76B", "Page précédente", "\uE76B", "Affiche la sous-page précédente du widget des tuiles.",
+            () => One(new ShortcutItem
+            {
+                Kind = TileKind.TilePageNavigation,
+                PageNavigation = Models.TilePageNavigation.Previous,
+                Name = "Page précédente",
+                IconGlyph = "\uE76B"
+            }));
+
+        yield return new(switchSystem, "brand:nintendoswitch", "Éteindre vers le mode RCM", "⚡",
+            "Éteint l'affichage et redémarre la Switch en mode RCM. Un second appui est requis pour confirmer.",
+            () => One(new ShortcutItem
+            {
+                Kind = TileKind.SwitchAction,
+                SwitchAction = SwitchActionKind.EnterRcm,
+                Name = "Mode RCM",
+                ConfirmTap = true,
+                IconGlyph = "⚡"
+            }));
+        yield return new(switchSystem, "brand:nintendoswitch", "Redémarrer sur hekate", "🚀",
+            "Charge hekate depuis bootloader/update.bin ou payload.bin sur la carte SD. Un second appui est requis pour confirmer.",
+            () => One(new ShortcutItem
+            {
+                Kind = TileKind.SwitchAction,
+                SwitchAction = SwitchActionKind.LaunchHekate,
+                Name = "Redémarrer sur hekate",
+                ConfirmTap = true,
+                IconGlyph = "🚀"
+            }));
+
         yield return new(keyboard, keyboardIcon, "Raccourci clavier", "", "Envoie une combinaison de touches au PC.",
-            () => One(EditTile(new AddHotkeyShortcutWindow(this, CreateEmojiPickerForChoice), w => w.Result)));
+            () => null, Editor: () => new AddHotkeyShortcutWindow(this, CreateEmojiPickerForChoice));
 
         // Micro et son : le périphérique par défaut tout de suite ; « Configurer l'action » permet d'en choisir un autre.
         yield return new(audio, audioIcon, "Micro muet", TileRuntime.MicGlyph, "Coupe ou rétablit le micro par défaut ; la tuile s'allume quand il est coupé.",
@@ -208,21 +391,21 @@ public partial class SettingsWindow
 
         yield return new("OBS Studio", "brand:obsstudio", "Action OBS", "brand:obsstudio",
             "Scène, stream, enregistrement, caméra virtuelle, relecture, muet d'une entrée, source…",
-            () => One(EditTile(new AddObsTileWindow(this, CreateEmojiPickerForChoice, _widgetManager.Obs), w => w.Result)), "#FFE7E8EB");
+            () => null, "#FFE7E8EB", Editor: () => new AddObsTileWindow(this, CreateEmojiPickerForChoice, _widgetManager.Obs));
         yield return new("Twitch", "brand:twitch", "Action Twitch", "brand:twitch",
             "Clip, marqueur, message, pub, modes du tchat, bouclier, titre, catégorie…",
-            () => One(EditTile(new AddTwitchTileWindow(this, CreateEmojiPickerForChoice, _widgetManager.Twitch), w => w.Result)));
+            () => null, Editor: () => new AddTwitchTileWindow(this, CreateEmojiPickerForChoice, _widgetManager.Twitch));
         yield return new("Voicemod", "", "Action Voicemod", "",
             "Changeur de voix, voix, son du soundboard, micro, m'entendre…",
-            () => One(EditTile(new AddVoicemodTileWindow(this, CreateEmojiPickerForChoice, _widgetManager.Voicemod), w => w.Result)), "#FF2EE6B6");
+            () => null, "#FF2EE6B6", Editor: () => new AddVoicemodTileWindow(this, CreateEmojiPickerForChoice, _widgetManager.Voicemod));
 
         // Une catégorie par plugin installé, une entrée par action (la fenêtre s'ouvre sur cette action).
         foreach (var plugin in _widgetManager.PluginHost.Plugins.Where(p => p.Manifest is not null))
             foreach (var action in plugin.Manifest!.Actions)
                 yield return new(plugin.Name, plugin.Manifest.IconPath ?? TileRuntime.PluginGlyph, action.Name, action.IconPath ?? TileRuntime.PluginGlyph,
                     action.Tooltip ?? plugin.Manifest.Description ?? "",
-                    () => One(EditTile(new AddPluginTileWindow(this, CreateEmojiPickerForChoice, _widgetManager.PluginHost,
-                        pluginId: plugin.Id, actionId: action.Id), w => w.Result)), Plugin: true);
+                    () => null, Plugin: true, Editor: () => new AddPluginTileWindow(this, CreateEmojiPickerForChoice, _widgetManager.PluginHost,
+                        pluginId: plugin.Id, actionId: action.Id));
     }
 
     private void DeckActionSearch_TextChanged(object sender, TextChangedEventArgs e) => RefreshDeckActions();
@@ -242,7 +425,7 @@ public partial class SettingsWindow
         foreach (var group in actions.GroupBy(a => a.Category))
         {
             var category = group.Key;
-            var collapsed = needle.Length == 0 && _collapsedActionCategories.Contains(category);
+            var collapsed = needle.Length == 0 && !_expandedActionCategories.Contains(category);
             var header = new Button { Style = (Style)FindResource("SearchResultButton"), HorizontalContentAlignment = HorizontalAlignment.Stretch };
             header.Content = new StackPanel
             {
@@ -264,7 +447,7 @@ public partial class SettingsWindow
             };
             header.Click += (_, _) =>
             {
-                if (!_collapsedActionCategories.Remove(category)) _collapsedActionCategories.Add(category);
+                if (!_expandedActionCategories.Remove(category)) _expandedActionCategories.Add(category);
                 RefreshDeckActions();
             };
             DeckActionsList.Children.Add(header);
@@ -349,7 +532,22 @@ public partial class SettingsWindow
             WarnGridFull(1);
             return;
         }
-        var items = action.Create();
+        if (action.Editor is { } createEditor)
+        {
+            var editor = createEditor();
+            ShowInlineEditor(editor, accepted =>
+            {
+                if (accepted)
+                    AddDeckActionItems(action, cell, One(editor.Result));
+            });
+            return;
+        }
+
+        AddDeckActionItems(action, cell, action.Create());
+    }
+
+    private void AddDeckActionItems(DeckAction action, (int Col, int Row)? cell, IReadOnlyList<ShortcutItem>? items)
+    {
         if (items is null || items.Count == 0) return;
 
         var wasShown = Deck.IsShown("apps");

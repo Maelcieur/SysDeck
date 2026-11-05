@@ -16,7 +16,7 @@ public enum JoyConButton
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum JoyConCommand
 {
-    None, Tile, PagePrevious, PageNext, CursorUp, CursorDown, CursorLeft, CursorRight, CursorPress, VolumeUp, VolumeDown
+    None, Tile, PagePrevious, PageNext, PageSelect, CursorUp, CursorDown, CursorLeft, CursorRight, CursorPress, VolumeUp, VolumeDown
 }
 
 /// <summary>Rôle d'un stick.</summary>
@@ -28,9 +28,12 @@ public sealed class JoyConBinding
 {
     public JoyConCommand Command { get; set; }
     public ShortcutItem? Tile { get; set; }
+    public string? TargetPageId { get; set; }
 
     [JsonIgnore]
-    public bool IsEmpty => Command == JoyConCommand.None || Command == JoyConCommand.Tile && Tile is null;
+    public bool IsEmpty => Command == JoyConCommand.None
+        || Command == JoyConCommand.Tile && Tile is null
+        || Command == JoyConCommand.PageSelect && string.IsNullOrWhiteSpace(TargetPageId);
 }
 
 /// <summary>Affectations des touches et rôle des sticks : communes à toutes les pages, ou propres à une page (remplacements).</summary>
@@ -84,6 +87,7 @@ public static class JoyConInfo
     {
         JoyConCommand.PagePrevious => "Page précédente",
         JoyConCommand.PageNext => "Page suivante",
+        JoyConCommand.PageSelect => "Aller à une page",
         JoyConCommand.CursorUp => "Curseur vers le haut",
         JoyConCommand.CursorDown => "Curseur vers le bas",
         JoyConCommand.CursorLeft => "Curseur vers la gauche",
@@ -105,8 +109,14 @@ public static class JoyConInfo
     };
 
     /// <summary>Texte d'une affectation : nom de l'action ou de la commande.</summary>
-    public static string Describe(JoyConBinding? binding)
-        => binding is null || binding.IsEmpty ? "Aucune" : binding.Command == JoyConCommand.Tile ? binding.Tile!.Name : Label(binding.Command);
+    public static string Describe(JoyConBinding? binding, IReadOnlyList<DeckPage>? pages = null)
+    {
+        if (binding is null || binding.IsEmpty) return "Aucune";
+        if (binding.Command == JoyConCommand.Tile) return binding.Tile!.Name;
+        if (binding.Command == JoyConCommand.PageSelect)
+            return pages?.FirstOrDefault(page => page.Id == binding.TargetPageId)?.Name ?? "Page introuvable";
+        return Label(binding.Command);
+    }
 
     /// <summary>Commandes qui se répètent tant que la touche est tenue (curseur, volume).</summary>
     public static bool Repeats(JoyConCommand command)

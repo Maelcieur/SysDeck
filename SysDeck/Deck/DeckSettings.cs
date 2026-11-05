@@ -17,6 +17,18 @@ public sealed class DeckSettings
     /// <summary>Images envoyées par seconde au maximum (seules les zones modifiées partent).</summary>
     public int Fps { get; set; } = 10;
 
+    /// <summary>Active l'aimantation sur la grille et les guides d'alignement dans l'éditeur.</summary>
+    public bool SnapToGrid { get; set; } = true;
+
+    /// <summary>Style de transition entre les pages de la Switch.</summary>
+    public DeckPageTransition PageTransition { get; set; } = DeckPageTransition.SlideFade;
+
+    /// <summary>Durée des transitions entre pages, en millisecondes.</summary>
+    public int PageTransitionDuration { get; set; } = 240;
+
+    /// <summary>Courbe d'accélération des transitions entre pages.</summary>
+    public DeckTransitionEasing PageTransitionEasing { get; set; } = DeckTransitionEasing.Smooth;
+
     // ---------- Apparence propre à chaque page ----------
     // Lues et écrites sur la page affichée (DeckPage). Les valeurs « Default… » gardent les noms des anciens fichiers,
     // où ces réglages étaient communs à toutes les pages : elles sont recopiées dans chaque page à la migration.
@@ -139,6 +151,13 @@ public sealed class DeckSettings
             }
             page.ClampLook();
         }
+        var pageIds = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var page in Pages)
+            if (string.IsNullOrWhiteSpace(page.Id) || !pageIds.Add(page.Id))
+            {
+                page.Id = Guid.NewGuid().ToString("N");
+                pageIds.Add(page.Id);
+            }
         CurrentPage = Math.Clamp(CurrentPage, 0, Pages.Count - 1);
         JoyCon ??= JoyConSettings.CreateDefault();
         JoyCon.Buttons ??= new();
@@ -146,6 +165,9 @@ public sealed class DeckSettings
         // Fichier édité à la main : une valeur hors plage ne doit pas arriver telle quelle à la Switch.
         Brightness = Math.Clamp(Brightness, 0, 100);
         NightBrightness = Math.Clamp(NightBrightness, 1, 100);
+        if (!Enum.IsDefined(PageTransition)) PageTransition = DeckPageTransition.SlideFade;
+        PageTransitionDuration = Math.Clamp(PageTransitionDuration, 100, 1000);
+        if (!Enum.IsDefined(PageTransitionEasing)) PageTransitionEasing = DeckTransitionEasing.Smooth;
     }
 
     /// <summary>Donne à toutes les pages l'apparence de la page affichée.</summary>
@@ -165,10 +187,21 @@ public sealed class DeckSettings
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum DeckTileStyle { Flat, Glass }
 
+/// <summary>Effet visuel joué au changement de page.</summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum DeckPageTransition { None, Slide, Fade, SlideFade, Zoom }
+
+/// <summary>Courbe de progression d'une transition de page.</summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum DeckTransitionEasing { Smooth, Linear }
+
 /// <summary>Une page de l'écran Switch.</summary>
 public sealed class DeckPage : INotifyPropertyChanged
 {
+    public const int MaxAppsSubpages = 32;
     private string _name = "Page";
+
+    public string Id { get; set; } = Guid.NewGuid().ToString("N");
 
     public string Name
     {
@@ -180,6 +213,43 @@ public sealed class DeckPage : INotifyPropertyChanged
 
     /// <summary>Applications de la page (élément « apps »), indépendantes de la barre de raccourcis.</summary>
     public List<ShortcutItem> Apps { get; set; } = new();
+
+    /// <summary>Nombre de colonnes demandé pour les tuiles, ou zéro pour le calcul adaptatif.</summary>
+    public int AppsColumns { get; set; }
+
+    /// <summary>Sous-page de tuiles actuellement visible ; l'index est propre à cette page et n'est pas enregistré.</summary>
+    [JsonIgnore]
+    public int CurrentAppsSubpage { get; set; }
+
+    [JsonIgnore]
+    public int AppsSubpageCount => Math.Clamp(Apps.Count == 0 ? 1 : Apps.Max(app => app.AppsSubpage) + 1, 1, MaxAppsSubpages);
+
+    public ShortcutItem? FindMappedTileNavigation(JoyConButton button)
+        => Apps.FirstOrDefault(app => app.Kind == TileKind.TilePageNavigation
+            && app.PageNavigation is not null && app.MappedJoyConButton == button);
+
+    public bool NavigateAppsSubpage(int direction)
+    {
+        if (AppsSubpageCount < 2 || direction == 0) return false;
+        CurrentAppsSubpage = (CurrentAppsSubpage + Math.Sign(direction) + AppsSubpageCount) % AppsSubpageCount;
+        return true;
+    }
+
+    [JsonIgnore]
+    public string PreviewSummary
+    {
+        get
+        {
+            var widgets = Elements.Where(e => e.Visible).Take(3)
+                .Select(e => DeckController.AllElements.FirstOrDefault(w => w.Id == e.Id)?.Label ?? e.Id);
+            var summary = string.Join(" · ", widgets);
+            if (Apps.Count > 0) summary += (summary.Length == 0 ? "" : " · ") + $"{Apps.Count} tuile{(Apps.Count > 1 ? "s" : "")}";
+            return summary.Length == 0 ? "Page vide" : summary;
+        }
+    }
+
+    [JsonIgnore]
+    public IEnumerable<DeckElement> PreviewElements => Elements.Where(element => element.Visible);
 
     /// <summary>Touches et sticks propres à cette page (null ou absents : ceux de toutes les pages).</summary>
     public JoyConSettings? JoyCon { get; set; }
@@ -216,7 +286,12 @@ public sealed class DeckPage : INotifyPropertyChanged
     /// <summary>Valeurs hors plage (fichier modifié à la main) ramenées dans les bornes.</summary>
     public void ClampLook()
     {
+        Apps ??= new();
+        foreach (var app in Apps)
+            app.AppsSubpage = Math.Clamp(app.AppsSubpage, 0, MaxAppsSubpages - 1);
+        CurrentAppsSubpage = Math.Clamp(CurrentAppsSubpage, 0, AppsSubpageCount - 1);
         TileSize = double.IsNaN(TileSize) ? 120 : Math.Clamp(TileSize, 60, 300);
+        AppsColumns = Math.Clamp(AppsColumns, 0, TileGrid.MaxColumns);
         if (!Enum.IsDefined(TileStyle)) TileStyle = DeckTileStyle.Glass;
         TileIconScale = DeckSettings.ClampIconScale(TileIconScale) ?? 0.5;
         AppsOpacity = double.IsNaN(AppsOpacity) ? 1 : Math.Clamp(AppsOpacity, 0, 1);

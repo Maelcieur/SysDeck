@@ -17,7 +17,7 @@ namespace SysDeck;
 /// Création ou modification d'une tuile de plugin : plugin, action, réglages (formulaire généré d'après le manifest),
 /// nom, confirmation et icône.
 /// </summary>
-public partial class AddPluginTileWindow : Window
+public partial class AddPluginTileWindow : TileEditorWindow
 {
     private readonly Func<EmojiPickerWindow> _createEmojiPicker;
     private readonly PluginHost _host;
@@ -29,16 +29,14 @@ public partial class AddPluginTileWindow : Window
     private bool _nameManual;
     private readonly string? _preselectedAction;
 
-    public ShortcutItem? Result { get; private set; }
-
     /// <param name="pluginId">Nouvelle tuile : plugin choisi d'avance (bibliothèque d'actions).</param>
     /// <param name="actionId">Nouvelle tuile : action choisie d'avance.</param>
     public AddPluginTileWindow(Window owner, Func<EmojiPickerWindow> createEmojiPicker, PluginHost host, ShortcutItem? existing = null,
         string? pluginId = null, string? actionId = null)
+        : base(owner)
     {
         _preselectedAction = actionId;
         InitializeComponent();
-        Owner = owner;
         _createEmojiPicker = createEmojiPicker;
         _host = host;
         _existing = existing;
@@ -201,7 +199,7 @@ public partial class AddPluginTileWindow : Window
                 browse.Click += (_, _) =>
                 {
                     var dialog = new OpenFileDialog { Title = setting.Label, Filter = "Tous les fichiers (*.*)|*.*" };
-                    if (dialog.ShowDialog(this) == true) box.Text = dialog.FileName;
+                    if (dialog.ShowDialog(DialogOwner) == true) box.Text = dialog.FileName;
                 };
                 DockPanel.SetDock(browse, Dock.Right);
                 return (new DockPanel { Children = { browse, box } }, () => JsonValue.Create(box.Text.Trim()));
@@ -241,17 +239,22 @@ public partial class AddPluginTileWindow : Window
     private void Icon_Click(object sender, RoutedEventArgs e)
     {
         var name = string.IsNullOrWhiteSpace(NameBox.Text) ? "Plugin" : NameBox.Text.Trim();
-        if (!_icon.Choose(this, name, _createEmojiPicker, TileRuntime.PluginGlyph)) return;
+        if (ChooseIconInline(_icon.CreateChooser(DialogOwner, name, _createEmojiPicker, TileRuntime.PluginGlyph), choice =>
+            {
+                _icon.ApplyChoice(choice);
+                ShowIcon();
+            })) return;
+        if (!_icon.Choose(DialogOwner, name, _createEmojiPicker, TileRuntime.PluginGlyph)) return;
         ShowIcon();
     }
 
-    private void Cancel_Click(object sender, RoutedEventArgs e) => DialogResult = false;
+    private void Cancel_Click(object sender, RoutedEventArgs e) => Complete(false);
 
     private void Add_Click(object sender, RoutedEventArgs e)
     {
         if (CurrentPlugin is not { } plugin || CurrentAction is not { } action)
         {
-            MessageBox.Show(this, "Choisis un plugin et une action.", "SysDeck", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(DialogOwner, "Choisis un plugin et une action.", "SysDeck", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
@@ -278,9 +281,9 @@ public partial class AddPluginTileWindow : Window
             ConfirmTap = ConfirmCheck.IsChecked == true
         };
         // Icône par défaut laissée vide : celle de l'action du manifest, voir TileRuntime.ForDisplay.
-        if (!_icon.ApplyTo(item, this, defaultGlyph: null)) return;
+        if (!_icon.ApplyTo(item, DialogOwner, defaultGlyph: null)) return;
 
         Result = item;
-        DialogResult = true;
+        Complete(true);
     }
 }

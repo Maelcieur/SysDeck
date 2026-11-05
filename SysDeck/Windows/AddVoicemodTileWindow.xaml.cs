@@ -11,7 +11,7 @@ namespace SysDeck;
 /// Création ou modification d'une tuile Voicemod : action, voix ou son choisi dans les listes de Voicemod (il doit être
 /// connecté pour les remplir), nom, confirmation et icône.
 /// </summary>
-public partial class AddVoicemodTileWindow : Window
+public partial class AddVoicemodTileWindow : TileEditorWindow
 {
     /// <summary>Actions proposées, avec leur libellé.</summary>
     public static readonly (VoicemodAction Action, string Label)[] Actions =
@@ -36,12 +36,10 @@ public partial class AddVoicemodTileWindow : Window
     private int _loadVersion, _iconVersion;
     private string? _autoIcon; // image de la voix ou du son lue dans Voicemod (fichier temporaire), copiée à la validation
 
-    public ShortcutItem? Result { get; private set; }
-
     public AddVoicemodTileWindow(Window owner, Func<EmojiPickerWindow> createEmojiPicker, VoicemodService voicemod, ShortcutItem? existing = null)
+        : base(owner)
     {
         InitializeComponent();
-        Owner = owner;
         _createEmojiPicker = createEmojiPicker;
         _voicemod = voicemod;
 
@@ -123,26 +121,23 @@ public partial class AddVoicemodTileWindow : Window
         return (items, categories);
     }
 
-    /// <summary>Onglets de catégories (style des pastilles des Paramètres) ; un clic filtre la liste.</summary>
-    private void BuildChips()
+    /// <summary>Liste déroulante de catégories ; la sélection filtre la liste des voix ou des sons.</summary>
+    private void BuildCategorySelector()
     {
-        CategoryChips.Children.Clear();
-        CategoryChips.Visibility = _categories.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
+        _loading = true;
+        CategoryBox.Items.Clear();
+        CategoryBox.Visibility = _categories.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
         foreach (var category in _categories)
-        {
-            var chip = new RadioButton
-            {
-                Content = category, GroupName = "VoicemodCategory", IsChecked = category == _category,
-                Style = (Style)FindResource("Chip")
-            };
-            chip.Checked += (_, _) =>
-            {
-                if (_category == category) return;
-                _category = category;
-                FillTargets(keepSelection: true);
-            };
-            CategoryChips.Children.Add(chip);
-        }
+            CategoryBox.Items.Add(new ComboBoxItem { Content = category, Tag = category });
+        CategoryBox.SelectedItem = CategoryBox.Items.Cast<ComboBoxItem>().FirstOrDefault(item => Equals(item.Tag, _category));
+        _loading = false;
+    }
+
+    private void Category_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (_loading || CategoryBox.SelectedItem is not ComboBoxItem { Tag: string category } || _category == category) return;
+        _category = category;
+        FillTargets(keepSelection: true);
     }
 
     /// <summary>Remplit la liste selon la catégorie et la recherche ; garde le choix courant s'il reste visible.</summary>
@@ -247,7 +242,8 @@ public partial class AddVoicemodTileWindow : Window
         _loading = false;
         _items = new();
         _categories = new();
-        BuildChips();
+        CategoryBox.Items.Clear();
+        CategoryBox.Visibility = Visibility.Collapsed;
 
         (_items, _categories) = action == VoicemodAction.LoadVoice
             ? BuildVoices(await _voicemod.GetVoicesAsync())
@@ -256,7 +252,7 @@ public partial class AddVoicemodTileWindow : Window
 
         // Tuile existante : on ouvre sur « Tous » pour retrouver son choix.
         _category = AllCategory;
-        BuildChips();
+        BuildCategorySelector();
         FillTargets(keepSelection: false);
     }
 
@@ -346,12 +342,17 @@ public partial class AddVoicemodTileWindow : Window
     private void Icon_Click(object sender, RoutedEventArgs e)
     {
         var name = string.IsNullOrWhiteSpace(NameBox.Text) ? "Voicemod" : NameBox.Text.Trim();
-        if (!_icon.Choose(this, name, _createEmojiPicker, DefaultGlyph)) return;
+        if (ChooseIconInline(_icon.CreateChooser(DialogOwner, name, _createEmojiPicker, DefaultGlyph), choice =>
+            {
+                _icon.ApplyChoice(choice);
+                ShowIcon();
+            })) return;
+        if (!_icon.Choose(DialogOwner, name, _createEmojiPicker, DefaultGlyph)) return;
         ShowIcon();
         RefreshVoicemodIcon(); // retour à l'icône par défaut : celle de Voicemod revient
     }
 
-    private void Cancel_Click(object sender, RoutedEventArgs e) => DialogResult = false;
+    private void Cancel_Click(object sender, RoutedEventArgs e) => Complete(false);
 
     private void Add_Click(object sender, RoutedEventArgs e)
     {
@@ -359,7 +360,7 @@ public partial class AddVoicemodTileWindow : Window
         var selected = HasTarget(action) ? Selected : null;
         if (HasTarget(action) && selected is null)
         {
-            MessageBox.Show(this, action == VoicemodAction.LoadVoice ? "Choisis une voix (Voicemod doit être connecté)." : "Choisis un son (Voicemod doit être connecté).",
+            MessageBox.Show(DialogOwner, action == VoicemodAction.LoadVoice ? "Choisis une voix (Voicemod doit être connecté)." : "Choisis un son (Voicemod doit être connecté).",
                 "SysDeck", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
@@ -374,9 +375,9 @@ public partial class AddVoicemodTileWindow : Window
             ConfirmTap = ConfirmCheck.IsChecked == true
         };
         // Icône par défaut laissée vide : elle suit l'action, voir TileRuntime.ForDisplay.
-        if (!_icon.ApplyTo(item, this, defaultGlyph: null)) return;
+        if (!_icon.ApplyTo(item, DialogOwner, defaultGlyph: null)) return;
 
         Result = item;
-        DialogResult = true;
+        Complete(true);
     }
 }

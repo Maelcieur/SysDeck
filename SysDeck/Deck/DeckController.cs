@@ -44,8 +44,6 @@ public sealed partial class DeckController : IDisposable
         Action<UIElement, ModuleAppearance> applyModuleSettings, Action<ShortcutItem> launch)
     {
         _settings = config.Deck;
-        // Atelier de thème resté ouvert (arrêt brutal) : la Switch retrouve son thème d'avant.
-        if (SwitchThemeStudio.RecoverAfterCrash(_settings)) save();
         _desktopAppearance = desktopAppearance;
         _launch = launch;
         if (_settings.IsNew) AddDefaultElements();
@@ -127,6 +125,8 @@ public sealed partial class DeckController : IDisposable
     }
 
     public bool IsConnected => _link.IsConnected;
+
+    public bool RequestSwitchAction(SwitchActionKind action) => _link.RequestSwitchAction(action);
 
     private DeckTextEntry? _textEntry;
 

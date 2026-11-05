@@ -141,6 +141,18 @@ public static class TextPart
             new("label", "Noms des barres"),
             new("value", "Valeurs"),
         },
+        ["moon"] = new TextPartInfo[]
+        {
+            new("phase", "Nom de la phase"),
+            new("details", "Éclairement et âge"),
+            new("next", "Prochaines phases"),
+        },
+        ["sun"] = new TextPartInfo[]
+        {
+            new("title", "Ville"),
+            new("times", "Heures de lever et de coucher"),
+            new("details", "Durée du jour et prochain événement"),
+        },
         ["visualizer"] = new TextPartInfo[]
         {
             new("title", "Titre", "VISUALISEUR"),

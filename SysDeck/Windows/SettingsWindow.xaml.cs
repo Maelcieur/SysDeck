@@ -41,6 +41,8 @@ public partial class SettingsWindow : Window
         ["airquality"] = "\uE9CA",
         ["simhub"] = "\uE7FC",
         ["sensorbars"] = "\uE9D9",
+        ["moon"] = "\uE708",
+        ["sun"] = "\uE706",
     };
 
     private sealed record WidgetRow(string Id, string Label, string Glyph, bool IsVisible, bool CanCustomize);
@@ -55,6 +57,7 @@ public partial class SettingsWindow : Window
     {
         InitializeComponent();
         _widgetManager = widgetManager;
+        InitializeCustomizeGroups();
         ShowVersion();
         var config = widgetManager.Config;
 
@@ -245,19 +248,20 @@ public partial class SettingsWindow : Window
         if (target == PageEnergy) UpdateLifetimeDetails();
         if (target == PageGeneral) UpdateFpsStatus();
         if (target == PagePlugins) RefreshPluginsList();
+        if (target == PageCustomize) RefreshPreviewElements();
         SetIntegrationsTimer(target == PageIntegrations);
         if (target != PageSwitch) ClosePluginPage(); // la page de réglages d'un plugin ne reste pas ouverte en arrière-plan
         else if (_inspected is not null) ShowPluginPage(_inspected);
         if (target is ScrollViewer scroller) scroller.ScrollToTop();
-        else CustomizeScroller.ScrollToTop(); // Personnaliser : en-tête fixe, seul l'onglet défile
+        else CustomizeScroller.ScrollToTop(); // Personnaliser : conserve l'en-tête et replace le panneau de réglages en haut
     }
 
-    /// <summary>Onglets de Personnaliser : un seul panneau visible à la fois.</summary>
+    /// <summary>Les anciennes catégories servent de repères de navigation dans le panneau unique.</summary>
     private void CustomizeTab_Checked(object sender, RoutedEventArgs e)
     {
         if (!IsInitialized || TabSize is null) return;
 
-        var tabs = new Dictionary<RadioButton, FrameworkElement>
+        var sections = new Dictionary<RadioButton, FrameworkElement>
         {
             [TabSizeButton] = TabSize,
             [TabElementsButton] = TabElements,
@@ -265,16 +269,16 @@ public partial class SettingsWindow : Window
             [TabButtonsButton] = TabButtons,
             [TabStyleButton] = TabStyle,
         };
-        foreach (var (button, panel) in tabs)
-            panel.Visibility = button == sender ? Visibility.Visible : Visibility.Collapsed;
-        CustomizeScroller.ScrollToTop();
+        if (sender is RadioButton selected && sections.TryGetValue(selected, out var panel))
+            panel.BringIntoView();
 
-        // La liste des éléments dépend du module affiché sur le bureau : rafraîchie à chaque visite.
+        // La liste des éléments dépend du module affiché sur le bureau : rafraîchie à chaque accès.
         if (sender == TabElementsButton)
         {
             BuildElementRows();
             BuildAudioDeviceRows(); // un périphérique a pu être branché ou une application vue depuis la dernière visite
             BuildAppIconRows();
+            RefreshPreviewElements();
         }
     }
 

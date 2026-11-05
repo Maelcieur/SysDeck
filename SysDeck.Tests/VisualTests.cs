@@ -34,7 +34,7 @@ public class VisualTests
             .ToList();
         Assert.NotEmpty(typefaces);
 
-        var missing = ShortcutIcons.Symbols
+        var missing = ShortcutIcons.Symbols.Where(s => ShortcutIcons.IsSymbol(s.Glyph))
             .Where(s => !typefaces.Any(t => t.CharacterToGlyphMap.ContainsKey(s.Glyph[0])))
             .Select(s => $"{s.Name} (U+{(int)s.Glyph[0]:X4})")
             .ToList();

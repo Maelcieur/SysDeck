@@ -6,9 +6,9 @@ tactile USB pour [SysDeck](../README.fr.md).
 
 | | |
 |---|---|
-| `src/main.c` | Entry point, waiting / session loop, VOL± menu |
-| `src/deck_link.c`, `src/deck_proto.h` | USB session and protocol (mirrored in `SysDeck/Deck/DeckProtocol.cs`) |
-| `src/screen.c` | 1280×720 landscape framebuffer (VIC rotation) |
+| `src/main.c` | Entry point, waiting / session loop, VOL± menu, and power/boot actions |
+| `src/deck_link.c`, `src/deck_proto.h` | USB session and protocol (mirrored in `SysDeck/Deck/DeckProtocol.cs`), including Switch power/RCM and hekate actions |
+| `src/screen.c` | 1280×720 landscape framebuffer (VIC rotation); battery and external power status |
 | `src/night.c` | Night mode: picture + clock from the RTC while the PC is off |
 | `src/usb_descriptors.c`, `src/btn.c`, `src/start.S` | Modified copies of hekate BDK files (take priority via `VPATH`) |
 

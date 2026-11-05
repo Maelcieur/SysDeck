@@ -9,20 +9,18 @@ namespace SysDeck;
 /// Création ou modification d'une tuile « muet » : micro (entrée) ou son de sortie, périphérique choisi
 /// (ou celui par défaut de Windows), nom et icône. L'état muet est reflété sur la tuile.
 /// </summary>
-public partial class AddMuteTileWindow : Window
+public partial class AddMuteTileWindow : TileEditorWindow
 {
     private readonly Func<EmojiPickerWindow> _createEmojiPicker;
     private readonly TileIconState _icon = new();
     private readonly bool _output;
     private readonly List<string> _ids = new(); // identifiant par ligne de la liste ; "" = défaut de Windows
 
-    public ShortcutItem? Result { get; private set; }
-
     /// <param name="output">Vrai : son de sortie ; faux : micro.</param>
     public AddMuteTileWindow(Window owner, Func<EmojiPickerWindow> createEmojiPicker, bool output, ShortcutItem? existing = null)
+        : base(owner)
     {
         InitializeComponent();
-        Owner = owner;
         _createEmojiPicker = createEmojiPicker;
         _output = output;
 
@@ -67,10 +65,15 @@ public partial class AddMuteTileWindow : Window
     private void Icon_Click(object sender, RoutedEventArgs e)
     {
         var name = string.IsNullOrWhiteSpace(NameBox.Text) ? (_output ? "Son muet" : "Micro muet") : NameBox.Text.Trim();
-        if (_icon.Choose(this, name, _createEmojiPicker, DefaultGlyph)) ShowIcon();
+        if (ChooseIconInline(_icon.CreateChooser(DialogOwner, name, _createEmojiPicker, DefaultGlyph), choice =>
+            {
+                _icon.ApplyChoice(choice);
+                ShowIcon();
+            })) return;
+        if (_icon.Choose(DialogOwner, name, _createEmojiPicker, DefaultGlyph)) ShowIcon();
     }
 
-    private void Cancel_Click(object sender, RoutedEventArgs e) => DialogResult = false;
+    private void Cancel_Click(object sender, RoutedEventArgs e) => Complete(false);
 
     private void Add_Click(object sender, RoutedEventArgs e)
     {
@@ -81,9 +84,9 @@ public partial class AddMuteTileWindow : Window
             DeviceId = DeviceBox.SelectedIndex > 0 ? _ids[DeviceBox.SelectedIndex] : null
         };
         // Icône par défaut laissée vide : elle suit l'état (barré quand coupé), voir TileRuntime.ForDisplay.
-        if (!_icon.ApplyTo(item, this, defaultGlyph: null)) return;
+        if (!_icon.ApplyTo(item, DialogOwner, defaultGlyph: null)) return;
 
         Result = item;
-        DialogResult = true;
+        Complete(true);
     }
 }

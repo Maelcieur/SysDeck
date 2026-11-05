@@ -1,6 +1,7 @@
-<Window x:Class="SysDeck.AddVoicemodTileWindow"
+<local:TileEditorWindow x:Class="SysDeck.AddVoicemodTileWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:SysDeck"
         Title="SysDeck — Voicemod"
         Width="440" SizeToContent="Height"
         WindowStartupLocation="CenterOwner" ResizeMode="NoResize" ShowInTaskbar="False"
@@ -23,7 +24,8 @@
 
         <StackPanel x:Name="TargetRow">
             <TextBlock x:Name="TargetLabel" Text="Voix" Style="{StaticResource FieldLabel}"/>
-            <WrapPanel x:Name="CategoryChips" Margin="0,0,0,4"/>
+            <TextBlock Text="Catégorie" Style="{StaticResource FieldLabel}"/>
+            <ComboBox x:Name="CategoryBox" Margin="0,0,0,6" SelectionChanged="Category_Changed"/>
             <TextBox x:Name="SearchBox" Margin="0,0,0,6" TextChanged="Search_TextChanged" ToolTip="Rechercher par nom"/>
             <ComboBox x:Name="TargetBox" Margin="0,0,0,4" SelectionChanged="Target_Changed" MaxDropDownHeight="420"/>
             <TextBlock x:Name="TargetHint" FontSize="11" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,14"/>
@@ -49,4 +51,4 @@
             <Button x:Name="AddButton" Content="Ajouter" Style="{StaticResource PrimaryButton}" Click="Add_Click"/>
         </StackPanel>
     </StackPanel>
-</Window>
+</local:TileEditorWindow>

@@ -43,6 +43,66 @@ public class TileKindTests
         Assert.Equal(TileKind.MicMute, mic.Kind);
         Assert.Equal("{abc}", mic.DeviceId);
         Assert.True(mic.IsMuteTile);
+
+        var switchAction = new ShortcutItem
+        {
+            Kind = TileKind.SwitchAction,
+            SwitchAction = SwitchActionKind.EnterRcm,
+            ConfirmTap = true
+        };
+        var switchBack = JsonSerializer.Deserialize<ShortcutItem>(JsonSerializer.Serialize(switchAction))!;
+        Assert.Equal(TileKind.SwitchAction, switchBack.Kind);
+        Assert.Equal(SwitchActionKind.EnterRcm, switchBack.SwitchAction);
+        Assert.True(switchBack.ConfirmTap);
+
+        var navigation = new ShortcutItem
+        {
+            Kind = TileKind.TilePageNavigation,
+            PageNavigation = TilePageNavigation.Next,
+            AppsSubpage = 1
+        };
+        var navigationBack = JsonSerializer.Deserialize<ShortcutItem>(JsonSerializer.Serialize(navigation))!;
+        Assert.Equal(TileKind.TilePageNavigation, navigationBack.Kind);
+        Assert.Equal(TilePageNavigation.Next, navigationBack.PageNavigation);
+        Assert.Equal(1, navigationBack.AppsSubpage);
+    }
+
+    [Fact]
+    public void DeckPage_ClampsSubpageIndexesAndCountsAssignedPages()
+    {
+        var page = new SysDeck.Deck.DeckPage
+        {
+            Apps =
+            [
+                new ShortcutItem { AppsSubpage = 0 },
+                new ShortcutItem { AppsSubpage = 2 },
+                new ShortcutItem { AppsSubpage = SysDeck.Deck.DeckPage.MaxAppsSubpages + 2 }
+            ]
+        };
+
+        page.ClampLook();
+
+        Assert.Equal(SysDeck.Deck.DeckPage.MaxAppsSubpages, page.AppsSubpageCount);
+        Assert.Equal(SysDeck.Deck.DeckPage.MaxAppsSubpages - 1, page.Apps[2].AppsSubpage);
+    }
+
+    [Fact]
+    public void DeckPage_TileSubpageNavigation_WrapsAndNeedsMultiplePages()
+    {
+        var page = new SysDeck.Deck.DeckPage
+        {
+            Apps =
+            [
+                new ShortcutItem { AppsSubpage = 0 },
+                new ShortcutItem { AppsSubpage = 1 }
+            ]
+        };
+
+        Assert.True(page.NavigateAppsSubpage(-1));
+        Assert.Equal(1, page.CurrentAppsSubpage);
+        Assert.True(page.NavigateAppsSubpage(1));
+        Assert.Equal(0, page.CurrentAppsSubpage);
+        Assert.False(page.NavigateAppsSubpage(0));
     }
 }
 

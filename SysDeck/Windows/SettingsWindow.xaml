@@ -45,6 +45,60 @@
                 </Setter>
             </Style>
 
+            <Style x:Key="PreviewPartButton" TargetType="Button">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="BorderBrush" Value="Transparent"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="Padding" Value="8"/>
+                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Frame" Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="6" Padding="{TemplateBinding Padding}">
+                                <ContentPresenter/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Frame" Property="Background" Value="{StaticResource UiHoverStrong}"/>
+                                    <Setter TargetName="Frame" Property="BorderBrush" Value="{StaticResource CardBorder}"/>
+                                </Trigger>
+                                <Trigger Property="IsKeyboardFocused" Value="True">
+                                    <Setter TargetName="Frame" Property="BorderBrush" Value="{StaticResource UiAccent}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style x:Key="PreviewHotspot" TargetType="Button">
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="BorderBrush" Value="Transparent"/>
+                <Setter Property="BorderThickness" Value="1"/>
+                <Setter Property="Padding" Value="0"/>
+                <Setter Property="Cursor" Value="Hand"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Frame" Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="4">
+                                <ContentPresenter/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Frame" Property="Background" Value="{StaticResource UiHoverStrong}"/>
+                                    <Setter TargetName="Frame" Property="BorderBrush" Value="{StaticResource UiAccent}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
             <Style x:Key="PageScroller" TargetType="ScrollViewer">
                 <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
                 <Setter Property="HorizontalScrollBarVisibility" Value="Disabled"/>
@@ -459,6 +513,19 @@
                                 <controls:SettingRow Label="Appliquer aussi aux modules qui ont leur propre style">
                                     <CheckBox x:Name="PresetResetModulesCheck" Style="{StaticResource ToggleSwitch}" Margin="0"/>
                                 </controls:SettingRow>
+                                <controls:SettingRow Label="Colonnes de tuiles" Stacked="True"
+                                                     Description="Automatique adapte le nombre de colonnes à la largeur du bloc.">
+                                    <ComboBox x:Name="DeckAppsColumnsBox" SelectionChanged="DeckAppsColumns_Changed">
+                                        <ComboBoxItem Content="Automatique"/>
+                                        <ComboBoxItem Content="2 colonnes"/>
+                                        <ComboBoxItem Content="3 colonnes"/>
+                                        <ComboBoxItem Content="4 colonnes"/>
+                                        <ComboBoxItem Content="5 colonnes"/>
+                                        <ComboBoxItem Content="6 colonnes"/>
+                                        <ComboBoxItem Content="7 colonnes"/>
+                                        <ComboBoxItem Content="8 colonnes"/>
+                                    </ComboBox>
+                                </controls:SettingRow>
                                 <Border x:Name="PresetUndoBar" Visibility="Collapsed" Margin="0,0,0,12" Padding="14,8" CornerRadius="6"
                                         Background="{StaticResource UiHoverStrong}" local:SettingsSearch.Ignore="True">
                                     <DockPanel>
@@ -518,14 +585,14 @@
                 </ScrollViewer>
 
                 <!-- ===== Page : Personnaliser un module (ouverte depuis Modules ; « Modules » reste surligné dans le menu) ===== -->
-                <!-- En-tête fixe (fil d'Ariane + onglets) ; seul le contenu de l'onglet défile. -->
+                <!-- Aperçu interactif en haut ; réglages généraux à gauche et réglages de la sélection à droite. -->
                 <Grid x:Name="PageCustomize" Grid.Row="1" Visibility="Collapsed">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <StackPanel Margin="32,0,26,0">
+                    <StackPanel Margin="24,0,26,0">
                         <!-- Fil d'Ariane et choix du module -->
                         <DockPanel Margin="0,0,0,12">
                             <ComboBox x:Name="ModuleSelector" DockPanel.Dock="Right" Width="200" DisplayMemberPath="Label"
@@ -550,7 +617,7 @@
                                     Visibility="Collapsed" Click="CopyFromDesktop_Click"
                                     ToolTip="Remplace l'apparence Switch de ce module par celle du bureau"/>
                         </WrapPanel>
-                        <WrapPanel>
+                        <WrapPanel Visibility="Collapsed">
                             <RadioButton x:Name="TabSizeButton" Style="{StaticResource TabButton}" GroupName="CustomizeTabs" Content="Taille"
                                          IsChecked="True" Checked="CustomizeTab_Checked"/>
                             <RadioButton x:Name="TabElementsButton" Style="{StaticResource TabButton}" GroupName="CustomizeTabs" Content="Éléments"
@@ -565,11 +632,83 @@
                         <Border Height="1" Background="{StaticResource CardBorder}" Margin="0,0,0,8"/>
                     </StackPanel>
 
-                    <ScrollViewer x:Name="CustomizeScroller" Grid.Row="1" Style="{StaticResource PageScroller}">
-                        <StackPanel x:Name="ModuleEditor">
+                    <Grid Grid.Row="1">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="320"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <Grid Grid.Row="0" Margin="24,0,26,10" Background="Transparent">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <Button x:Name="PreviewWidgetOptionsButton" Grid.Row="0" Content="Options du widget"
+                                    Style="{StaticResource LinkButton}" HorizontalAlignment="Right"
+                                    Click="PreviewWidgetOptions_Click"/>
+                            <Viewbox x:Name="PreviewWidgetViewbox" Grid.Row="1" Stretch="Uniform" Visibility="Collapsed">
+                                <Grid x:Name="PreviewWidgetSurface">
+                                    <Border x:Name="PreviewWidgetSnapshot"/>
+                                    <Canvas x:Name="PreviewWidgetParts"/>
+                                </Grid>
+                            </Viewbox>
+                            <TextBlock x:Name="PreviewWidgetEmptyText" Grid.Row="1"
+                                       Text="Ce module n'est pas affiché sur cette cible. Affichez-le sur le bureau ou placez-le sur une page Switch pour obtenir son aperçu réel."
+                                       Foreground="{StaticResource Muted}" FontSize="11" TextWrapping="Wrap"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center"
+                                       Margin="14"/>
+                        </Grid>
+
+                        <Grid x:Name="ModuleEditor" Grid.Row="1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <ScrollViewer x:Name="CustomizeScroller" Grid.Column="0" Style="{StaticResource PageScroller}" Padding="24,0,12,24">
+                                <StackPanel>
+                                    <TextBlock Text="RÉGLAGES GÉNÉRAUX" FontSize="10.5" FontWeight="SemiBold"
+                                               Foreground="{StaticResource Muted}" Margin="0,2,0,10"/>
+                                    <Expander x:Name="SizeExpander" Style="{StaticResource SectionExpander}" Header="Taille" Margin="0,0,0,8">
+                                        <ContentControl x:Name="SizeExpanderHost"/>
+                                    </Expander>
+                                    <Expander x:Name="FitExpander" Style="{StaticResource SectionExpander}" Header="Adaptation du contenu" Margin="0,0,0,8">
+                                        <ContentControl x:Name="FitExpanderHost"/>
+                                    </Expander>
+                                    <Expander x:Name="ElementsExpander" Style="{StaticResource SectionExpander}" Header="Éléments du module" Margin="0,0,0,8">
+                                        <ContentControl x:Name="ElementsExpanderHost"/>
+                                    </Expander>
+                                    <Expander x:Name="TextsExpander" Style="{StaticResource SectionExpander}" Header="Textes du module" Margin="0,0,0,8">
+                                        <ContentControl x:Name="TextsExpanderHost"/>
+                                    </Expander>
+                                    <Expander x:Name="ButtonsExpander" Style="{StaticResource SectionExpander}" Header="Boutons du module" Margin="0,0,0,8">
+                                        <ContentControl x:Name="ButtonsExpanderHost"/>
+                                    </Expander>
+                                    <Expander x:Name="ColorsExpander" Style="{StaticResource SectionExpander}" Header="Couleurs et polices" Margin="0,0,0,8">
+                                        <ContentControl x:Name="ColorsExpanderHost"/>
+                                    </Expander>
+                                    <Expander x:Name="OptionsExpander" Style="{StaticResource SectionExpander}" Header="Apparence et options du module" Margin="0,0,0,8">
+                                        <ContentControl x:Name="OptionsExpanderHost"/>
+                                    </Expander>
+                                </StackPanel>
+                            </ScrollViewer>
+                            <ScrollViewer x:Name="SelectionScroller" Grid.Column="1" Style="{StaticResource PageScroller}" Padding="12,0,24,24">
+                                <StackPanel x:Name="SelectedPartPanel">
+                                    <TextBlock Text="RÉGLAGES DE L'ÉLÉMENT" FontSize="10.5" FontWeight="SemiBold"
+                                               Foreground="{StaticResource Muted}" Margin="0,2,0,10"/>
+                                    <TextBlock x:Name="SelectedPartTitle" Style="{StaticResource PageTitle}" FontSize="16"
+                                               Margin="0,0,0,10" Text="Sélectionnez un élément dans l'aperçu"/>
+                                    <TextBlock x:Name="SelectedPartEmptyText"
+                                               Text="Ses réglages apparaîtront ici. Pour modifier l'ensemble du widget, utilisez les sections générales à gauche."
+                                               Foreground="{StaticResource Muted}" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,12"/>
+                                    <ContentControl x:Name="SelectedElementListHost" Visibility="Collapsed"/>
+                                    <ContentControl x:Name="SelectedTextListHost" Visibility="Collapsed"/>
+                                    <ContentControl x:Name="SelectedButtonListHost" Visibility="Collapsed"/>
+                                    <StackPanel x:Name="SelectedElementAdvancedHost"/>
+                                </StackPanel>
+                            </ScrollViewer>
 
                             <!-- ===== Onglet Taille : taille, adaptation et réglages propres au module ===== -->
-                            <StackPanel x:Name="TabSize">
+                            <StackPanel x:Name="TabSize" Visibility="Collapsed">
                                 <!-- Taille (bureau seulement : sur la Switch, la taille se règle dans la page Switch) -->
                                 <StackPanel x:Name="SizeCard">
                                     <ContentControl Style="{StaticResource SectionHeader}" Content="Taille" Margin="2,10,0,8"/>
@@ -820,7 +959,7 @@
                             </StackPanel>
 
                             <!-- ===== Onglet Éléments ===== -->
-                            <StackPanel x:Name="TabElements" Visibility="Collapsed">
+                            <StackPanel x:Name="TabElements">
                                 <ContentControl Style="{StaticResource SectionHeader}" Content="Éléments du module" Margin="2,10,0,8"/>
                                 <Border Style="{StaticResource RowCard}"
                                         local:SettingsSearch.Keywords="déplacer masquer afficher taille position couleurs éléments">
@@ -836,8 +975,8 @@
                                                       Checked="LayoutEdit_Changed" Unchecked="LayoutEdit_Changed"/>
                                         </controls:SettingRow>
 
-                                        <Border Style="{StaticResource RowBorder}">
-                                            <StackPanel>
+                                        <Border x:Name="ElementRowsBorder" Style="{StaticResource RowBorder}">
+                                            <StackPanel x:Name="ElementRowsPanel">
                                                 <!-- En-têtes de colonnes -->
                                                 <Grid Margin="0,0,0,2">
                                                     <Grid.ColumnDefinitions>
@@ -1002,8 +1141,8 @@
                                         local:SettingsSearch.Keywords="boutons couleur fond survol icône masquer afficher lecture pause muet utiliser fermer">
                                     <StackPanel Style="{StaticResource RowsPanel}">
                                         <controls:SettingRow Description="Pour chaque bouton : couleur de fond, du texte ou de l'icône, couleur au survol, icône de remplacement et affichage. Pointillés = couleur du thème."/>
-                                        <Border Style="{StaticResource RowBorder}">
-                                            <StackPanel>
+                                        <Border x:Name="ButtonRowsBorder" Style="{StaticResource RowBorder}">
+                                            <StackPanel x:Name="ButtonRowsPanel">
                                                 <Grid Margin="0,0,0,2">
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="54"/>
@@ -1068,11 +1207,12 @@
                             </StackPanel>
 
                             <!-- ===== Onglet Textes ===== -->
-                            <StackPanel x:Name="TabTexts" Visibility="Collapsed">
+                            <StackPanel x:Name="TabTexts">
                                 <ContentControl Style="{StaticResource SectionHeader}" Content="Textes du module" Margin="2,10,0,8"/>
                                 <Border Style="{StaticResource RowCard}"
                                         local:SettingsSearch.Keywords="renommer libellé titre police taille texte">
                                     <StackPanel Style="{StaticResource RowsPanel}">
+                                        <StackPanel x:Name="TextRowsPanel">
                                         <controls:SettingRow Description="Les titres et libellés peuvent être renommés ; les valeurs (températures, pourcentages…) gardent leur texte. Dans une liste (disques, applications…), le réglage vaut pour toutes les lignes."/>
 
                                         <ItemsControl x:Name="TextPartsList">
@@ -1126,6 +1266,7 @@
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
+                                        </StackPanel>
 
                                         <!-- Échelle propre au module (s'ajoute à la taille du texte du thème) -->
                                         <controls:SettingRow Label="Taille de tous les textes du module"
@@ -1185,7 +1326,7 @@
 
                                 <!-- Météo uniquement -->
                                 <StackPanel x:Name="WeatherCard" Visibility="Collapsed">
-                                    <ContentControl Style="{StaticResource SectionHeader}" Content="Ville (météo et qualité de l'air)"/>
+                                    <ContentControl Style="{StaticResource SectionHeader}" Content="Ville (météo, qualité de l'air, soleil)"/>
                                     <Border Style="{StaticResource RowCard}" local:SettingsSearch.Module="weather" local:SettingsSearch.Keywords="météo ville open-meteo">
                                         <StackPanel Style="{StaticResource RowsPanel}">
                                             <controls:SettingRow Label="Ville" Description="Données Open-Meteo (gratuites, sans compte), mises à jour toutes les 15 minutes.">
@@ -1403,8 +1544,8 @@
                                         Click="ResetModuleTheme_Click"
                                         ToolTip="Désactive les 4 réglages « Propre à ce module » : le module suit de nouveau le thème global"/>
                             </StackPanel>
-                        </StackPanel>
-                    </ScrollViewer>
+                        </Grid>
+                    </Grid>
                 </Grid>
 
                 <!-- ===== Page : Barre de raccourcis ===== -->
@@ -1469,7 +1610,8 @@
                 <Grid x:Name="PageSwitch" Grid.Row="1" Visibility="Collapsed" Margin="24,0,0,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" MinWidth="360"/>
-                        <ColumnDefinition Width="370"/>
+                        <ColumnDefinition Width="6"/>
+                        <ColumnDefinition Width="370" MinWidth="280"/>
                     </Grid.ColumnDefinitions>
 
                     <!-- Colonne principale : en-tête, aperçu, pages, inspecteur de la tuile -->
@@ -1477,7 +1619,7 @@
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
-                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="6"/>
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
 
@@ -1493,69 +1635,66 @@
                                                  IsChecked="True" MinWidth="110" Checked="SwitchView_Checked"/>
                                     <RadioButton x:Name="SwitchViewJoyCon" Content="Manettes (Joy-Con)" Style="{StaticResource TabButton}" GroupName="SwitchView"
                                                  MinWidth="150" Checked="SwitchView_Checked"/>
-                                    <RadioButton x:Name="SwitchViewThemes" Content="Thèmes" Style="{StaticResource TabButton}" GroupName="SwitchView"
-                                                 MinWidth="110" Checked="SwitchView_Checked"/>
                                 </StackPanel>
-                                <!-- Atelier de thème ouvert : visible dans tous les onglets de la Switch -->
-                                <Border x:Name="StudioBar" Visibility="Collapsed" Margin="0,10,0,0" Padding="12,10" CornerRadius="10"
-                                        Background="#225B8DEF" BorderBrush="#995B8DEF" BorderThickness="1">
-                                    <DockPanel>
-                                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
-                                            <Button Content="Personnaliser le widget choisi" Click="StudioCustomize_Click" Margin="8,0,0,0"
-                                                    ToolTip="Sélectionne un widget dans l'aperçu, puis règle ses couleurs, son fond, son contour…"/>
-                                            <Button Content="Enregistrer le thème" Style="{StaticResource PrimaryButton}" Click="StudioSave_Click" Margin="8,0,0,0"/>
-                                            <Button Content="Quitter l'atelier" Click="StudioCancel_Click" Margin="8,0,0,0"
-                                                    ToolTip="Ferme l'atelier sans enregistrer : la Switch retrouve son thème d'avant"/>
-                                        </StackPanel>
-                                        <StackPanel>
-                                            <StackPanel Orientation="Horizontal">
-                                                <TextBlock Text="Atelier de thème" FontWeight="SemiBold" Foreground="{StaticResource UiText}" VerticalAlignment="Center"/>
-                                                <TextBox x:Name="StudioNameBox" Width="200" Height="28" Margin="10,0,0,0" VerticalContentAlignment="Center" MaxLength="60"/>
-                                            </StackPanel>
-                                            <TextBlock FontSize="11.5" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,4,0,0"
-                                                       Text="Place et règle les widgets dans l'onglet Écran (en direct sur la Switch). En quittant l'atelier, la Switch retrouve son thème et ses widgets d'avant."/>
-                                        </StackPanel>
-                                    </DockPanel>
-                                </Border>
                             </StackPanel>
                         </DockPanel>
 
-                        <!-- Aperçu en direct de l'écran ; les .exe et .lnk glissés depuis l'Explorateur y sont acceptés -->
-                        <Border x:Name="SwitchScreenView" Grid.Row="1" AllowDrop="True" DragOver="DeckApps_DragOver" Drop="DeckApps_Drop" Background="Transparent">
-                            <controls:DeckLayoutEditor x:Name="DeckEditor" VerticalAlignment="Center"/>
-                        </Border>
+                        <Grid Grid.Row="1">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
 
-                        <!-- Thèmes : thèmes enregistrés (appliquer, modifier, supprimer) et création -->
-                        <ScrollViewer x:Name="SwitchThemesView" Grid.Row="1" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
-                            <StackPanel>
-                                <Border Style="{StaticResource Card}" Margin="0,0,0,12">
-                                    <DockPanel>
-                                        <Button x:Name="StudioNewButton" DockPanel.Dock="Right" Content="Créer un thème" Style="{StaticResource PrimaryButton}"
-                                                VerticalAlignment="Center" Click="StudioNew_Click"/>
-                                        <StackPanel Margin="0,0,16,0">
-                                            <TextBlock Text="Nouveau thème" FontWeight="SemiBold" Foreground="{StaticResource UiText}"/>
-                                            <TextBlock FontSize="12" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,4,0,0"
-                                                       Text="L'atelier part de la page affichée : place les widgets, règle leurs couleurs, le fond et les tuiles, en direct sur la Switch. Une fois le thème enregistré, la Switch retrouve exactement son thème d'avant ; le thème s'applique ensuite à n'importe quelle page, avec la même position des widgets."/>
-                                        </StackPanel>
-                                    </DockPanel>
-                                </Border>
-                                <TextBlock Text="MES THÈMES" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource Muted}" Margin="2,0,0,6"/>
-                                <TextBlock x:Name="SwitchThemesEmpty" Text="Aucun thème pour l'instant." Foreground="{StaticResource Muted}" FontSize="12.5" Margin="2,4,0,0"/>
-                                <StackPanel x:Name="SwitchThemesList"/>
-                            </StackPanel>
-                        </ScrollViewer>
+                            <!-- Aperçu en direct de l'écran ; les .exe et .lnk glissés depuis l'Explorateur y sont acceptés -->
+                            <Border x:Name="SwitchScreenView" Grid.Row="0" AllowDrop="True" DragOver="DeckApps_DragOver" Drop="DeckApps_Drop" Background="Transparent">
+                            <controls:DeckLayoutEditor x:Name="DeckEditor" VerticalAlignment="Center"/>
+                            </Border>
 
                         <!-- Manettes : les deux Joy-Con dessinés, une touche se clique (ou reçoit une action glissée) -->
-                        <DockPanel x:Name="SwitchJoyConView" Grid.Row="1" Visibility="Collapsed">
+                        <DockPanel x:Name="SwitchJoyConView" Grid.Row="0" Visibility="Collapsed">
                             <TextBlock x:Name="JoyConStatusText" DockPanel.Dock="Top" FontSize="12" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,8"/>
                             <ContentControl x:Name="JoyConDiagramHost" Focusable="False"/>
                         </DockPanel>
 
                         <!-- Pages (comme les points du Stream Deck) et tuiles hors grille -->
-                        <StackPanel Grid.Row="2" Margin="0,12,0,0">
+                        <StackPanel Grid.Row="1" Margin="0,12,0,0">
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                <ListBox x:Name="DeckPagesList" Style="{StaticResource ChipList}" DisplayMemberPath="Name"
-                                         SelectionChanged="DeckPages_SelectionChanged" ToolTip="Pages de l'écran : sur la Switch, glisse à gauche ou à droite pour en changer"/>
+                                <ListBox x:Name="DeckPagesList" Style="{StaticResource ChipList}"
+                                         SelectionChanged="DeckPages_SelectionChanged" ToolTip="Pages de l'écran : sur la Switch, glisse à gauche ou à droite pour en changer">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel MinWidth="118" MaxWidth="190">
+                                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                                                <Border Width="110" Height="62" Background="#0B0C10" CornerRadius="4"
+                                                        ClipToBounds="True" Margin="0,5,0,0">
+                                                    <Viewbox Stretch="Fill">
+                                                        <ItemsControl Width="1280" Height="720" ItemsSource="{Binding PreviewElements}">
+                                                            <ItemsControl.ItemsPanel>
+                                                                <ItemsPanelTemplate>
+                                                                    <Canvas Width="1280" Height="720" ClipToBounds="True"/>
+                                                                </ItemsPanelTemplate>
+                                                            </ItemsControl.ItemsPanel>
+                                                            <ItemsControl.ItemContainerStyle>
+                                                                <Style TargetType="ContentPresenter">
+                                                                    <Setter Property="Canvas.Left" Value="{Binding X}"/>
+                                                                    <Setter Property="Canvas.Top" Value="{Binding Y}"/>
+                                                                </Style>
+                                                            </ItemsControl.ItemContainerStyle>
+                                                            <ItemsControl.ItemTemplate>
+                                                                <DataTemplate>
+                                                                    <Border Width="{Binding Width}" Height="{Binding Height}" CornerRadius="18"
+                                                                            Background="#557C8794" BorderBrush="#AAB4BEC8" BorderThickness="8"/>
+                                                                </DataTemplate>
+                                                            </ItemsControl.ItemTemplate>
+                                                        </ItemsControl>
+                                                    </Viewbox>
+                                                </Border>
+                                                <TextBlock Text="{Binding PreviewSummary}" FontSize="10" Foreground="{StaticResource Muted}"
+                                                           TextTrimming="CharacterEllipsis" Margin="0,4,0,0"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
                                 <Button Content="&#xE710;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" VerticalAlignment="Top" Margin="2,0,0,8"
                                         ToolTip="Nouvelle page" Click="DeckPageAdd_Click"/>
                             </StackPanel>
@@ -1564,8 +1703,12 @@
                                 <WrapPanel x:Name="DeckHiddenAppsList" HorizontalAlignment="Center" Margin="0,6,0,0"/>
                             </StackPanel>
                         </StackPanel>
+                        </Grid>
 
                         <!-- Inspecteur : réglages de la tuile sélectionnée (ou de la touche de manette) -->
+                        <GridSplitter Grid.Row="2" Height="6" HorizontalAlignment="Stretch" VerticalAlignment="Center"
+                                      ResizeDirection="Rows" ResizeBehavior="PreviousAndNext" ShowsPreview="False"
+                                      Background="Transparent" Cursor="SizeNS" ToolTip="Faire glisser pour agrandir ou réduire les réglages de la tuile"/>
                         <Border Grid.Row="3" Style="{StaticResource Card}" Margin="0,8,0,0" MinHeight="128">
                             <Grid>
                                 <!-- Touche d'un Joy-Con -->
@@ -1574,8 +1717,7 @@
                                                Foreground="{StaticResource Muted}" FontSize="12.5" HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap"/>
                                     <DockPanel x:Name="JoyConInspectorBody" Visibility="Collapsed">
                                         <StackPanel DockPanel.Dock="Right" Margin="16,0,0,0" MinWidth="190" VerticalAlignment="Top">
-                                            <Button x:Name="JoyConChooseButton" Content="Choisir une action…" Style="{StaticResource PrimaryButton}" Click="JoyConChoose_Click"/>
-                                            <Button x:Name="JoyConEditButton" Content="Régler l'action…" Margin="0,8,0,0" Click="JoyConEdit_Click"/>
+                                            <Button x:Name="JoyConEditButton" Content="Régler l'action…" Style="{StaticResource PrimaryButton}" Click="JoyConEdit_Click"/>
                                             <Button Content="Aucune action" Margin="0,8,0,0" Click="JoyConClear_Click"/>
                                         </StackPanel>
                                         <StackPanel>
@@ -1583,6 +1725,10 @@
                                             <TextBlock x:Name="JoyConInspectorAction" FontSize="15" FontWeight="SemiBold" Foreground="{StaticResource UiText}" Margin="0,6,0,0"
                                                        TextTrimming="CharacterEllipsis"/>
                                             <CheckBox x:Name="JoyConPageCheck" Style="{StaticResource ToggleSwitch}" Margin="0,10,0,0" Click="JoyConPage_Click"/>
+                                            <StackPanel x:Name="JoyConTargetPagePanel" Margin="0,10,0,0" Visibility="Collapsed">
+                                                <TextBlock Text="Aller à la page" Style="{StaticResource FieldLabel}" Margin="0,0,0,4"/>
+                                                <ComboBox x:Name="JoyConTargetPageBox" SelectionChanged="JoyConTargetPage_Changed"/>
+                                            </StackPanel>
                                             <StackPanel x:Name="JoyConStickPanel" Orientation="Horizontal" Margin="0,10,0,0">
                                                 <TextBlock Text="Mouvement du stick" Style="{StaticResource FieldLabel}" VerticalAlignment="Center" Margin="0,0,10,0"/>
                                                 <ComboBox x:Name="JoyConStickBox" Width="220" SelectionChanged="JoyConStick_Changed"/>
@@ -1616,12 +1762,21 @@
                                             Background="#1E2130" BorderBrush="{StaticResource InputBorder}" BorderThickness="1" Margin="0,0,16,0">
                                         <ContentControl x:Name="DeckInspectorIcon" Width="40" Height="40" HorizontalAlignment="Center" VerticalAlignment="Center" Focusable="False"/>
                                     </Border>
-                                    <StackPanel Grid.Column="1" VerticalAlignment="Top">
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Top" HorizontalAlignment="Stretch">
                                         <TextBlock x:Name="DeckInspectorKind" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource UiAccent}"/>
                                         <TextBlock Text="Nom" Style="{StaticResource FieldLabel}" Margin="0,8,0,4"/>
-                                        <TextBox x:Name="DeckInspectorName" MaxWidth="340" HorizontalAlignment="Stretch" TextChanged="DeckInspectorName_Changed"/>
+                                        <TextBox x:Name="DeckInspectorName" HorizontalAlignment="Stretch" TextChanged="DeckInspectorName_Changed"/>
                                         <TextBlock x:Name="DeckInspectorDetail" FontSize="11.5" Foreground="{StaticResource Muted}" TextWrapping="Wrap"
                                                    TextTrimming="CharacterEllipsis" MaxHeight="34" Margin="0,6,0,0"/>
+                                        <StackPanel x:Name="DeckInspectorAppsSubpageRow" Margin="0,8,0,0">
+                                            <TextBlock Text="Page du widget des tuiles" Style="{StaticResource FieldLabel}" Margin="0,0,0,4"/>
+                                            <ComboBox x:Name="DeckInspectorAppsSubpageBox" SelectionChanged="DeckInspectorAppsSubpage_Changed"/>
+                                        </StackPanel>
+                                        <StackPanel x:Name="DeckInspectorJoyConMapRow" Margin="0,8,0,0" Visibility="Collapsed">
+                                            <TextBlock Text="Bouton Joy-Con sur cette page" Style="{StaticResource FieldLabel}" Margin="0,0,0,4"/>
+                                            <ComboBox x:Name="DeckInspectorJoyConMapBox" SelectionChanged="DeckInspectorJoyConMap_Changed"
+                                                      ToolTip="Sur cette page, ce bouton commande cette flèche. Sur les autres pages, son action Joy-Con habituelle est conservée."/>
+                                        </StackPanel>
                                         <CheckBox x:Name="DeckInspectorConfirm" Style="{StaticResource ToggleSwitch}" Content="Confirmer par un second appui"
                                                   Margin="0,8,0,0" Click="DeckInspectorConfirm_Click"/>
                                     </StackPanel>
@@ -1644,7 +1799,11 @@
                     </Grid>
 
                     <!-- Panneau de droite : bibliothèque d'actions et réglages de la Switch -->
-                    <Border Grid.Column="1" Background="{StaticResource SidebarBg}" BorderBrush="{StaticResource CardBorder}" BorderThickness="1,0,0,0">
+                    <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                                  ResizeDirection="Columns" ResizeBehavior="PreviousAndNext" ShowsPreview="False"
+                                  Background="{StaticResource CardBorder}" Cursor="SizeWE"
+                                  ToolTip="Faire glisser pour élargir ou réduire le panneau de droite"/>
+                    <Border Grid.Column="2" Background="{StaticResource SidebarBg}" BorderBrush="{StaticResource CardBorder}" BorderThickness="1,0,0,0">
                         <DockPanel>
                             <UniformGrid DockPanel.Dock="Top" Columns="2" Margin="14,4,14,10">
                                 <RadioButton x:Name="SwitchTabActions" Content="Actions" Style="{StaticResource TabButton}" GroupName="SwitchPanel"
@@ -1779,7 +1938,55 @@
                                                     </ItemsControl.ItemTemplate>
                                                 </ItemsControl>
                                                 <TextBlock x:Name="DeckEditorHint" FontSize="11" Foreground="{StaticResource Muted}" TextWrapping="Wrap"
-                                                           Text="Dans l'aperçu : glisser un élément le déplace, son coin le redimensionne, clic droit pour le masquer."/>
+                                                           Text="Dans l'aperçu : glisser déplace, le coin redimensionne, Ctrl+clic sélectionne plusieurs éléments ; clic droit pour masquer."/>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <ContentControl Style="{StaticResource SectionHeader}" Content="Disposition de départ"/>
+                                        <Border Style="{StaticResource RowCard}" Padding="14,0"
+                                                local:SettingsSearch.Keywords="disposition modèle organisation alignement grille aimantation">
+                                            <StackPanel Style="{StaticResource RowsPanel}">
+                                                <controls:SettingRow Label="Appliquer une disposition" Stacked="True"
+                                                                     Description="Réorganise les éléments visibles ; vous pourrez ensuite les déplacer et les redimensionner librement.">
+                                                    <DockPanel>
+                                                        <Button Content="Appliquer" DockPanel.Dock="Right" Margin="8,0,0,0"
+                                                                Click="DeckLayoutPreset_Apply"/>
+                                                        <ComboBox x:Name="DeckLayoutPresetBox" SelectedIndex="0">
+                                                            <ComboBoxItem Content="Équilibrée" Tag="balanced"/>
+                                                            <ComboBoxItem Content="Jeu" Tag="gaming"/>
+                                                            <ComboBoxItem Content="Monitoring" Tag="monitoring"/>
+                                                            <ComboBoxItem Content="Compacte" Tag="minimal"/>
+                                                        </ComboBox>
+                                                    </DockPanel>
+                                                </controls:SettingRow>
+                                                <controls:SettingRow Label="Grille et guides d'alignement">
+                                                    <CheckBox x:Name="DeckSnapCheck" Style="{StaticResource ToggleSwitch}" Margin="0"
+                                                              Checked="DeckSnap_Changed" Unchecked="DeckSnap_Changed"/>
+                                                </controls:SettingRow>
+                                                <controls:SettingRow Label="Transition entre les pages" Stacked="True">
+                                                    <ComboBox x:Name="DeckTransitionStyleBox" SelectionChanged="DeckTransitionStyle_Changed">
+                                                        <ComboBoxItem Content="Aucune" Tag="None"/>
+                                                        <ComboBoxItem Content="Glissement" Tag="Slide"/>
+                                                        <ComboBoxItem Content="Fondu" Tag="Fade"/>
+                                                        <ComboBoxItem Content="Glissement et fondu" Tag="SlideFade"/>
+                                                        <ComboBoxItem Content="Zoom doux" Tag="Zoom"/>
+                                                    </ComboBox>
+                                                </controls:SettingRow>
+                                                <controls:SettingRow Label="Durée de la transition" Stacked="True">
+                                                    <DockPanel>
+                                                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}"
+                                                                   Text="{Binding Value, ElementName=DeckTransitionDurationSlider, StringFormat={}{0:0} ms}"/>
+                                                        <Slider x:Name="DeckTransitionDurationSlider" Minimum="100" Maximum="1000"
+                                                                SmallChange="50" LargeChange="100" TickFrequency="50"
+                                                                IsSnapToTickEnabled="True" ValueChanged="DeckSlider_Changed"/>
+                                                    </DockPanel>
+                                                </controls:SettingRow>
+                                                <controls:SettingRow Label="Accélération" Stacked="True">
+                                                    <ComboBox x:Name="DeckTransitionEasingBox" SelectionChanged="DeckTransitionEasing_Changed">
+                                                        <ComboBoxItem Content="Douce" Tag="Smooth"/>
+                                                        <ComboBoxItem Content="Linéaire" Tag="Linear"/>
+                                                    </ComboBox>
+                                                </controls:SettingRow>
                                             </StackPanel>
                                         </Border>
 
@@ -1844,6 +2051,22 @@
                                         </Border>
                                     </StackPanel>
                                 </ScrollViewer>
+
+                                <Border x:Name="SwitchInlineEditorPanel" Visibility="Collapsed" Background="{StaticResource SidebarBg}">
+                                    <DockPanel>
+                                        <DockPanel DockPanel.Dock="Top" Margin="14,8,14,10">
+                                            <Button DockPanel.Dock="Right" Content="Retour" Click="InlineEditorCancel_Click"
+                                                    ToolTip="Revenir à la bibliothèque d'actions"/>
+                                            <TextBlock x:Name="SwitchInlineEditorTitle" Foreground="{StaticResource UiText}"
+                                                       FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center"
+                                                       TextTrimming="CharacterEllipsis"/>
+                                        </DockPanel>
+                                        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                                                      Padding="14,0,14,20">
+                                            <ContentControl x:Name="SwitchInlineEditorHost"/>
+                                        </ScrollViewer>
+                                    </DockPanel>
+                                </Border>
                             </Grid>
                         </DockPanel>
                     </Border>

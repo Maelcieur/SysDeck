@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Runtime.InteropServices;
 using Microsoft.Win32.SafeHandles;
 using SysDeck.Infrastructure;
+using SysDeck.Models;
 
 namespace SysDeck.Deck;
 
@@ -84,6 +85,9 @@ public sealed class DeckUsb : IDisposable
         Send(DeckProtocol.Cmd.Brightness, arg: (uint)Math.Clamp(percent, 0, 100));
 
     public DeckProtocol.Reply Bye() => Send(DeckProtocol.Cmd.Bye);
+
+    public DeckProtocol.Reply RunSwitchAction(SwitchActionKind action) =>
+        Send(DeckProtocol.Cmd.SwitchAction, arg: (uint)action);
 
     /// <summary>Efface le kit nuit de la Switch (commande Night sans données).</summary>
     public DeckProtocol.Reply ClearNight() => Send(DeckProtocol.Cmd.Night);

@@ -68,6 +68,8 @@ Les Joy-Con fixés sur la Switch peuvent aussi lancer des actions de SysDeck.
 | `analogclock` | Horloge ronde à aiguilles avec la date | Horloge du système |
 | `calendar` | Calendrier du mois | Horloge du système |
 | `weather` | Météo et prévisions sur 4 jours | [Open-Meteo](https://open-meteo.com) (gratuit, sans compte) |
+| `moon` | Phases de la Lune : vraie photo de la Lune ombrée selon la phase, nom de la phase, éclairement, prochaines phases | Calcul sans connexion (termes de Meeus, à quelques heures près) |
+| `sun` | Lever et coucher du soleil : course du soleil, heures, durée du jour, prochain événement | Open-Meteo, même ville que la météo |
 | `airquality` | Qualité de l'air (indice européen, PM2.5, PM10, NO₂, O₃) | Open-Meteo, même ville que la météo |
 | `temperatures` | Courbes de température CPU et GPU sur un même graphe | LibreHardwareMonitor |
 | `sensorbars` | Barres pour n'importe quel capteur (températures, charges, RAM, VRAM, ventilateurs…) | LibreHardwareMonitor |
@@ -115,22 +117,36 @@ Le dossier [`payload/`](payload) contient un payload bare-metal lancé depuis
 
 - Pages de modules et de tuiles (applications, liens, raccourcis clavier, commandes, son/micro muet,
   OBS Studio, Twitch, Voicemod, plugins).
-- **Page Switch des Paramètres façon Stream Deck** : aperçu en direct au centre, pages en dessous, bibliothèque
-  d'actions à droite (clic ou glisser sur une case) et inspecteur de la tuile sélectionnée (nom, action, icône,
-  réglages du plugin). Le menu de gauche se masque (☰ ou Ctrl+B).
+- Le widget **Tuiles de la page** peut avoir ses propres sous-pages, indépendantes des pages complètes de la Switch.
+  Dans l'inspecteur d'une tuile, choisir **Page du widget → Nouvelle page** pour la déplacer et créer une sous-page,
+  puis ajouter les actions **Page précédente** et **Page suivante** depuis la bibliothèque pour naviguer entre elles.
+  Les flèches bouclent aux extrémités. Chaque tuile flèche peut aussi recevoir un bouton Joy-Con : il commande
+  cette flèche sur la page Switch où elle est mappée et retrouve son affectation Joy-Con habituelle sur les autres pages.
+- Actions système Switch dans la bibliothèque de la page : éteindre et démarrer en mode RCM, ou relancer hekate
+  depuis `bootloader/update.bin` ou `payload.bin` sur la carte SD. Ces actions demandent un second appui pour éviter
+  un déclenchement accidentel.
+- **Page Switch des Paramètres façon Stream Deck** : aperçu en direct au centre, aperçus des pages en dessous et
+  panneau de droite redimensionnable pour la bibliothèque d'actions et les réglages de la tuile ou de la commande
+  Joy-Con sélectionnée. Cliquer sur une action ou la glisser sur une tuile ; le menu de gauche se masque (☰ ou Ctrl+B).
+- **Éditeur de disposition** : déplacer et redimensionner directement les modules et leurs éléments dans l'aperçu,
+  avec grille et guides d'alignement, ou sélectionner plusieurs éléments avec Ctrl+clic pour les déplacer ou
+  redimensionner ensemble. Appliquer une disposition équilibrée, jeu, monitoring ou compacte comme point de départ,
+  puis l'ajuster librement. La grille de tuiles peut adapter automatiquement ses colonnes ou utiliser un nombre choisi.
+- **Transitions entre les pages** : choisir aucune, glissement, fondu, glissement et fondu ou zoom, puis régler la
+  durée et l'accélération.
 - **Boutons en verre 3D** qui s'enfoncent à l'appui, ou tuiles à plat ; fond transparent possible.
 - **Chaque page a son style** : taille des tuiles et des icônes (jusqu'à remplir la tuile), verre ou plat, noms,
   fond (couleur, image), horloge. « Appliquer ce style à toutes les pages » en un clic.
 - **Tuile active** (micro coupé, live en cours, scène active…) : couleur et deuxième icône au choix, bouton qui
   reste enfoncé.
 - **Joy-Con** (payload v6) : les Joy-Con fixés sur la Switch (ou les commandes d'une Switch Lite) lancent des actions.
-  L'onglet « Manettes (Joy-Con) » dessine les deux manettes : clic sur une touche (ou action de la bibliothèque glissée
-  dessus) pour lui donner une action de tuile, un changement de page, un curseur qui se promène sur les tuiles ou le
-  volume. Sticks : curseur, volume, souris ou défilement. Affectations communes à toutes les pages ou propres à une page.
-- **Thèmes Switch** (onglet « Thèmes ») : l'atelier part de la page affichée ; on place les widgets et on règle leurs
-  couleurs, le fond et les tuiles en direct sur la Switch, puis on enregistre. À la fermeture de l'atelier, la Switch
-  retrouve exactement ce qu'elle affichait avant (même après un plantage). Un thème enregistré s'applique à n'importe
-  quelle page, avec la même position des widgets ; les tuiles de la page sont gardées.
+  La vue « Manettes (Joy-Con) » montre uniquement les deux manettes, dans un style neutre : clic sur une touche (ou
+  action de la bibliothèque glissée dessus) pour lui donner une action de tuile, un changement de page, un curseur qui
+  se promène sur les tuiles, le volume, ou l'accès direct à une page choisie (par exemple X → Home, Y → Media).
+  Sticks : curseur, volume, souris ou défilement. Affectations communes à
+  toutes les pages ou propres à une page. PC éteint, elles peuvent charger si la Switch reçoit une alimentation USB
+  externe ; sur batterie, leur alimentation reste coupée pour préserver celle de la console.
+- Les deux nouvelles actions système Switch nécessitent le payload SwitchDeck protocole v7 ou ultérieur.
 - Glissement entre pages, curseurs au doigt, boutons VOL± = volume de Windows.
 - **Mode nuit** : PC éteint, la Switch affiche une image et l'heure (horloge interne recalée par le PC).
 - Menu (VOL+ et VOL- en attente) : éteindre, redémarrer, revenir à hekate.
@@ -263,7 +279,6 @@ Tout est dans `%AppData%\SysDeck` :
 |---|---|
 | `config.json` | Réglages, thème, apparence des modules, positions, Switch, applications connectées. La clé Gemini, le mot de passe OBS et les jetons Twitch y sont chiffrés (DPAPI, compte Windows courant) et ne sont jamais exportés dans les profils. |
 | `shortcuts.json` | Raccourcis de la barre |
-| `switch-themes.json` | Thèmes Switch enregistrés (`switch-theme-studio.json` n'existe que pendant l'atelier de thème) |
 | `custom-colors.json` | Couleurs personnalisées du sélecteur de couleur |
 | `power-usage.json` | Historique de consommation |
 | `Icons/`, `Backgrounds/`, `Fonts/` | Copies des icônes, images de fond et polices importées |
@@ -286,7 +301,7 @@ portable) ; une instance par dossier de données.
   si le payload est trop ancien.
 - **Module SimHub : « SimHub non détecté »** : lancer SimHub avec le plugin SimHub Property Server activé
   (port 18082 par défaut, modifiable dans les réglages du module).
-- **Météo ou qualité de l'air vide** : choisir la ville dans la personnalisation du module (onglet Style), puis « Rechercher ».
+- **Météo, qualité de l'air ou soleil vide** : choisir la ville dans la personnalisation du module (onglet Style), puis « Rechercher ».
 - **Application connectée en erreur** : la carte de l'application (Paramètres → Applications connectées)
   indique la raison. Vérifier qu'OBS ou Voicemod est lancé. Pour Twitch, se déconnecter puis se reconnecter
   après une mise à jour qui demande de nouveaux droits (émotes).
@@ -304,7 +319,8 @@ portable) ; une instance par dossier de données.
 - [SharpVectors](https://github.com/ElinamLLC/SharpVectors) (BSD-3-Clause) pour les icônes SVG,
   [WebView2](https://developer.microsoft.com/microsoft-edge/webview2/) (Microsoft) pour les pages de réglages des plugins,
   [Node.js](https://nodejs.org) (MIT, téléchargé à la demande) pour les plugins en JavaScript.
-- Données météo et qualité de l'air : [Open-Meteo.com](https://open-meteo.com) (CC BY 4.0).
+- Données météo, qualité de l'air, lever et coucher du soleil : [Open-Meteo.com](https://open-meteo.com) (CC BY 4.0).
+- Image de la Lune : carte couleur LROC du Scientific Visualization Studio de la NASA ([CGI Moon Kit](https://svs.gsfc.nasa.gov/4720)), projetée en disque.
 
 Nintendo Switch et Joy-Con sont des marques de Nintendo. Stream Deck et Elgato sont des marques de Corsair. OBS Studio, Twitch, Voicemod et SimHub sont
 des marques de leurs propriétaires respectifs. Ce projet n'est ni affilié ni approuvé par Nintendo, Corsair, OBS, Twitch, Voicemod ou SimHub.

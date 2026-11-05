@@ -24,6 +24,9 @@ public sealed partial class DeckLayoutEditor : Border
     private readonly Canvas _overlay = new() { Width = DeckScreen.ScreenWidth, Height = DeckScreen.ScreenHeight, Background = Brushes.Transparent };
     private DeckController? _deck;
     private string? _selected;
+    private readonly HashSet<string> _selectedElements = new(StringComparer.Ordinal);
+    private readonly Dictionary<DeckElement, Rect> _startRects = new();
+    private readonly List<System.Windows.Shapes.Line> _alignmentGuides = new();
 
     // Glissement en cours
     private FrameworkElement? _dragFrame;
@@ -88,8 +91,14 @@ public sealed partial class DeckLayoutEditor : Border
     /// <summary>Recrée les cadres (éléments ajoutés ou retirés).</summary>
     public void Rebuild()
     {
+        ClearAlignmentGuides();
         _overlay.Children.Clear();
         if (_deck is null) return;
+        _selectedElements.RemoveWhere(id => _deck.Settings.Find(id) is not { Visible: true });
+        if (_selected is not null && !_selectedElements.Contains(_selected))
+            _selected = _selectedElements.FirstOrDefault();
+        if (_deck.Settings.SnapToGrid)
+            _overlay.Children.Add(new LayoutGrid { Width = DeckScreen.ScreenWidth, Height = DeckScreen.ScreenHeight });
         // Chaque élément de l'écran a un cadre pour le déplacer d'un bloc ; les éléments internes des modules
         // ont en plus leurs propres cadres (couche au-dessus).
         foreach (var element in _deck.Settings.Elements.Where(e => e.Visible))
@@ -104,7 +113,7 @@ public sealed partial class DeckLayoutEditor : Border
 
     private FrameworkElement BuildFrame(DeckElement element)
     {
-        var selected = element.Id == _selected;
+        var selected = _selectedElements.Contains(element.Id);
         // Module : ses éléments couvrent presque toute la carte, l'étiquette (au-dessus de la carte) sert de poignée.
         var isModule = _deck?.Screen.CardOf(element.Id) is not null;
         var label = new Border
@@ -158,7 +167,7 @@ public sealed partial class DeckLayoutEditor : Border
         // Celle d'un module, posée au-dessus de la carte, reste visible : c'est la poignée pour la déplacer.
         label.Opacity = selected || isModule ? 1 : 0;
         frame.MouseEnter += (_, _) => label.Opacity = 1;
-        frame.MouseLeave += (_, _) => label.Opacity = element.Id == _selected || isModule ? 1 : 0;
+        frame.MouseLeave += (_, _) => label.Opacity = _selectedElements.Contains(element.Id) || isModule ? 1 : 0;
         Place(frame, element);
         frame.MouseLeftButtonDown += Frame_MouseLeftButtonDown;
         return frame;
@@ -225,31 +234,42 @@ public sealed partial class DeckLayoutEditor : Border
     {
         if (sender is not FrameworkElement { Tag: DeckElement element } frame) return;
 
+        var controlClick = (Keyboard.Modifiers & ModifierKeys.Control) != 0;
+        if (controlClick)
+        {
+            if (!_selectedElements.Add(element.Id)) _selectedElements.Remove(element.Id);
+            _selected = _selectedElements.Contains(element.Id) ? element.Id : _selectedElements.FirstOrDefault();
+            RefreshSelectionStyle();
+            if (!_selectedElements.Contains(element.Id))
+            {
+                e.Handled = true;
+                return;
+            }
+        }
+        else if (!_selectedElements.Contains(element.Id) || _selectedElements.Count > 1)
+        {
+            _selectedElements.Clear();
+            _selectedElements.Add(element.Id);
+            _selected = element.Id;
+            RefreshSelectionStyle();
+        }
+
         _resizing = e.OriginalSource is DependencyObject source && IsInResizeHandle(source, frame);
         _dragFrame = frame;
         _dragElement = element;
         _dragStart = e.GetPosition(_overlay);
         _startRect = new Rect(element.X, element.Y, element.Width, element.Height);
-
-        if (_selected != element.Id)
-        {
-            _selected = element.Id;
-            // Restyle sans recréer le cadre saisi : la capture de la souris doit rester sur l'overlay.
-            foreach (var other in _overlay.Children.OfType<Border>())
-            {
-                var isSelected = other.Tag == element;
-                other.BorderThickness = new Thickness(isSelected ? 4 : 2);
-                other.BorderBrush = AccentBrush(isSelected ? (byte)0xFF : (byte)0x99);
-                other.Background = new SolidColorBrush(Color.FromArgb(isSelected ? (byte)0x22 : (byte)0x08, 0x00, 0xE0, 0xFF));
-                if (other.Child is Grid { Children: [Border label, ..] }) label.Opacity = isSelected || other.IsMouseOver || label.Tag is GripTag ? 1 : 0;
-            }
-        }
+        _startRects.Clear();
+        foreach (var selectedId in _selectedElements)
+            if (_deck?.Settings.Find(selectedId) is { } selectedElement)
+                _startRects[selectedElement] = new Rect(selectedElement.X, selectedElement.Y, selectedElement.Width, selectedElement.Height);
         // Clic sur une tuile du bloc d'applications : on déplace la tuile (pas le bloc) ; un simple clic la sélectionne,
         // un double-clic ouvre sa configuration.
-        if (!_resizing && TryBeginTileDrag(element, _dragStart))
+        if (!controlClick && _selectedElements.Count == 1 && !_resizing && TryBeginTileDrag(element, _dragStart))
         {
             _dragFrame = null;
             _dragElement = null;
+            _startRects.Clear();
             if (e.ClickCount == 2 && _tileDrag is { } item)
             {
                 SelectTile(item);
@@ -260,8 +280,22 @@ public sealed partial class DeckLayoutEditor : Border
             }
         }
         else SelectTile(null);
+        if (controlClick && _selectedElements.Count > 1) SelectTile(null);
         _overlay.CaptureMouse();
         e.Handled = true;
+    }
+
+    private void RefreshSelectionStyle()
+    {
+        foreach (var frame in _overlay.Children.OfType<Border>())
+        {
+            var selected = frame.Tag is DeckElement element && _selectedElements.Contains(element.Id);
+            frame.BorderThickness = new Thickness(selected ? 4 : 2);
+            frame.BorderBrush = AccentBrush(selected ? (byte)0xFF : (byte)0x99);
+            frame.Background = new SolidColorBrush(Color.FromArgb(selected ? (byte)0x22 : (byte)0x08, 0x00, 0xE0, 0xFF));
+            if (frame.Child is Grid { Children: [Border label, ..] })
+                label.Opacity = selected || frame.IsMouseOver || label.Tag is GripTag ? 1 : 0;
+        }
     }
 
     private static bool IsInResizeHandle(DependencyObject source, FrameworkElement frame)
@@ -285,21 +319,117 @@ public sealed partial class DeckLayoutEditor : Border
         if (_resizing)
         {
             // Peut dépasser de l'écran (la partie dehors est coupée) ; borne large pour rester manipulable.
-            _dragElement.Width = Math.Clamp(Round(_startRect.Width + delta.X), MinSize, W * 2);
-            _dragElement.Height = Math.Clamp(Round(_startRect.Height + delta.Y), MinSize, H * 2);
-            _dragElement.Scale = null; // module en taille automatique : le cadre tiré donne la nouvelle échelle
+            foreach (var (element, start) in _startRects)
+            {
+                element.Width = Math.Clamp(SnapValue(start.Width + delta.X), MinSize, W * 2);
+                element.Height = Math.Clamp(SnapValue(start.Height + delta.Y), MinSize, H * 2);
+                element.Scale = null;
+                _deck.Place(element.Id);
+                if (_overlay.Children.OfType<Border>().FirstOrDefault(candidate => candidate.Tag == element) is { } resizeFrame)
+                    Place(resizeFrame, element);
+            }
         }
         else
         {
-            // Dépassement de l'écran permis, mais une partie reste visible pour pouvoir le rattraper.
-            _dragElement.X = Math.Clamp(Round(_startRect.X + delta.X), KeepVisible - _dragElement.Width, W - KeepVisible);
-            _dragElement.Y = Math.Clamp(Round(_startRect.Y + delta.Y), KeepVisible - _dragElement.Height, H - KeepVisible);
+            var x = _startRect.X + delta.X;
+            var y = _startRect.Y + delta.Y;
+            if (_deck.Settings.SnapToGrid)
+            {
+                x = Round(x);
+                y = Round(y);
+            }
+            var (snapX, snapY) = SnapToAlignment(x, y);
+            var (moveX, moveY) = ClampGroupDelta(snapX - _startRect.X, snapY - _startRect.Y, W, H);
+            foreach (var (element, start) in _startRects)
+            {
+                element.X = start.X + moveX;
+                element.Y = start.Y + moveY;
+                _deck.Place(element.Id);
+                if (_overlay.Children.OfType<Border>().FirstOrDefault(candidate => candidate.Tag == element) is { } moveFrame)
+                    Place(moveFrame, element);
+            }
         }
-
-        _deck.Place(_dragElement.Id);
-        Place(_dragFrame, _dragElement); // après : un module en taille automatique a pu ajuster son cadre
         SyncGridLines();
     }
+
+    private (double X, double Y) SnapToAlignment(double x, double y)
+    {
+        ClearAlignmentGuides();
+        if (_deck?.Settings.SnapToGrid != true || _dragElement is null) return (x, y);
+        const double tolerance = 10;
+        var moving = new Rect(x, y, _dragElement.Width, _dragElement.Height);
+        double? bestX = null, bestY = null, guideX = null, guideY = null;
+        foreach (var target in _deck.Settings.Elements.Where(e => e.Visible && !_selectedElements.Contains(e.Id)))
+        {
+            var other = new Rect(target.X, target.Y, target.Width, target.Height);
+            foreach (var sourceX in new[] { moving.Left, moving.Left + moving.Width / 2, moving.Right })
+            foreach (var targetX in new[] { other.Left, other.Left + other.Width / 2, other.Right })
+            {
+                var difference = targetX - sourceX;
+                if (Math.Abs(difference) <= tolerance && (bestX is null || Math.Abs(difference) < Math.Abs(bestX.Value)))
+                {
+                    bestX = difference;
+                    guideX = targetX;
+                }
+            }
+            foreach (var sourceY in new[] { moving.Top, moving.Top + moving.Height / 2, moving.Bottom })
+            foreach (var targetY in new[] { other.Top, other.Top + other.Height / 2, other.Bottom })
+            {
+                var difference = targetY - sourceY;
+                if (Math.Abs(difference) <= tolerance && (bestY is null || Math.Abs(difference) < Math.Abs(bestY.Value)))
+                {
+                    bestY = difference;
+                    guideY = targetY;
+                }
+            }
+        }
+        if (bestX is { } dx) x += dx;
+        if (bestY is { } dy) y += dy;
+        if (guideX is { } gx) AddAlignmentGuide(gx, vertical: true);
+        if (guideY is { } gy) AddAlignmentGuide(gy, vertical: false);
+        return (x, y);
+    }
+
+    private (double X, double Y) ClampGroupDelta(double x, double y, double width, double height)
+    {
+        var minX = double.NegativeInfinity;
+        var maxX = double.PositiveInfinity;
+        var minY = double.NegativeInfinity;
+        var maxY = double.PositiveInfinity;
+        foreach (var (element, start) in _startRects)
+        {
+            minX = Math.Max(minX, KeepVisible - start.Right);
+            maxX = Math.Min(maxX, width - KeepVisible - start.Left);
+            minY = Math.Max(minY, KeepVisible - start.Bottom);
+            maxY = Math.Min(maxY, height - KeepVisible - start.Top);
+        }
+        return (Math.Clamp(x, minX, maxX), Math.Clamp(y, minY, maxY));
+    }
+
+    private void AddAlignmentGuide(double coordinate, bool vertical)
+    {
+        var line = new System.Windows.Shapes.Line
+        {
+            X1 = vertical ? coordinate : 0,
+            X2 = vertical ? coordinate : DeckScreen.ScreenWidth,
+            Y1 = vertical ? 0 : coordinate,
+            Y2 = vertical ? DeckScreen.ScreenHeight : coordinate,
+            Stroke = AccentBrush(0xDD),
+            StrokeThickness = 1,
+            StrokeDashArray = new DoubleCollection { 4, 4 },
+            IsHitTestVisible = false
+        };
+        _alignmentGuides.Add(line);
+        _overlay.Children.Add(line);
+    }
+
+    private void ClearAlignmentGuides()
+    {
+        foreach (var line in _alignmentGuides) _overlay.Children.Remove(line);
+        _alignmentGuides.Clear();
+    }
+
+    private double SnapValue(double value) => _deck?.Settings.SnapToGrid == true ? Round(value) : value;
 
     private static double Round(double value) => Math.Round(value / Snap) * Snap;
 
@@ -311,10 +441,26 @@ public sealed partial class DeckLayoutEditor : Border
             return;
         }
         if (_dragFrame is null) return;
-        var moved = _dragElement is not null && _startRect != new Rect(_dragElement.X, _dragElement.Y, _dragElement.Width, _dragElement.Height);
+        var moved = _startRects.Any(pair => pair.Value != new Rect(pair.Key.X, pair.Key.Y, pair.Key.Width, pair.Key.Height));
         _dragFrame = null;
         _dragElement = null;
+        _startRects.Clear();
+        ClearAlignmentGuides();
         if (_overlay.IsMouseCaptured) _overlay.ReleaseMouseCapture();
         if (moved) LayoutChanged?.Invoke();
+    }
+
+    private sealed class LayoutGrid : FrameworkElement
+    {
+        private static readonly Pen GridPen = new(new SolidColorBrush(Color.FromArgb(0x18, 0xFF, 0xFF, 0xFF)), 1);
+
+        protected override void OnRender(DrawingContext drawingContext)
+        {
+            const double spacing = 40;
+            for (var x = spacing; x < DeckScreen.ScreenWidth; x += spacing)
+                drawingContext.DrawLine(GridPen, new Point(x, 0), new Point(x, DeckScreen.ScreenHeight));
+            for (var y = spacing; y < DeckScreen.ScreenHeight; y += spacing)
+                drawingContext.DrawLine(GridPen, new Point(0, y), new Point(DeckScreen.ScreenWidth, y));
+        }
     }
 }

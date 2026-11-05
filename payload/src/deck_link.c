@@ -48,7 +48,7 @@ static u16 touch_x, touch_y;
 // Vrai jusqu'à la première réponse d'une session : le PC doit alors renvoyer tout l'affichage et la luminosité.
 static bool session_new;
 
-// Joy-Con (v6) : alimentés pendant la session seulement (en attente ou en nuit, la Switch est sur batterie).
+// Joy-Con (v6) : alimentés pendant la session, ou en attente si la Switch reçoit une alimentation externe.
 static bool jc_on;
 static u32 jc_pressed; // Appuis accumulés depuis la dernière réponse.
 static u32 jc_last;
@@ -224,6 +224,7 @@ static u16 _handle_rect(const deck_cmd_t *cmd, bool received_in_place)
 static deck_link_res_t _wait_cmd(bool active, bool *received)
 {
 	static u32 next_dram_train;
+	static u32 next_jc_power_check;
 
 	*received = false;
 	u32 deadline = get_tmr_ms() + CMD_TIMEOUT_MS;
@@ -251,6 +252,11 @@ static deck_link_res_t _wait_cmd(bool active, bool *received)
 			return DECK_LINK_DISCONNECTED;
 
 		_touch_update();
+		if (!active && get_tmr_ms() >= next_jc_power_check)
+		{
+			deck_link_jc_power(screen_has_external_power());
+			next_jc_power_check = get_tmr_ms() + 1000;
+		}
 		_jc_update();
 
 		bool bad = usb_ops.usb_device_get_suspended();
@@ -293,6 +299,7 @@ static deck_link_res_t _wait_cmd(bool active, bool *received)
 static deck_link_res_t _serve(void (*on_connected)(), void (*on_idle)())
 {
 	bool active = false;
+	deck_link_res_t requested_action = DECK_LINK_IDLE;
 
 	while (true)
 	{
@@ -371,6 +378,17 @@ static deck_link_res_t _serve(void (*on_connected)(), void (*on_idle)())
 				status = DECK_STATUS_BAD_NIGHT;
 			break;
 
+		case DECK_CMD_SWITCH_ACTION:
+			if (cmd.data_len)
+				status = DECK_STATUS_BAD_CMD;
+			else if (cmd.arg == DECK_SWITCH_ACTION_RCM)
+				requested_action = DECK_LINK_ENTER_RCM;
+			else if (cmd.arg == DECK_SWITCH_ACTION_HEKATE)
+				requested_action = DECK_LINK_LAUNCH_HEKATE;
+			else
+				status = DECK_STATUS_BAD_CMD;
+			break;
+
 		case DECK_CMD_BYE:
 			if (_send_reply(cmd.seq, status))
 				return DECK_LINK_DISCONNECTED;
@@ -387,6 +405,8 @@ static deck_link_res_t _serve(void (*on_connected)(), void (*on_idle)())
 
 		if (_send_reply(cmd.seq, status))
 			return DECK_LINK_DISCONNECTED;
+		if (status == DECK_STATUS_OK && requested_action != DECK_LINK_IDLE)
+			return requested_action;
 	}
 }
 

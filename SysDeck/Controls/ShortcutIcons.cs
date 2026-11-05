@@ -63,6 +63,13 @@ public static class ShortcutIcons
                 ("\uE707", "Repère"), ("\uE909", "Monde"), ("\uE7BE", "Études"), ("\uE719", "Boutique"), ("\uE7BF", "Panier"),
                 ("\uE825", "Banque"), ("\uE8F1", "Bibliothèque"), ("\uE736", "Livre"), ("\uE771", "Personnaliser")
             }),
+            ("Switch et homebrew", new (string, string)[]
+            {
+                ("brand:nintendoswitch", "Nintendo Switch"),
+                ("🚀", "hekate — démarrage"),
+                ("🌌", "Atmosphère"),
+                ("⚡", "Mode RCM")
+            }),
             ("Communication", new (string, string)[]
             {
                 ("\uE715", "Courrier"), ("\uE8BD", "Discussion"), ("\uE717", "Téléphone"), ("\uE77B", "Contact"), ("\uE716", "Personnes"),

@@ -40,6 +40,7 @@
     <EmbeddedResource Include="Assets\brand-icons.json" LogicalName="brand-icons.json" />
     <!-- Boutons en verre des tuiles de la Switch (relâché / appuyé ; face et bord séparés), lus une fois par TileGlass. -->
     <EmbeddedResource Include="Assets\Tiles\*.png" LogicalName="%(Filename)%(Extension)" />
+    <EmbeddedResource Include="Assets\Moon\moon.png" LogicalName="moon.png" />
     <!-- Clé de la Control API Voicemod, brouillée (Secrets\ est exclu de git) : absente, l'intégration Voicemod l'indique. -->
     <EmbeddedResource Include="Secrets\voicemod.key" LogicalName="voicemod.key" Condition="Exists('Secrets\voicemod.key')" />
     <!-- PresentMon (Intel, licence MIT, binaire officiel signé v2.6.0) : mesure des FPS des jeux. -->

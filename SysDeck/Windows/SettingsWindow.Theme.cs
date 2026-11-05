@@ -48,6 +48,11 @@ public partial class SettingsWindow
         _switchPending.Clear();
         foreach (var id in desktop) _widgetManager.ApplyModuleAppearance(id);
         foreach (var id in deck) _widgetManager.ApplyDeckAppearance(id);
+
+        var previewId = SelectedModule?.Id;
+        if (previewId is not null
+            && (_customizeSwitch ? deck.Contains(previewId) : desktop.Contains(previewId)))
+            RefreshPreviewElements();
     }
 
     private void OnGlobalThemeChanged(object? sender, PropertyChangedEventArgs e)

@@ -31,6 +31,13 @@ static void _reboot()
 	power_set_state(POWER_OFF_REBOOT);
 }
 
+static void _enter_rcm()
+{
+	deck_link_jc_power(false);
+	screen_brightness(0);
+	power_set_state(REBOOT_RCM);
+}
+
 static void _wait_buttons_released()
 {
 	while (btn_read())
@@ -81,7 +88,7 @@ static void _show_idle()
 // Le PC a dit BYE ou s'est tu : retour à l'attente, l'USB reste connecté.
 static void _on_idle()
 {
-	deck_link_jc_power(false); // sur batterie : les Joy-Con ne se rechargent pas aux dépens de la Switch
+	deck_link_jc_power(screen_has_external_power());
 	_ram_fast(false);
 	_show_idle();
 }
@@ -211,6 +218,18 @@ void ipl_main()
 
 		case DECK_LINK_REBOOT:
 			_reboot();
+			break;
+
+		case DECK_LINK_ENTER_RCM:
+			_enter_rcm();
+			break;
+
+		case DECK_LINK_LAUNCH_HEKATE:
+			if (!_launch_hekate())
+			{
+				screen_draw_menu("hekate introuvable sur la SD (bootloader/update.bin ou payload.bin).");
+				msleep(2000);
+			}
 			break;
 
 		case DECK_LINK_USER_ABORT:

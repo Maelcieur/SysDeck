@@ -60,7 +60,7 @@ public sealed partial class DeckLayoutEditor
             return;
         }
         var (columns, rows) = _deck.AppsGrid();
-        if (!TileGrid.Arrange(_deck.Settings.Page.Apps, columns, rows).Cells.TryGetValue(_selectedTile, out var cell))
+        if (!TileGrid.Arrange(_deck.CurrentAppsSubpage(), columns, rows).Cells.TryGetValue(_selectedTile, out var cell))
         {
             _selectMark.Visibility = Visibility.Collapsed;
             return;

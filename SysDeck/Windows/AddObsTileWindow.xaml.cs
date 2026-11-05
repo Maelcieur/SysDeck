@@ -12,7 +12,7 @@ namespace SysDeck;
 /// Création ou modification d'une tuile OBS Studio : action, cible (scène, entrée audio ou source) choisie dans les listes
 /// d'OBS quand il est connecté (sinon saisie à la main), nom, confirmation et icône.
 /// </summary>
-public partial class AddObsTileWindow : Window
+public partial class AddObsTileWindow : TileEditorWindow
 {
     /// <summary>Actions proposées, avec leur libellé.</summary>
     public static readonly (ObsAction Action, string Label)[] Actions =
@@ -36,12 +36,10 @@ public partial class AddObsTileWindow : Window
     private bool _nameManual; // le nom a été saisi à la main : il n'est plus proposé automatiquement
     private string? _sourcesScene; // scène dont la liste des sources est affichée
 
-    public ShortcutItem? Result { get; private set; }
-
     public AddObsTileWindow(Window owner, Func<EmojiPickerWindow> createEmojiPicker, ObsService obs, ShortcutItem? existing = null)
+        : base(owner)
     {
         InitializeComponent();
-        Owner = owner;
         _createEmojiPicker = createEmojiPicker;
         _obs = obs;
 
@@ -71,8 +69,9 @@ public partial class AddObsTileWindow : Window
         ShowStatus();
         UpdateSuggestion();
         ShowIcon();
-        Loaded += async (_, _) => await LoadFromObsAsync();
     }
+
+    protected override void OnAttached() => _ = LoadFromObsAsync();
 
     private ObsAction Current => Actions[Math.Max(0, ActionBox.SelectedIndex)].Action;
 
@@ -248,10 +247,15 @@ public partial class AddObsTileWindow : Window
     private void Icon_Click(object sender, RoutedEventArgs e)
     {
         var name = string.IsNullOrWhiteSpace(NameBox.Text) ? "OBS" : NameBox.Text.Trim();
-        if (_icon.Choose(this, name, _createEmojiPicker, DefaultGlyph)) ShowIcon();
+        if (ChooseIconInline(_icon.CreateChooser(DialogOwner, name, _createEmojiPicker, DefaultGlyph), choice =>
+            {
+                _icon.ApplyChoice(choice);
+                ShowIcon();
+            })) return;
+        if (_icon.Choose(DialogOwner, name, _createEmojiPicker, DefaultGlyph)) ShowIcon();
     }
 
-    private void Cancel_Click(object sender, RoutedEventArgs e) => DialogResult = false;
+    private void Cancel_Click(object sender, RoutedEventArgs e) => Complete(false);
 
     private void Add_Click(object sender, RoutedEventArgs e)
     {
@@ -268,7 +272,7 @@ public partial class AddObsTileWindow : Window
         };
         if (missing is not null)
         {
-            MessageBox.Show(this, missing, "SysDeck", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(DialogOwner, missing, "SysDeck", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
@@ -282,9 +286,9 @@ public partial class AddObsTileWindow : Window
             ConfirmTap = ConfirmCheck.IsChecked == true
         };
         // Icône par défaut laissée vide : elle suit l'action et l'état, voir TileRuntime.ForDisplay.
-        if (!_icon.ApplyTo(item, this, defaultGlyph: null)) return;
+        if (!_icon.ApplyTo(item, DialogOwner, defaultGlyph: null)) return;
 
         Result = item;
-        DialogResult = true;
+        Complete(true);
     }
 }

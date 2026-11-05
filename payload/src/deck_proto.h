@@ -19,7 +19,7 @@
 
 #include <utils/types.h>
 
-#define DECK_PROTO_VERSION 6
+#define DECK_PROTO_VERSION 7
 #define DECK_BLOCK_SIZE    512
 
 #define DECK_CMD_MAGIC   0x4B434453 // "SDCK"
@@ -37,8 +37,15 @@ typedef enum _deck_cmd_id_t
 	DECK_CMD_BYE        = 5, // Le PC s'arrête (veille, extinction) : retour à l'écran d'attente.
 	DECK_CMD_NIGHT      = 6, // Kit nuit (deck_night_hdr_t + image + glyphes), stocké sans rien changer à l'affichage.
 	DECK_CMD_NIGHT_TIME = 7, // arg = heure locale du PC (secondes epoch « locale »), recale l'horloge de nuit.
-	DECK_CMD_NIGHT_BRIGHT = 8 // (v5) arg = luminosité de veille 0-100 : change seulement celle du kit nuit déjà reçu.
+	DECK_CMD_NIGHT_BRIGHT = 8, // (v5) arg = luminosité de veille 0-100 : change seulement celle du kit nuit déjà reçu.
+	DECK_CMD_SWITCH_ACTION = 9 // (v7) arg = action Switch.
 } deck_cmd_id_t;
+
+typedef enum _deck_switch_action_t
+{
+	DECK_SWITCH_ACTION_RCM = 1,
+	DECK_SWITCH_ACTION_HEKATE = 2
+} deck_switch_action_t;
 
 #define DECK_FLAG_PRESENT BIT(0) // DECK_CMD_RECT : afficher juste après.
 

@@ -3,6 +3,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Windows.Threading;
 using SysDeck.Infrastructure;
+using SysDeck.Models;
 
 namespace SysDeck.Deck;
 
@@ -29,6 +30,7 @@ public sealed class DeckLink : IDisposable
     private volatile int _brightness = 60;
     private bool _resync; // la Switch a démarré une nouvelle session : écran et luminosité à renvoyer (thread USB seulement)
     private int _brightnessSent = -1; // luminosité connue de la Switch, -1 = à renvoyer (thread USB seulement)
+    private int _switchAction;
 
     /// <summary>Dernière image proposée, pas encore envoyée (la plus récente remplace la précédente).</summary>
     private byte[]? _pending;
@@ -92,6 +94,14 @@ public sealed class DeckLink : IDisposable
     public void Start() => _thread.Start();
 
     public bool IsConnected => _status.Connected;
+
+    public bool RequestSwitchAction(SwitchActionKind action)
+    {
+        if (!Enum.IsDefined(action) || !IsConnected || PayloadVersion < DeckProtocol.Version) return false;
+        if (Interlocked.CompareExchange(ref _switchAction, (int)action, 0) != 0) return false;
+        _wake.Set();
+        return true;
+    }
 
     public bool Enabled
     {
@@ -223,6 +233,7 @@ public sealed class DeckLink : IDisposable
             }
 
             _shown = null;
+            Interlocked.Exchange(ref _switchAction, 0);
             Publish(_status with { Connected = false });
             if (!_stopping) _wake.WaitOne(1000);
         }
@@ -252,6 +263,15 @@ public sealed class DeckLink : IDisposable
                 _resync = false;
                 _shown = null;
                 _brightnessSent = -1;
+            }
+
+            var switchAction = Interlocked.Exchange(ref _switchAction, 0);
+            if (switchAction != 0)
+            {
+                var reply = usb.RunSwitchAction((SwitchActionKind)switchAction);
+                Handle(reply, what: "action Switch");
+                if (reply.Status == DeckProtocol.Status.Ok) return;
+                continue;
             }
 
             if (_brightnessSent != _brightness)

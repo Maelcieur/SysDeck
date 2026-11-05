@@ -10,7 +10,7 @@ namespace SysDeck;
 public sealed partial class WidgetManager
 {
     /// <summary>Modules ajoutés en 1.12 : masqués tant qu'on ne les a pas affichés (pas d'apparition surprise).</summary>
-    private static readonly HashSet<string> HiddenByDefault = new() { "tileclock", "analogclock", "calendar", "weather", "temperatures", "airquality", "simhub", "sensorbars" };
+    private static readonly HashSet<string> HiddenByDefault = new() { "tileclock", "analogclock", "calendar", "weather", "temperatures", "airquality", "simhub", "sensorbars", "moon", "sun" };
 
     private readonly DispatcherTimer _clockTimer = new(DispatcherPriority.Render) { Interval = TimeSpan.FromMilliseconds(250) };
     private readonly List<(double? Cpu, double? Gpu)> _temperatureHistory = new();
@@ -71,7 +71,7 @@ public sealed partial class WidgetManager
             chart.Apply(_config.WidgetExtras);
             if (!chart.HasHistory && _temperatureHistory.Count > 0) chart.Load(_temperatureHistory);
         }
-        _weather.Enabled = Live<WeatherWidgetContent>().Any() || Live<AirQualityWidgetContent>().Any();
+        _weather.Enabled = Live<WeatherWidgetContent>().Any() || Live<AirQualityWidgetContent>().Any() || Live<SunWidgetContent>().Any();
         PushWeather();
         if (_simHub is not null)
         {
@@ -87,6 +87,9 @@ public sealed partial class WidgetManager
         if (_weather is null) return;
         foreach (var w in Live<WeatherWidgetContent>()) w.Update(_weather.Current, _weather.Error);
         foreach (var a in Live<AirQualityWidgetContent>()) a.Update(_weather.Air, _weather.Error);
+        foreach (var s in Live<SunWidgetContent>()) s.Update(_weather.Current, _weather.Error);
+        // Hémisphère sud : la Lune y est vue « à l'envers » (éclairée à gauche quand elle croît).
+        foreach (var m in Live<MoonWidgetContent>()) m.SouthernHemisphere = _config.Weather.Latitude is < 0;
     }
 
     private void PushSimHub()

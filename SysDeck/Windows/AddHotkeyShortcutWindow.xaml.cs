@@ -11,7 +11,7 @@ using SysDeck.Services;
 namespace SysDeck;
 
 /// <summary>Création d'un raccourci clavier pour la page Switch : nom, combinaison et icône.</summary>
-public partial class AddHotkeyShortcutWindow : Window
+public partial class AddHotkeyShortcutWindow : TileEditorWindow
 {
     private const string KeyboardGlyph = "\uE765";
 
@@ -29,13 +29,11 @@ public partial class AddHotkeyShortcutWindow : Window
     private ShortcutItem? _existingItem; // apparence active gardée telle quelle (réglée par le bouton Icône de la liste)
 
     /// <summary>Tuile créée (Path vide, Hotkey rempli) ; null si annulé. En modification, nouvelle version de la tuile.</summary>
-    public ShortcutItem? Result { get; private set; }
-
     /// <param name="existing">Tuile à modifier (champs pré-remplis) ; null pour en créer une.</param>
     public AddHotkeyShortcutWindow(Window owner, Func<EmojiPickerWindow> createEmojiPicker, ShortcutItem? existing = null)
+        : base(owner)
     {
         InitializeComponent();
-        Owner = owner;
         _createEmojiPicker = createEmojiPicker;
         if (existing is not null) LoadExisting(existing);
         ShowCombo();
@@ -184,9 +182,15 @@ public partial class AddHotkeyShortcutWindow : Window
             TileColor = _tileColor,
             ImageTint = _imageTint
         };
-        var chooser = new IconChooserWindow(this, string.IsNullOrWhiteSpace(NameBox.Text) ? "Raccourci clavier" : NameBox.Text.Trim(), _createEmojiPicker, current);
+        var chooser = new IconChooserWindow(DialogOwner, string.IsNullOrWhiteSpace(NameBox.Text) ? "Raccourci clavier" : NameBox.Text.Trim(), _createEmojiPicker, current);
+        if (ChooseIconInline(chooser, ApplyIconChoice)) return;
         if (chooser.ShowDialog() != true || chooser.Result is not { } choice) return;
 
+        ApplyIconChoice(choice);
+    }
+
+    private void ApplyIconChoice(IconChoice choice)
+    {
         _iconColor = choice.IconColor;
         _imageTint = choice.ImageTint;
         _tileColor = choice.TileColor;
@@ -200,7 +204,7 @@ public partial class AddHotkeyShortcutWindow : Window
         ShowIcon();
     }
 
-    private void Cancel_Click(object sender, RoutedEventArgs e) => DialogResult = false;
+    private void Cancel_Click(object sender, RoutedEventArgs e) => Complete(false);
 
     private void Add_Click(object sender, RoutedEventArgs e)
     {
@@ -216,7 +220,7 @@ public partial class AddHotkeyShortcutWindow : Window
             catch (Exception ex)
             {
                 Log.Warn("Copie de l'icône impossible", ex);
-                MessageBox.Show(this, $"Impossible d'utiliser cette image :\n{ex.Message}", "SysDeck", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(DialogOwner, $"Impossible d'utiliser cette image :\n{ex.Message}", "SysDeck", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
         }
@@ -234,6 +238,6 @@ public partial class AddHotkeyShortcutWindow : Window
             ImageTint = imageCopy is null ? null : _imageTint
         };
         if (_existingItem is not null) Result.CopyActiveFrom(_existingItem);
-        DialogResult = true;
+        Complete(true);
     }
 }

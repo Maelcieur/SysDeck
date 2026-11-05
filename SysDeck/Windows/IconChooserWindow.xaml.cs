@@ -81,12 +81,18 @@ public partial class IconChooserWindow : Window
     /// <summary>Vrai quand l'aperçu montre une image choisie (ni symbole ni émoji) : la palette la teinte.</summary>
     private bool ShowsImage => string.IsNullOrEmpty(_preview.IconGlyph) && !string.IsNullOrWhiteSpace(_preview.CustomIconPath);
     private bool _loadingOptions;
+    private bool _isEmbedded;
+    private Action<bool>? _embeddedCompleted;
     private string? _value;
     private string _category = AllCategories;
     private Button? _selectedSymbol;
+    private bool _buildingCategories;
 
     /// <summary>Null si l'utilisateur a annulé.</summary>
     public IconChoice? Result { get; private set; }
+    public string ChooserTitle => TitleText.Text;
+    public event Action<IconChooserWindow, Action<bool>>? NestedChooserRequested;
+    private Window DialogOwner => _isEmbedded ? Owner ?? this : this;
 
     /// <param name="current">Tuile actuelle (icône et couleurs de départ de l'aperçu) ; null pour une nouvelle tuile.</param>
     /// <param name="tileOptions">Vrai pour une tuile de la Switch : taille de l'icône et nom masqué se règlent aussi ici.</param>
@@ -142,39 +148,74 @@ public partial class IconChooserWindow : Window
         Loaded += (_, _) => SearchBox.Focus();
     }
 
+    public void AttachTo(ContentControl host, Action<bool> completed)
+    {
+        if (Content is not UIElement content)
+            throw new InvalidOperationException("The icon chooser has no content to display.");
+
+        _isEmbedded = true;
+        _embeddedCompleted = completed;
+        Content = null;
+        host.Content = content;
+        SearchBox.Focus();
+    }
+
+    public void CancelInline() => Complete(false);
+
+    private void Complete(bool accepted)
+    {
+        if (!_isEmbedded)
+        {
+            DialogResult = accepted;
+            return;
+        }
+
+        _embeddedCompleted?.Invoke(accepted);
+    }
+
     // ---------- Symboles ----------
 
     /// <summary>Catégories de symboles, « Marques », puis une par pack d'icônes installé (clic droit : supprimer le pack).</summary>
     private void BuildCategories()
     {
-        CategoriesPanel.Children.Clear();
+        _buildingCategories = true;
+        CategoriesBox.Items.Clear();
         var categories = new[] { AllCategories }.Concat(ShortcutIcons.Library.Select(c => c.Category)).Append(BrandsCategory)
             .Select(name => (Key: name, Label: name, Pack: (IconPack?)null))
             .Concat(IconPackStore.All.Select(p => (Key: PackPrefix + p.Id, Label: p.Name, Pack: (IconPack?)p)));
 
         foreach (var (key, label, pack) in categories)
         {
-            var chip = new RadioButton
-            {
-                Content = label,
-                GroupName = "IconCategory",
-                IsChecked = key == _category,
-                Style = (Style)FindResource("Chip")
-            };
-            chip.Checked += (_, _) =>
-            {
-                _category = key;
-                BuildSymbols();
-            };
+            var item = new ComboBoxItem { Content = label, Tag = key };
             if (pack is not null)
             {
-                chip.ToolTip = PackTooltip(pack);
+                item.ToolTip = PackTooltip(pack);
                 var delete = new MenuItem { Header = "Supprimer ce pack d'icônes" };
                 delete.Click += (_, _) => DeletePack(pack);
-                chip.ContextMenu = new ContextMenu { Items = { delete } };
+                item.ContextMenu = new ContextMenu { Items = { delete } };
             }
-            CategoriesPanel.Children.Add(chip);
+            CategoriesBox.Items.Add(item);
         }
+        var selected = CategoriesBox.Items.Cast<ComboBoxItem>().FirstOrDefault(item => Equals(item.Tag, _category))
+            ?? CategoriesBox.Items.Cast<ComboBoxItem>().First();
+        _category = (string)selected.Tag;
+        CategoriesBox.SelectedItem = selected;
+        _buildingCategories = false;
+        UpdateSymbolsHeader();
+    }
+
+    private void Category_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (_buildingCategories || CategoriesBox.SelectedItem is not ComboBoxItem { Tag: string category }) return;
+        _category = category;
+        UpdateSymbolsHeader();
+        BuildSymbols();
+    }
+
+    private void UpdateSymbolsHeader()
+    {
+        var label = (CategoriesBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? AllCategories;
+        SymbolsHeader.Text = $"Afficher les icônes — {label}";
     }
 
     private static string PackTooltip(IconPack pack)
@@ -206,9 +247,10 @@ public partial class IconChooserWindow : Window
 
         foreach (var (glyph, name, _) in items)
         {
+            var isSymbol = ShortcutIcons.IsSymbol(glyph);
             var button = new Button
             {
-                Content = glyph,
+                Content = isSymbol ? glyph : ShortcutIcons.CreateGlyph(glyph, 24),
                 FontFamily = new FontFamily(ShortcutIcons.SymbolFont),
                 FontSize = 20,
                 Width = 46,
@@ -346,7 +388,7 @@ public partial class IconChooserWindow : Window
             Title = "Importer un pack d'icônes",
             Filter = "Packs d'icônes (*.streamDeckIconPack;*.zip)|*.streamDeckIconPack;*.zip|Tous les fichiers (*.*)|*.*"
         };
-        if (dialog.ShowDialog(this) != true) return;
+        if (dialog.ShowDialog(DialogOwner) != true) return;
 
         try
         {
@@ -361,17 +403,17 @@ public partial class IconChooserWindow : Window
             BuildSymbols();
             var message = $"Pack « {pack.Name} » installé : {pack.Icons.Count} icônes.";
             if (pack.SkippedSvg > 0) message += $"\n{pack.SkippedSvg} icône(s) SVG n'ont pas pu être converties et sont ignorées.";
-            MessageBox.Show(this, message, "Pack d'icônes", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show(DialogOwner, message, "Pack d'icônes", MessageBoxButton.OK, MessageBoxImage.Information);
         }
         catch (InvalidDataException ex)
         {
-            MessageBox.Show(this, ex.Message, "Pack d'icônes", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(DialogOwner, ex.Message, "Pack d'icônes", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
 
     private void DeletePack(IconPack pack)
     {
-        if (MessageBox.Show(this, $"Supprimer le pack « {pack.Name} » ?\nLes tuiles qui utilisent déjà une de ses icônes la gardent.",
+        if (MessageBox.Show(DialogOwner, $"Supprimer le pack « {pack.Name} » ?\nLes tuiles qui utilisent déjà une de ses icônes la gardent.",
                 "Pack d'icônes", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
 
         // Icône choisie dans ce pack mais pas encore validée : on l'oublie, son fichier va disparaître.
@@ -379,7 +421,7 @@ public partial class IconChooserWindow : Window
         try { IconPackStore.Delete(pack.Id); }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            MessageBox.Show(this, $"Suppression impossible : {ex.Message}", "Pack d'icônes", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(DialogOwner, $"Suppression impossible : {ex.Message}", "Pack d'icônes", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
         if (_category == PackPrefix + pack.Id) _category = AllCategories;
         BuildCategories();
@@ -518,9 +560,22 @@ public partial class IconChooserWindow : Window
     {
         var current = _preview.HasActiveIcon ? _preview.ActiveDisplay() : new ShortcutItem { IconGlyph = _preview.IconGlyph, CustomIconPath = _preview.CustomIconPath, IconColor = _preview.IconColor, ImageTint = _preview.ImageTint };
         current.TileColor = _preview.TileColor;
-        var chooser = new IconChooserWindow(this, $"{PreviewName.Text} (active)", _createEmojiPicker, current);
+        var chooser = new IconChooserWindow(DialogOwner, $"{PreviewName.Text} (active)", _createEmojiPicker, current);
+        if (_isEmbedded && NestedChooserRequested is { } requested)
+        {
+            requested(chooser, accepted =>
+            {
+                if (accepted && chooser.Result is { } choice) ApplyActiveIconChoice(choice);
+            });
+            return;
+        }
         if (chooser.ShowDialog() != true || chooser.Result is not { } choice) return;
 
+        ApplyActiveIconChoice(choice);
+    }
+
+    private void ApplyActiveIconChoice(IconChoice choice)
+    {
         switch (choice.Kind)
         {
             case IconChoiceKind.Glyph:
@@ -625,16 +680,16 @@ public partial class IconChooserWindow : Window
             Title = "Choisir une icône",
             Filter = "Images (*.png;*.jpg;*.jpeg;*.ico;*.bmp;*.gif)|*.png;*.jpg;*.jpeg;*.ico;*.bmp;*.gif|Tous les fichiers (*.*)|*.*"
         };
-        if (dialog.ShowDialog(this) == true) SetIcon(IconChoiceKind.Image, dialog.FileName);
+        if (dialog.ShowDialog(DialogOwner) == true) SetIcon(IconChoiceKind.Image, dialog.FileName);
     }
 
     private void Emoji_Click(object sender, RoutedEventArgs e)
         // Le sélecteur d'émojis habituel, en mode « choix » : il rend l'émoji ici au lieu de le taper dans une autre application.
-        => _createEmojiPicker().ShowForPick(this, emoji => SetIcon(IconChoiceKind.Glyph, emoji));
+        => _createEmojiPicker().ShowForPick(DialogOwner, emoji => SetIcon(IconChoiceKind.Glyph, emoji));
 
     private void Reset_Click(object sender, RoutedEventArgs e) => SetIcon(IconChoiceKind.Reset, null);
 
-    private void Cancel_Click(object sender, RoutedEventArgs e) => DialogResult = false;
+    private void Cancel_Click(object sender, RoutedEventArgs e) => Complete(false);
 
     private void Ok_Click(object sender, RoutedEventArgs e)
     {
@@ -642,6 +697,6 @@ public partial class IconChooserWindow : Window
             _tileOptions ? _preview.IconScale : null, _tileOptions ? _preview.HideName : null,
             ShowsImage ? _preview.ImageTint : null,
             _tileOptions ? TileActiveLook.From(_preview) : null);
-        DialogResult = true;
+        Complete(true);
     }
 }

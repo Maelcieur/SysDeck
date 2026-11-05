@@ -32,6 +32,7 @@ public partial class SettingsWindow
 
         if (SelectedModule is not { } module || !ButtonPart.ByModule.TryGetValue(module.Id, out var parts))
         {
+            _buttonRows = new();
             ButtonPartsList.ItemsSource = null;
             return;
         }
@@ -46,6 +47,7 @@ public partial class SettingsWindow
             _buttonSubscriptions.Add((style, handler));
             rows.Add(new ButtonRow(part, style));
         }
+        _buttonRows = rows;
         ButtonPartsList.ItemsSource = rows;
     }
 

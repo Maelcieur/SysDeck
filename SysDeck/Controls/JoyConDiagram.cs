@@ -19,12 +19,11 @@ namespace SysDeck.Controls;
 public sealed class JoyConDiagram : Viewbox
 {
     private const double W = 960, H = 470;
-    private static readonly Color Accent = Color.FromRgb(0x5B, 0x8D, 0xEF);
-    private static readonly Brush BodyLeft = Frozen(Color.FromRgb(0x1F, 0x6F, 0xB8));
-    private static readonly Brush BodyRight = Frozen(Color.FromRgb(0xC8, 0x3A, 0x3A));
+    private static readonly Color Accent = Color.FromRgb(0x9A, 0xA1, 0xAD);
+    private static readonly Brush NeutralBodyBrush = Frozen(Color.FromRgb(0x43, 0x45, 0x4C));
     private static readonly Brush KeyFill = Frozen(Color.FromRgb(0x22, 0x24, 0x2C));
     private static readonly Brush KeyStroke = Frozen(Color.FromArgb(0x80, 0xFF, 0xFF, 0xFF));
-    private static readonly Brush LineBrush = Frozen(Color.FromArgb(0x70, 0xFF, 0xFF, 0xFF));
+    private static readonly Brush LineBrush = Frozen(Color.FromArgb(0x70, 0xC9, 0xCC, 0xD6));
 
     private readonly Canvas _canvas = new() { Width = W, Height = H };
     private readonly Dictionary<JoyConButton, Shape> _keys = new();
@@ -47,42 +46,31 @@ public sealed class JoyConDiagram : Viewbox
         Stretch = Stretch.Uniform;
         Child = _canvas;
 
-        // Corps : Joy-Con gauche (bleu), écran de la Switch, Joy-Con droit (rouge).
-        _leftBody = Body(250, 70, new CornerRadius(80, 0, 0, 80), BodyLeft);
-        _rightBody = Body(630, 70, new CornerRadius(0, 80, 80, 0), BodyRight);
-        var console = new Border
-        {
-            Width = 220, Height = 340, Background = Frozen(Color.FromRgb(0x18, 0x19, 0x1E)),
-            BorderBrush = KeyStroke, BorderThickness = new Thickness(1),
-            Child = new Border
-            {
-                Margin = new Thickness(14, 22, 14, 22), Background = Frozen(Color.FromRgb(0x0B, 0x0C, 0x10)), CornerRadius = new CornerRadius(4),
-                Child = new TextBlock { Text = "SysDeck", Foreground = KeyStroke, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, FontSize = 16 }
-            }
-        };
-        Place(console, 410, 70);
+        // Deux manettes seules, rapprochées et habillées dans des tons neutres.
+        _leftBody = Body(300, 70, new CornerRadius(80, 0, 0, 80), NeutralBodyBrush);
+        _rightBody = Body(500, 70, new CornerRadius(0, 80, 80, 0), NeutralBodyBrush);
 
         // Touches du Joy-Con gauche (centres en coordonnées du dessin).
-        Pill(JoyConButton.ZL, 270, 30, 80, 20, "ZL");
-        Pill(JoyConButton.L, 270, 54, 80, 18, "L");
-        Pill(JoyConButton.Minus, 372, 92, 26, 12, "−");
-        Round(JoyConButton.LStick, 330, 150, 32, "");
-        Round(JoyConButton.Up, 330, 225, 17, "▲");
-        Round(JoyConButton.Down, 330, 295, 17, "▼");
-        Round(JoyConButton.Left, 295, 260, 17, "◀");
-        Round(JoyConButton.Right, 365, 260, 17, "▶");
-        Square(JoyConButton.Capture, 352, 352, 22);
+        Pill(JoyConButton.ZL, 320, 30, 80, 20, "ZL");
+        Pill(JoyConButton.L, 320, 54, 80, 18, "L");
+        Pill(JoyConButton.Minus, 422, 92, 26, 12, "−");
+        Round(JoyConButton.LStick, 380, 150, 32, "");
+        Round(JoyConButton.Up, 380, 225, 17, "▲");
+        Round(JoyConButton.Down, 380, 295, 17, "▼");
+        Round(JoyConButton.Left, 345, 260, 17, "◀");
+        Round(JoyConButton.Right, 415, 260, 17, "▶");
+        Square(JoyConButton.Capture, 402, 352, 22);
 
         // Joy-Con droit.
-        Pill(JoyConButton.ZR, 610, 30, 80, 20, "ZR");
-        Pill(JoyConButton.R, 610, 54, 80, 18, "R");
-        Pill(JoyConButton.Plus, 648, 92, 26, 12, "+");
-        Round(JoyConButton.X, 710, 118, 17, "X");
-        Round(JoyConButton.B, 710, 186, 17, "B");
-        Round(JoyConButton.Y, 676, 152, 17, "Y");
-        Round(JoyConButton.A, 744, 152, 17, "A");
-        Round(JoyConButton.RStick, 690, 265, 32, "");
-        Round(JoyConButton.Home, 668, 352, 13, "⌂");
+        Pill(JoyConButton.ZR, 480, 30, 80, 20, "ZR");
+        Pill(JoyConButton.R, 480, 54, 80, 18, "R");
+        Pill(JoyConButton.Plus, 518, 92, 26, 12, "+");
+        Round(JoyConButton.X, 580, 118, 17, "X");
+        Round(JoyConButton.B, 580, 186, 17, "B");
+        Round(JoyConButton.Y, 546, 152, 17, "Y");
+        Round(JoyConButton.A, 614, 152, 17, "A");
+        Round(JoyConButton.RStick, 560, 265, 32, "");
+        Round(JoyConButton.Home, 538, 352, 13, "⌂");
 
         // Étiquettes reliées aux touches, à gauche et à droite (SL / SR, cachés par les rails, ne sont pas proposés).
         var left = new[]

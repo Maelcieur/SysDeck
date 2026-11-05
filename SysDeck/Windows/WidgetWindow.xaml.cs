@@ -65,6 +65,8 @@ public partial class WidgetWindow : Window
     /// <summary>Contenu du module (alimenté par WidgetManager).</summary>
     public UIElement ModuleContent => _card.ModuleContent;
 
+    public ModuleCard PreviewCard => _card;
+
     public void ApplyAppearance(ModuleAppearance appearance) => _card.ApplyAppearance(appearance);
 
     public void ApplyFontScale() => _card.ApplyFontScale();

@@ -25,7 +25,7 @@ public sealed class WeatherSettings : ObservableSettings
 /// <summary>Famille d'icône météo (dessinée par WeatherIcon).</summary>
 public enum WeatherKind { Clear, PartlyCloudy, Cloudy, Fog, Drizzle, Rain, Snow, Storm }
 
-public sealed record WeatherDay(DateTime Date, int Code, double Min, double Max);
+public sealed record WeatherDay(DateTime Date, int Code, double Min, double Max, DateTime? Sunrise = null, DateTime? Sunset = null);
 
 /// <summary>Qualité de l'air actuelle : indice européen (0 = excellent, 100+ = extrêmement mauvais) et polluants en µg/m³.</summary>
 public sealed record AirQualitySnapshot(string Place, int Aqi, double? Pm25, double? Pm10, double? No2, double? O3, DateTime Time);
@@ -120,7 +120,7 @@ public sealed class WeatherService : IDisposable
             var json = await Http.GetStringAsync(
                 $"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}" +
                 "&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,weather_code,wind_speed_10m" +
-                "&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=5");
+                "&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset&timezone=auto&forecast_days=5");
             Current = ParseForecast(json, _settings.Place);
             Error = Current is null ? "Réponse météo illisible." : null;
             try
@@ -168,10 +168,13 @@ public sealed class WeatherService : IDisposable
             var codes = daily.GetProperty("weather_code");
             var max = daily.GetProperty("temperature_2m_max");
             var min = daily.GetProperty("temperature_2m_min");
+            daily.TryGetProperty("sunrise", out var sunrise);
+            daily.TryGetProperty("sunset", out var sunset);
             for (var i = 0; i < time.GetArrayLength(); i++)
             {
                 if (!DateTime.TryParse(time[i].GetString(), CultureInfo.InvariantCulture, DateTimeStyles.None, out var date)) continue;
-                days.Add(new WeatherDay(date, Number(codes[i]) is { } c ? (int)c : 0, Number(min[i]) ?? 0, Number(max[i]) ?? 0));
+                days.Add(new WeatherDay(date, Number(codes[i]) is { } c ? (int)c : 0, Number(min[i]) ?? 0, Number(max[i]) ?? 0,
+                    Time(sunrise, i), Time(sunset, i)));
             }
         }
         return new WeatherSnapshot(place,
@@ -198,6 +201,11 @@ public sealed class WeatherService : IDisposable
         < 100 => ("Très mauvais", "#C8285A"),
         _ => ("Extrêmement mauvais", "#9B3FB4")
     };
+
+    /// <summary>Heure locale du lieu (« 2026-11-04T07:45 », fuseau du lieu grâce à timezone=auto) ; null si absente.</summary>
+    private static DateTime? Time(JsonElement array, int i)
+        => array.ValueKind == JsonValueKind.Array && i < array.GetArrayLength() && array[i].GetString() is { } s
+           && DateTime.TryParse(s, CultureInfo.InvariantCulture, DateTimeStyles.None, out var t) ? t : null;
 
     private static double? Number(JsonElement obj, string name)
         => obj.TryGetProperty(name, out var v) ? Number(v) : null;

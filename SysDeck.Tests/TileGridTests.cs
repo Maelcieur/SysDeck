@@ -19,6 +19,13 @@ public class TileGridTests
         => Assert.Equal(expected, TileGrid.Columns(width, tile));
 
     [Theory]
+    [InlineData(1240, 120, 4, 4)]
+    [InlineData(400, 120, 5, 3)]
+    [InlineData(1240, 120, 0, 8)]
+    public void Colonnes_preferees_respectent_la_largeur_disponible(double width, double tile, int preferred, int expected)
+        => Assert.Equal(expected, TileGrid.Columns(width, tile, preferred));
+
+    [Theory]
     [InlineData(720, 120, 4)]    // 5 -> borné à 4
     [InlineData(160, 120, 1)]
     [InlineData(300, 120, 2)]

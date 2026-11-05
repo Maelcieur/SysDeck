@@ -46,6 +46,29 @@ public class TileLookTests
     }
 
     [Fact]
+    public void PageTransition_Settings_DefaultClampAndRoundTrip()
+    {
+        var defaults = new DeckSettings();
+        defaults.Migrate();
+        Assert.Equal(DeckPageTransition.SlideFade, defaults.PageTransition);
+        Assert.Equal(240, defaults.PageTransitionDuration);
+        Assert.Equal(DeckTransitionEasing.Smooth, defaults.PageTransitionEasing);
+
+        var settings = System.Text.Json.JsonSerializer.Deserialize<DeckSettings>(
+            """{"PageTransition":"Zoom","PageTransitionDuration":5000,"PageTransitionEasing":"Linear"}""")!;
+        settings.Migrate();
+        Assert.Equal(DeckPageTransition.Zoom, settings.PageTransition);
+        Assert.Equal(1000, settings.PageTransitionDuration);
+        Assert.Equal(DeckTransitionEasing.Linear, settings.PageTransitionEasing);
+
+        var copy = System.Text.Json.JsonSerializer.Deserialize<DeckSettings>(System.Text.Json.JsonSerializer.Serialize(settings))!;
+        copy.Migrate();
+        Assert.Equal(settings.PageTransition, copy.PageTransition);
+        Assert.Equal(settings.PageTransitionDuration, copy.PageTransitionDuration);
+        Assert.Equal(settings.PageTransitionEasing, copy.PageTransitionEasing);
+    }
+
+    [Fact]
     public void PageLook_MigratedThenIndependentPerPage()
     {
         var settings = System.Text.Json.JsonSerializer.Deserialize<DeckSettings>(

@@ -12,7 +12,7 @@ namespace SysDeck;
 /// Création ou modification d'une tuile Twitch : action, texte selon l'action (message, titre, description du marqueur),
 /// durée de la pub, catégorie cherchée sur Twitch (si connecté), nom, confirmation et icône.
 /// </summary>
-public partial class AddTwitchTileWindow : Window
+public partial class AddTwitchTileWindow : TileEditorWindow
 {
     /// <summary>Actions proposées, avec leur libellé.</summary>
     public static readonly (TwitchAction Action, string Label)[] Actions =
@@ -38,12 +38,10 @@ public partial class AddTwitchTileWindow : Window
     private bool _confirmManual; // la confirmation a été réglée à la main : elle ne suit plus l'action
     private string? _categoryId, _categoryName;
 
-    public ShortcutItem? Result { get; private set; }
-
     public AddTwitchTileWindow(Window owner, Func<EmojiPickerWindow> createEmojiPicker, TwitchService twitch, ShortcutItem? existing = null)
+        : base(owner)
     {
         InitializeComponent();
-        Owner = owner;
         _createEmojiPicker = createEmojiPicker;
         _twitch = twitch;
 
@@ -278,10 +276,15 @@ public partial class AddTwitchTileWindow : Window
     private void Icon_Click(object sender, RoutedEventArgs e)
     {
         var name = string.IsNullOrWhiteSpace(NameBox.Text) ? "Twitch" : NameBox.Text.Trim();
-        if (_icon.Choose(this, name, _createEmojiPicker, DefaultGlyph)) ShowIcon();
+        if (ChooseIconInline(_icon.CreateChooser(DialogOwner, name, _createEmojiPicker, DefaultGlyph), choice =>
+            {
+                _icon.ApplyChoice(choice);
+                ShowIcon();
+            })) return;
+        if (_icon.Choose(DialogOwner, name, _createEmojiPicker, DefaultGlyph)) ShowIcon();
     }
 
-    private void Cancel_Click(object sender, RoutedEventArgs e) => DialogResult = false;
+    private void Cancel_Click(object sender, RoutedEventArgs e) => Complete(false);
 
     private void Add_Click(object sender, RoutedEventArgs e)
     {
@@ -297,7 +300,7 @@ public partial class AddTwitchTileWindow : Window
         };
         if (missing is not null)
         {
-            MessageBox.Show(this, missing, "SysDeck", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(DialogOwner, missing, "SysDeck", MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
 
@@ -312,9 +315,9 @@ public partial class AddTwitchTileWindow : Window
             ConfirmTap = ConfirmCheck.IsChecked == true
         };
         // Icône par défaut laissée vide : elle suit l'action, voir TileRuntime.ForDisplay.
-        if (!_icon.ApplyTo(item, this, defaultGlyph: null)) return;
+        if (!_icon.ApplyTo(item, DialogOwner, defaultGlyph: null)) return;
 
         Result = item;
-        DialogResult = true;
+        Complete(true);
     }
 }

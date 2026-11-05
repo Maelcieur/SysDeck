@@ -89,9 +89,10 @@ public class DeckProtocolTests
     }
 
     [Fact]
-    public void ProtocoleV6_CommandeLuminositeDeNuit()
+    public void ProtocoleV7_CommandeActionSwitch()
     {
-        Assert.Equal(6, DeckProtocol.Version); // v6 : Joy-Con dans la réponse
+        Assert.Equal(7, DeckProtocol.Version); // v7 : actions matérielles Switch
+        Assert.Equal(9, (int)DeckProtocol.Cmd.SwitchAction);
         Assert.Equal(8, (int)DeckProtocol.Cmd.NightBrightness);
     }
 

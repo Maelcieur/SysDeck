@@ -37,6 +37,8 @@ The Joy-Con attached to the Switch can trigger SysDeck actions too.
 |---|---|
 | ![Switch page](docs/parametres-switch.png)<br><sub>Switch page: live preview, pages, tile inspector and icon editor</sub> | ![Widget inspector](docs/parametres-switch-widget.png)<br><sub>Click a widget in the preview: all of its Switch settings below</sub> |
 | ![Joy-Con](docs/parametres-joycon.png)<br><sub>Joy-Con view: an action for each button, per page if needed</sub> | ![Modules](docs/parametres-modules.png)<br><sub>Module selection</sub> |
+| ![Customize](docs/personnaliser.png)<br><sub>Module customization: clickable preview, card, gauges, animations</sub> | ![Connected apps](docs/parametres-applications.png)<br><sub>Connected apps: OBS Studio, Twitch, Voicemod</sub> |
+| ![Alerts](docs/parametres-alertes.png)<br><sub>Alerts: CPU and GPU temperature, mouse battery, Claude quota</sub> | ![General](docs/parametres-general.png)<br><sub>General: FPS measurement, hidden items, reset</sub> |
 
 </details>
 

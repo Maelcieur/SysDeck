@@ -33,7 +33,8 @@ Les Joy-Con fixés sur la Switch peuvent aussi lancer des actions de SysDeck.
 
 | | |
 |---|---|
-| ![Page Switch](docs/parametres-switch.png)<br><sub>Page Switch : aperçu en direct, pages, réglages propres à chaque page</sub> | ![Modules](docs/parametres-modules.png)<br><sub>Choix des modules</sub> |
+| ![Page Switch](docs/parametres-switch.png)<br><sub>Page Switch : aperçu en direct, pages, inspecteur de tuile et éditeur d'icône</sub> | ![Inspecteur de widget](docs/parametres-switch-widget.png)<br><sub>Clic sur un widget de l'aperçu : tous ses réglages Switch en dessous</sub> |
+| ![Joy-Con](docs/parametres-joycon.png)<br><sub>Vue Joy-Con : une action par touche, propre à une page si besoin</sub> | ![Modules](docs/parametres-modules.png)<br><sub>Choix des modules</sub> |
 | ![Personnaliser](docs/personnaliser.png)<br><sub>Personnalisation d'un module</sub> | ![Énergie](docs/energie.png)<br><sub>Réglages de la consommation électrique</sub> |
 | ![Catalogue de plugins](docs/plugins-catalogue.png)<br><sub>Catalogue de plugins (GitHub), dont ceux du Stream Deck</sub> | ![Icône](docs/icone-tuile.png)<br><sub>Icône d'une tuile : symbole, logo, émoji ou image</sub> |
 </details>

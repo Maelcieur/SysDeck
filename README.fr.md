@@ -35,7 +35,7 @@ Les Joy-Con fixés sur la Switch peuvent aussi lancer des actions de SysDeck.
 |---|---|
 | ![Page Switch](docs/parametres-switch.png)<br><sub>Page Switch : aperçu en direct, pages, inspecteur de tuile et éditeur d'icône</sub> | ![Inspecteur de widget](docs/parametres-switch-widget.png)<br><sub>Clic sur un widget de l'aperçu : tous ses réglages Switch en dessous</sub> |
 | ![Joy-Con](docs/parametres-joycon.png)<br><sub>Vue Joy-Con : une action par touche, propre à une page si besoin</sub> | ![Modules](docs/parametres-modules.png)<br><sub>Choix des modules</sub> |
-| ![Personnaliser](docs/personnaliser.png)<br><sub>Personnalisation d'un module : aperçu cliquable, carte, jauges, animations</sub> | ![Applications connectées](docs/parametres-applications.png)<br><sub>Applications connectées : OBS Studio, Twitch, Voicemod</sub> |
+| ![Personnaliser](docs/personnaliser-module.png)<br><sub>Personnalisation d'un module : aperçu cliquable, carte, jauges, animations</sub> | ![Applications connectées](docs/parametres-applications.png)<br><sub>Applications connectées : OBS Studio, Twitch, Voicemod</sub> |
 | ![Alertes](docs/parametres-alertes.png)<br><sub>Alertes : température CPU et GPU, batterie de la souris, quota Claude</sub> | ![Général](docs/parametres-general.png)<br><sub>Général : mesure des FPS, éléments masqués, réinitialisation</sub> |
 
 </details>

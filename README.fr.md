@@ -159,9 +159,10 @@ Le dossier [`payload/`](payload) contient un payload bare-metal lancé depuis
 - **Mode nuit** : PC éteint, la Switch affiche une image et l'heure (horloge interne recalée par le PC).
 - Menu (VOL+ et VOL- en attente) : éteindre, redémarrer, revenir à hekate.
 
-| | | |
-|---|---|---|
-| ![Modules sur la Switch](docs/switch-materiel.jpg)<br><sub>Disque, souris, RAM, CPU, GPU, horloge, sortie audio</sub> | ![Musique sur la Switch](docs/switch-musique.jpg)<br><sub>Lecture en cours, visualiseur, volume au doigt</sub> | ![Tuiles sur la Switch](docs/switch-tuiles.jpg)<br><sub>Tuiles d'applications, micro muet, quota Claude</sub> |
+| | |
+|---|---|
+| ![Modules sur la Switch](docs/switch-materiel.jpg)<br><sub>Températures, disque, réseau, RAM, CPU, GPU, Voicemod, horloge, tuiles en verre, sortie audio</sub> | ![Musique sur la Switch](docs/switch-musique.jpg)<br><sub>Lecture en cours, visualiseur, Voicemod, sortie audio</sub> |
+| ![Tuiles sur la Switch](docs/switch-tuiles.jpg)<br><sub>Tuiles façon Stream Deck : plaque texturée, boutons en verre encastrés</sub> | ![Météo sur la Switch](docs/switch-meteo.jpg)<br><sub>Météo, horloge à cases, qualité de l'air, calendrier, Lune, quota Claude, barres de capteurs</sub> |
 
 Installation : copier `payload/output/switchdeck.bin` dans `sd:/bootloader/payloads/` puis le lancer
 depuis hekate (*Payloads*). Le pilote WinUSB est choisi automatiquement par Windows (descripteurs MS OS 2.0).

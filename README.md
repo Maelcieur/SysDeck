@@ -156,9 +156,10 @@ The [`payload/`](payload) folder contains a bare-metal payload launched from
 - **Night mode**: with the PC off, the Switch shows a picture and the time (internal clock synced by the PC).
 - Menu (VOL+ and VOL- while waiting): power off, reboot, return to hekate.
 
-| | | |
-|---|---|---|
-| ![Modules on the Switch](docs/switch-materiel.jpg)<br><sub>Drive, mouse, RAM, CPU, GPU, clock, audio output</sub> | ![Music on the Switch](docs/switch-musique.jpg)<br><sub>Now playing, visualizer, touch volume</sub> | ![Tiles on the Switch](docs/switch-tuiles.jpg)<br><sub>App tiles, mic mute, Claude quota</sub> |
+| | |
+|---|---|
+| ![Modules on the Switch](docs/switch-materiel.jpg)<br><sub>Temperatures, drive, network, RAM, CPU, GPU, Voicemod, clock, glass tiles, audio output</sub> | ![Music on the Switch](docs/switch-musique.jpg)<br><sub>Now playing, visualizer, Voicemod, audio output</sub> |
+| ![Tiles on the Switch](docs/switch-tuiles.jpg)<br><sub>Stream Deck-style tiles: textured plate, recessed glass buttons</sub> | ![Weather on the Switch](docs/switch-meteo.jpg)<br><sub>Weather, flip clock, air quality, calendar, moon, Claude quota, sensor bars</sub> |
 
 Install: copy `payload/output/switchdeck.bin` to `sd:/bootloader/payloads/` and launch it from
 hekate (*Payloads*). Windows installs the WinUSB driver automatically (Microsoft OS descriptors).

@@ -37,8 +37,6 @@ The Joy-Con attached to the Switch can trigger SysDeck actions too.
 |---|---|
 | ![Switch page](docs/parametres-switch.png)<br><sub>Switch page: live preview, pages, tile inspector and icon editor</sub> | ![Widget inspector](docs/parametres-switch-widget.png)<br><sub>Click a widget in the preview: all of its Switch settings below</sub> |
 | ![Joy-Con](docs/parametres-joycon.png)<br><sub>Joy-Con view: an action for each button, per page if needed</sub> | ![Modules](docs/parametres-modules.png)<br><sub>Module selection</sub> |
-| ![Customize](docs/personnaliser.png)<br><sub>Module customization</sub> | ![Power](docs/energie.png)<br><sub>Power usage settings</sub> |
-| ![Plugin catalog](docs/plugins-catalogue.png)<br><sub>Plugin catalog (GitHub), including Stream Deck plugins</sub> | ![Icon](docs/icone-tuile.png)<br><sub>Tile icon: symbol, brand logo, emoji or image</sub> |
 
 </details>
 

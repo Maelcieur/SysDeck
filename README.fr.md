@@ -134,7 +134,15 @@ Le dossier [`payload/`](payload) contient un payload bare-metal lancé depuis
   puis l'ajuster librement. La grille de tuiles peut adapter automatiquement ses colonnes ou utiliser un nombre choisi.
 - **Transitions entre les pages** : choisir aucune, glissement, fondu, glissement et fondu ou zoom, puis régler la
   durée et l'accélération.
-- **Boutons en verre 3D** qui s'enfoncent à l'appui, ou tuiles à plat ; fond transparent possible.
+- **Boutons en verre 3D** qui s'enfoncent à l'appui, ou tuiles à plat ; fond transparent possible. En style verre,
+  les cases vides affichent des boutons vierges, comme les touches inutilisées d'un vrai Stream Deck.
+- **Widget des tuiles façon Stream Deck** : fond arrondi facultatif (couleur ou texture : un grain noir est fourni et
+  tu peux ajouter les tiennes), chaque bouton étant encastré dans son propre creux. La grille remplit le widget : des
+  tuiles plus petites ajoutent des colonnes et des lignes (jusqu'à 16 × 9) et la place restante est répartie entre les cases.
+- **Inspecteur des widgets et des tuiles** : un clic sur un widget dans l'aperçu Switch affiche juste en dessous tous
+  ses réglages Switch (couleurs, carte, animations, textes, boutons, affichage ou masquage de chaque élément, taille à
+  l'écran), avec un aperçu cliquable du widget. Pour une tuile : taille d'icône propre, indépendante du réglage de la
+  page, et nom affiché ou masqué indépendamment des autres tuiles.
 - **Chaque page a son style** : taille des tuiles et des icônes (jusqu'à remplir la tuile), verre ou plat, noms,
   fond (couleur, image), horloge. « Appliquer ce style à toutes les pages » en un clic.
 - **Tuile active** (micro coupé, live en cours, scène active…) : couleur et deuxième icône au choix, bouton qui

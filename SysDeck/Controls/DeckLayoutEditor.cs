@@ -44,6 +44,12 @@ public sealed partial class DeckLayoutEditor : Border
     /// <summary>Élément sélectionné dans l'aperçu (identifiant du module), null si aucun.</summary>
     public string? SelectedId => _selected;
 
+    /// <summary>Clic sur un élément de l'écran (module, horloge, bloc de tuiles) hors d'une tuile : son identifiant.</summary>
+    public event Action<string?>? ElementSelected;
+
+    // Élément cliqué, annoncé au relâchement : l'inspecteur qui s'ouvre réduit l'aperçu, ce qui fausserait un glisser en cours.
+    private string? _pendingElementSelect;
+
     public DeckLayoutEditor()
     {
         CornerRadius = new CornerRadius(12);
@@ -179,7 +185,7 @@ public sealed partial class DeckLayoutEditor : Border
         => DeckController.AllElements.FirstOrDefault(e => e.Id == id)?.Label ?? id;
 
     /// <summary>Cadres recalés sur les réglages : un module en taille automatique change de taille quand ses éléments bougent.</summary>
-    private void RefreshFrames()
+    public void RefreshFrames()
     {
         foreach (var frame in _overlay.Children.OfType<Border>())
             if (frame != _dragFrame && frame.Tag is DeckElement element)
@@ -279,7 +285,11 @@ public sealed partial class DeckLayoutEditor : Border
                 return;
             }
         }
-        else SelectTile(null);
+        else
+        {
+            SelectTile(null);
+            _pendingElementSelect = _selected;
+        }
         if (controlClick && _selectedElements.Count > 1) SelectTile(null);
         _overlay.CaptureMouse();
         e.Handled = true;
@@ -448,6 +458,11 @@ public sealed partial class DeckLayoutEditor : Border
         ClearAlignmentGuides();
         if (_overlay.IsMouseCaptured) _overlay.ReleaseMouseCapture();
         if (moved) LayoutChanged?.Invoke();
+        if (_pendingElementSelect is { } selected)
+        {
+            _pendingElementSelect = null;
+            ElementSelected?.Invoke(selected);
+        }
     }
 
     private sealed class LayoutGrid : FrameworkElement

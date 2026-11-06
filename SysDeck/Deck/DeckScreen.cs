@@ -98,6 +98,14 @@ public sealed partial class DeckScreen : Grid
         var key = $"{_settings.BackgroundColor}|{_settings.BackgroundImage}|{_settings.BackgroundDim}";
         if (key != _appliedBackground) ApplyBackground();
         ApplyClockOpacity();
+        ApplyAppsBackground();
+    }
+
+    /// <summary>Redessine le fond du widget des tuiles (<see cref="DeckSettings.AppsBackgroundEnabled"/>, couleur, opacité).</summary>
+    public void ApplyAppsBackground()
+    {
+        if (_elements.TryGetValue("apps", out var e) && e.Frame is DeckShortcutsPanel panel)
+            panel.InvalidateVisual();
     }
 
     private string? _appliedBackground;
@@ -442,6 +450,111 @@ public sealed class DeckShortcutsPanel : Panel
         timer.Start();
     }
 
+    /// <summary>Fond du widget des tuiles (grille seulement) : rectangle arrondi de la couleur choisie, sous les tuiles.</summary>
+    protected override void OnRender(DrawingContext drawingContext)
+    {
+        base.OnRender(drawingContext);
+        if (!_grid || _look?.Invoke() is not { } look || ActualWidth <= 0 || ActualHeight <= 0) return;
+        if (look.AppsBackgroundEnabled) DrawPlate(drawingContext, look);
+        if (look.TileStyle == DeckTileStyle.Glass && TileGlass.Available) DrawBlankButtons(drawingContext, look);
+    }
+
+    /// <summary>Cases occupées par une tuile (dernière mise en page) : les autres reçoivent un bouton vide en verre.</summary>
+    private readonly HashSet<(int Col, int Row)> _occupied = new();
+
+    /// <summary>
+    /// Style verre : un bouton vide dans chaque case libre, comme les touches sans action d'un vrai Stream Deck.
+    /// Purement visuel (aucun appui) ; même fond, face et bord qu'une tuile sans couleur.
+    /// </summary>
+    private void DrawBlankButtons(DrawingContext dc, DeckSettings look)
+    {
+        var tile = Math.Clamp(_tileSize(), 60, 300);
+        var columns = TileGrid.Columns(ActualWidth, tile, look.Page.AppsColumns);
+        var rows = TileGrid.Rows(ActualHeight, tile);
+        var layout = TileGrid.Layout(ActualWidth, ActualHeight, columns, rows, tile);
+        var inset = tile * TileGlass.FaceInset;
+        var corner = tile * TileGlass.FaceCorner;
+        var panel = TryFindResource("PanelBrush") as Brush ?? new SolidColorBrush(Color.FromRgb(0x1E, 0x21, 0x30));
+        var opacity = BackgroundOpacity;
+        for (var r = 0; r < rows; r++)
+            for (var c = 0; c < columns; c++)
+            {
+                if (_occupied.Contains((c, r))) continue;
+                var rect = new Rect(layout.Left(c) + TileGrid.TileMargin, layout.Top(r) + TileGrid.TileMargin, tile, tile);
+                var face = Rect.Inflate(rect, -inset, -inset);
+                dc.PushOpacity(opacity);
+                dc.DrawRoundedRectangle(panel, null, face, corner, corner);
+                if (TileGlass.Face(false) is { } faceImage) dc.DrawImage(faceImage, rect);
+                dc.Pop();
+                if (TileGlass.Rim(false) is { } rim) dc.DrawImage(rim, rect);
+            }
+    }
+
+    /// <summary>Plaque du widget (couleur ou texture), sa tranche et les logements creusés sous les cases.</summary>
+    private void DrawPlate(DrawingContext drawingContext, DeckSettings look)
+    {
+        var opacity = Math.Clamp(look.AppsBackgroundOpacity, 0, 1);
+        // Texture (façon vrai Stream Deck) si choisie et lisible, sinon couleur unie.
+        Brush brush = DeckTextures.Load(look.AppsBackgroundTexture) is { } texture
+            ? new ImageBrush(texture) { Stretch = Stretch.UniformToFill, Opacity = opacity }
+            : new SolidColorBrush(ThemeService.Parse(look.AppsBackgroundColor, Color.FromRgb(0x1E, 0x21, 0x30))) { Opacity = opacity };
+        brush.Freeze();
+        var tile = Math.Clamp(_tileSize(), 60, 300);
+        var radius = Math.Min(24, tile * 0.2);
+        var plate = new Rect(0, 0, ActualWidth, ActualHeight);
+        drawingContext.DrawRoundedRectangle(brush, null, plate, radius, radius);
+        // Tranche de la plaque : léger reflet en haut, ombre en bas.
+        drawingContext.DrawRoundedRectangle(null, PlateEdge, new Rect(0.75, 0.75, ActualWidth - 1.5, ActualHeight - 1.5), radius, radius);
+        if (look.AppsWells) DrawWells(drawingContext, look, tile);
+    }
+
+    private static readonly Pen PlateEdge = Frozen(new Pen(VerticalGradient((0, 0x30, true), (0.5, 0x00, true), (1, 0x80, false)), 1.5));
+    private static readonly Brush WellFill = Frozen(new SolidColorBrush(Color.FromArgb(0xA0, 0x04, 0x04, 0x06)));
+    // Ombre portée par la plaque sur le haut du logement.
+    private static readonly Brush WellTopShadow = VerticalGradient((0, 0xD0, false), (0.22, 0x40, false), (0.45, 0x00, false));
+    private static readonly Pen WellInnerEdge = Frozen(new Pen(new SolidColorBrush(Color.FromArgb(0x70, 0, 0, 0)), 5));
+    // Rebord du logement : sombre en haut (arête dans l'ombre), éclairé en bas (lumière qui accroche la tranche).
+    private static readonly Pen WellLip = Frozen(new Pen(VerticalGradient((0, 0x90, false), (0.55, 0x00, false), (1, 0x48, true)), 1.6));
+
+    /// <summary>Un logement creusé dans la plaque sous chaque case de la grille (cases vides comprises).</summary>
+    private void DrawWells(DrawingContext dc, DeckSettings look, double tile)
+    {
+        var columns = TileGrid.Columns(ActualWidth, tile, look.Page.AppsColumns);
+        var rows = TileGrid.Rows(ActualHeight, tile);
+        var layout = TileGrid.Layout(ActualWidth, ActualHeight, columns, rows, tile);
+        var inflate = TileGrid.TileMargin * 0.45; // creux à peine plus grand que le bouton
+        var corner = tile * TileGlass.FaceCorner + inflate;
+        for (var r = 0; r < rows; r++)
+            for (var c = 0; c < columns; c++)
+            {
+                var hole = new Rect(layout.Left(c) + TileGrid.TileMargin - inflate, layout.Top(r) + TileGrid.TileMargin - inflate,
+                    tile + 2 * inflate, tile + 2 * inflate);
+                var geometry = new RectangleGeometry(hole, corner, corner);
+                geometry.Freeze();
+                dc.DrawGeometry(WellFill, null, geometry);
+                dc.PushClip(geometry);
+                dc.DrawRectangle(WellTopShadow, null, hole);
+                dc.DrawGeometry(null, WellInnerEdge, geometry); // bords intérieurs assombris
+                dc.Pop();
+                dc.DrawGeometry(null, WellLip, geometry);
+            }
+    }
+
+    private static LinearGradientBrush VerticalGradient(params (double Offset, byte Alpha, bool White)[] stops)
+    {
+        var brush = new LinearGradientBrush { StartPoint = new Point(0, 0), EndPoint = new Point(0, 1) };
+        foreach (var (offset, alpha, white) in stops)
+            brush.GradientStops.Add(new GradientStop(white ? Color.FromArgb(alpha, 255, 255, 255) : Color.FromArgb(alpha, 0, 0, 0), offset));
+        brush.Freeze();
+        return brush;
+    }
+
+    private static T Frozen<T>(T freezable) where T : Freezable
+    {
+        freezable.Freeze();
+        return freezable;
+    }
+
     protected override Size MeasureOverride(Size availableSize)
     {
         var size = Math.Clamp(_tileSize(), 60, 300);
@@ -461,13 +574,17 @@ public sealed class DeckShortcutsPanel : Panel
             var rows = TileGrid.Rows(finalSize.Height, size);
             var items = tiles.Select(t => (ShortcutItem)t.Tag).ToList();
             var arrangement = TileGrid.Arrange(items, columns, rows);
+            var layout = TileGrid.Layout(finalSize.Width, finalSize.Height, columns, rows, size);
+            _occupied.Clear();
+            foreach (var cellOf in arrangement.Cells.Values) _occupied.Add(cellOf);
             foreach (var tile in tiles)
             {
                 // Tuile sans case : jamais dessinée (taille nulle, hors du bloc).
                 if (arrangement.Cells.TryGetValue((ShortcutItem)tile.Tag, out var at))
-                    tile.Arrange(new Rect(at.Col * cell, at.Row * cell, cell, cell));
+                    tile.Arrange(new Rect(layout.Left(at.Col), layout.Top(at.Row), cell, cell));
                 else tile.Arrange(new Rect(-cell, -cell, 0, 0));
             }
+            InvalidateVisual(); // logements creusés sous les cases : suivent la grille
             return finalSize;
         }
 
@@ -498,7 +615,7 @@ public sealed class DeckShortcutsPanel : Panel
         var look = _look?.Invoke();
         var glass = look is { TileStyle: DeckTileStyle.Glass } && TileGlass.Available;
         var iconScale = DeckSettings.ClampIconScale(item.IconScale) ?? look?.TileIconScale ?? 0.5;
-        var showName = (look?.ShowTileNames ?? true) && !item.HideName;
+        var showName = item.ShowName ?? ((look?.ShowTileNames ?? true) && !item.HideName);
 
         // Face de la tuile : toute la tuile à plat ; en verre, l'intérieur du bord chromé.
         var inset = glass ? size * TileGlass.FaceInset : 0;

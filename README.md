@@ -133,7 +133,15 @@ The [`payload/`](payload) folder contains a bare-metal payload launched from
   gaming, monitoring or compact layout as a starting point, then adjust it freely. The tile grid can use automatic
   sizing or a chosen number of columns.
 - **Page transitions**: choose none, slide, fade, slide-and-fade or zoom, then adjust duration and easing.
-- **3D glass buttons** that press in when touched, or flat tiles; transparent background available.
+- **3D glass buttons** that press in when touched, or flat tiles; transparent background available. In glass style,
+  empty cells show blank buttons, like the unused keys of a real Stream Deck.
+- **Stream Deck-style tile widget**: optional rounded background (color or texture — a black grain texture is built in,
+  and you can add your own), with each button recessed in its own well. The tile grid fills the widget: smaller tiles
+  add more columns and rows (up to 16 × 9), and the remaining space is spread evenly between the cells.
+- **Inspector for widgets and tiles**: click a widget in the Switch preview to edit all of its Switch settings right
+  below it (colors, card, animations, texts, buttons, show or hide each element, size on screen), with a clickable
+  preview of the widget. For a tile: custom icon size independent of the page setting, and show or hide its name
+  independently of the other tiles.
 - **Each page has its own style**: tile and icon size (up to filling the tile), glass or flat, names, background
   (color, image), clock. "Apply this style to all pages" in one click.
 - **Active tile** (mic muted, live on air, active scene…): custom color and second icon, button that stays pressed.

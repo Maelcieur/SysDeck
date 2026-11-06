@@ -214,12 +214,22 @@ public partial class SettingsWindow
         PreviewWidgetViewbox.Visibility = Visibility.Visible;
         PreviewWidgetSurface.Width = card.ActualWidth;
         PreviewWidgetSurface.Height = card.ActualHeight;
-        PreviewWidgetSnapshot.Background = new VisualBrush(card)
-        {
-            Stretch = Stretch.Fill,
-            ViewboxUnits = BrushMappingMode.Absolute,
-            Viewbox = new Rect(0, 0, card.ActualWidth, card.ActualHeight)
-        };
+        // Switch : l'écran est dessiné hors fenêtre, un pinceau sur la carte seule reste vide ; on découpe donc l'écran
+        // entier (même pinceau que l'aperçu de la page Switch) à l'emplacement de la carte : rendu identique à la Switch.
+        var screen = _widgetManager.Deck.Screen;
+        PreviewWidgetSnapshot.Background = _customizeSwitch && card.IsDescendantOf(screen)
+            ? new VisualBrush(screen)
+            {
+                Stretch = Stretch.Fill,
+                ViewboxUnits = BrushMappingMode.Absolute,
+                Viewbox = card.TransformToAncestor(screen).TransformBounds(new Rect(0, 0, card.ActualWidth, card.ActualHeight))
+            }
+            : new VisualBrush(card)
+            {
+                Stretch = Stretch.Fill,
+                ViewboxUnits = BrushMappingMode.Absolute,
+                Viewbox = new Rect(0, 0, card.ActualWidth, card.ActualHeight)
+            };
 
         var background = new Button { Background = Brushes.Transparent, BorderThickness = new Thickness(0), Tag = "background" };
         background.Click += PreviewSettings_Click;
@@ -256,7 +266,12 @@ public partial class SettingsWindow
 
     private void PreviewPart_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is not FrameworkElement { Tag: ModulePreviewPart part }) return;
+        if (sender is FrameworkElement { Tag: ModulePreviewPart part }) SelectPreviewPart(part);
+    }
+
+    /// <summary>Affiche les réglages d'une partie du module (élément, texte ou bouton) dans « Réglages de l'élément ».</summary>
+    private void SelectPreviewPart(ModulePreviewPart part)
+    {
         _selectedPreviewPart = part;
         RefreshPreviewElements();
         RestoreAdvancedOptions();
@@ -493,6 +508,15 @@ public partial class SettingsWindow
             .Select(key => new ElementRow(key, appearance.GetElement(key), appearance.NotifyElementsChanged))
             .ToList();
         ElementsList.ItemsSource = _elementRows;
+        AllElementsList.ItemsSource = _elementRows;
+        AllElementsEmptyText.Visibility = keys.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    /// <summary>Élément affiché ou masqué depuis la liste : les zones cliquables de l'aperçu suivent la nouvelle mise en page.</summary>
+    private void AllElementToggle_Click(object sender, RoutedEventArgs e)
+    {
+        if (_customizeSwitch) SchedulePreviewRefresh();
+        else Dispatcher.BeginInvoke(RefreshPreviewElements, System.Windows.Threading.DispatcherPriority.Background);
     }
 
     private void ResetElement_Click(object sender, RoutedEventArgs e)

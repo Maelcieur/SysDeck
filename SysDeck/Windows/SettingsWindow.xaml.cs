@@ -248,7 +248,11 @@ public partial class SettingsWindow : Window
         if (target == PageEnergy) UpdateLifetimeDetails();
         if (target == PageGeneral) UpdateFpsStatus();
         if (target == PagePlugins) RefreshPluginsList();
-        if (target == PageCustomize) RefreshPreviewElements();
+        if (target == PageCustomize)
+        {
+            ReturnModuleEditor(); // éditeur prêté à l'inspecteur de la page Switch
+            RefreshPreviewElements();
+        }
         SetIntegrationsTimer(target == PageIntegrations);
         if (target != PageSwitch) ClosePluginPage(); // la page de réglages d'un plugin ne reste pas ouverte en arrière-plan
         else if (_inspected is not null) ShowPluginPage(_inspected);

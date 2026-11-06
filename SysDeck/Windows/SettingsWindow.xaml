@@ -638,7 +638,7 @@
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
 
-                        <Grid Grid.Row="0" Margin="24,0,26,10" Background="Transparent">
+                        <Grid x:Name="CustomizePreviewArea" Grid.Row="0" Margin="24,0,26,10" Background="Transparent">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="*"/>
@@ -1024,6 +1024,51 @@
                                                                             ToolTip="Réinitialiser cet élément (position, taille, visibilité, couleurs)"/>
                                                                 </Grid>
                                                             </Border>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <!-- Tous les éléments du module avec leur état : affiché ou masqué (les masqués ne sont plus cliquables dans l'aperçu) -->
+                                        <Border Style="{StaticResource RowBorder}">
+                                            <StackPanel>
+                                                <TextBlock Text="Afficher ou masquer les éléments" Style="{StaticResource FieldLabel}" Margin="0,0,0,6"/>
+                                                <TextBlock x:Name="AllElementsEmptyText" Style="{StaticResource FieldLabel}" TextWrapping="Wrap" Visibility="Collapsed"
+                                                           Text="Aucun élément réglable : le module n'est pas affiché sur cette cible."/>
+                                                <ItemsControl x:Name="AllElementsList">
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <DockPanel Margin="0,3">
+                                                                <CheckBox Style="{StaticResource ToggleSwitch}" Margin="0,0,10,0" VerticalAlignment="Center"
+                                                                          IsChecked="{Binding Visible}" Click="AllElementToggle_Click" ToolTip="Afficher cet élément"/>
+                                                                <TextBlock DockPanel.Dock="Right" VerticalAlignment="Center" FontSize="11.5" Margin="8,0,0,0">
+                                                                    <TextBlock.Style>
+                                                                        <Style TargetType="TextBlock">
+                                                                            <Setter Property="Text" Value="Affiché"/>
+                                                                            <Setter Property="Foreground" Value="{StaticResource UiAccent}"/>
+                                                                            <Style.Triggers>
+                                                                                <DataTrigger Binding="{Binding Visible}" Value="False">
+                                                                                    <Setter Property="Text" Value="Masqué"/>
+                                                                                    <Setter Property="Foreground" Value="{StaticResource Muted}"/>
+                                                                                </DataTrigger>
+                                                                            </Style.Triggers>
+                                                                        </Style>
+                                                                    </TextBlock.Style>
+                                                                </TextBlock>
+                                                                <TextBlock Text="{Binding Label}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis">
+                                                                    <TextBlock.Style>
+                                                                        <Style TargetType="TextBlock">
+                                                                            <Setter Property="Foreground" Value="{StaticResource UiText}"/>
+                                                                            <Style.Triggers>
+                                                                                <DataTrigger Binding="{Binding Visible}" Value="False">
+                                                                                    <Setter Property="Foreground" Value="{StaticResource Muted}"/>
+                                                                                </DataTrigger>
+                                                                            </Style.Triggers>
+                                                                        </Style>
+                                                                    </TextBlock.Style>
+                                                                </TextBlock>
+                                                            </DockPanel>
                                                         </DataTemplate>
                                                     </ItemsControl.ItemTemplate>
                                                 </ItemsControl>
@@ -1736,7 +1781,41 @@
                                         </StackPanel>
                                     </DockPanel>
                                 </Grid>
-                                <TextBlock x:Name="DeckInspectorEmpty" Text="Sélectionne une tuile dans l'aperçu pour configurer son action."
+                                <!-- Widget sélectionné dans l'aperçu : tous ses réglages pour la Switch (éditeur de Personnaliser emprunté) -->
+                                <Grid x:Name="DeckWidgetInspector" Visibility="Collapsed" Panel.ZIndex="4" Background="{StaticResource CardBg}" Height="380">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                    </Grid.RowDefinitions>
+                                    <DockPanel Margin="0,0,0,10">
+                                        <WrapPanel DockPanel.Dock="Right" VerticalAlignment="Top">
+                                            <Button Content="Reprendre l'apparence du bureau" Margin="0,0,8,6" Click="DeckWidgetCopyDesktop_Click"
+                                                    ToolTip="Remplace l'apparence Switch de ce widget par celle du bureau"/>
+                                            <Button Content="Retirer de l'écran" Style="{StaticResource DangerButton}" Margin="0,0,0,6" Click="DeckWidgetHide_Click"/>
+                                        </WrapPanel>
+                                        <StackPanel>
+                                            <TextBlock Text="WIDGET" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource UiAccent}"/>
+                                            <TextBlock x:Name="DeckWidgetTitle" FontSize="16" FontWeight="SemiBold" Foreground="{StaticResource UiText}" Margin="0,2,0,0"/>
+                                            <DockPanel x:Name="DeckWidgetScaleRow" Margin="0,8,0,0" MaxWidth="420" HorizontalAlignment="Left">
+                                                <TextBlock Text="Taille sur l'écran" Style="{StaticResource FieldLabel}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                                <TextBlock x:Name="DeckWidgetScaleText" DockPanel.Dock="Right" Width="44" TextAlignment="Right" VerticalAlignment="Center"
+                                                           Foreground="{StaticResource Muted}" FontSize="12"/>
+                                                <Slider x:Name="DeckWidgetScaleSlider" Minimum="0.2" Maximum="3" SmallChange="0.05" LargeChange="0.1" Width="220"
+                                                        IsSnapToTickEnabled="True" TickFrequency="0.05" VerticalAlignment="Center" ValueChanged="DeckWidgetScale_Changed"/>
+                                            </DockPanel>
+                                        </StackPanel>
+                                    </DockPanel>
+                                    <Grid Grid.Row="1">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="260"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <!-- Aperçu cliquable du widget : un élément cliqué affiche ses réglages à droite -->
+                                        <ContentControl x:Name="DeckWidgetPreviewHost" Focusable="False"/>
+                                        <ContentControl x:Name="DeckWidgetEditorHost" Grid.Column="1" Focusable="False"/>
+                                    </Grid>
+                                </Grid>
+                                <TextBlock x:Name="DeckInspectorEmpty" Text="Sélectionne une tuile ou un widget dans l'aperçu pour le configurer."
                                            Foreground="{StaticResource Muted}" FontSize="12.5" HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap"/>
                                 <Grid x:Name="DeckInspector" Visibility="Collapsed">
                                     <Grid.ColumnDefinitions>
@@ -1779,6 +1858,18 @@
                                         </StackPanel>
                                         <CheckBox x:Name="DeckInspectorConfirm" Style="{StaticResource ToggleSwitch}" Content="Confirmer par un second appui"
                                                   Margin="0,8,0,0" Click="DeckInspectorConfirm_Click"/>
+                                        <CheckBox x:Name="DeckInspectorShowName" Style="{StaticResource ToggleSwitch}" Content="Afficher le nom"
+                                                  Margin="0,8,0,0" Click="DeckInspectorShowName_Click"
+                                                  ToolTip="Afficher ou masquer le nom de cette tuile seulement, quel que soit le réglage de la page"/>
+                                        <CheckBox x:Name="DeckInspectorOwnIconSize" Style="{StaticResource ToggleSwitch}" Content="Taille d'icône personnalisée"
+                                                  Margin="0,8,0,0" Click="DeckInspectorOwnIconSize_Click"
+                                                  ToolTip="Activé : cette icône a sa propre taille et ne suit plus la taille des icônes de la page"/>
+                                        <DockPanel x:Name="DeckInspectorIconSizeRow" Margin="0,6,0,0" Visibility="Collapsed">
+                                            <TextBlock x:Name="DeckInspectorIconSizeText" DockPanel.Dock="Right" Width="44" TextAlignment="Right" VerticalAlignment="Center"
+                                                       Foreground="{StaticResource Muted}" FontSize="12"/>
+                                            <Slider x:Name="DeckInspectorIconSizeSlider" Minimum="0.25" Maximum="1" SmallChange="0.05" LargeChange="0.1"
+                                                    IsSnapToTickEnabled="True" TickFrequency="0.05" VerticalAlignment="Center" ValueChanged="DeckInspectorIconSize_Changed"/>
+                                        </DockPanel>
                                     </StackPanel>
                                     <StackPanel Grid.Column="2" Margin="16,0,0,0" MinWidth="170" VerticalAlignment="Top">
                                         <Button x:Name="DeckInspectorEdit" Content="Configurer l'action…" Style="{StaticResource PrimaryButton}" Click="DeckTileEdit_Click"/>
@@ -1881,6 +1972,31 @@
                                                     <DockPanel>
                                                         <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding Value, ElementName=DeckAppsOpacitySlider, Converter={StaticResource Percent}}"/>
                                                         <Slider x:Name="DeckAppsOpacitySlider" Minimum="0" Maximum="1" ValueChanged="DeckSlider_Changed"/>
+                                                    </DockPanel>
+                                                </controls:SettingRow>
+                                                <controls:SettingRow Label="Fond du widget des tuiles" Description="Un fond arrondi derrière toute la grille de tuiles.">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <controls:ColorSwatch x:Name="DeckAppsBackgroundSwatch" Content="Couleur" Margin="0,0,10,0"/>
+                                                        <CheckBox x:Name="DeckAppsBackgroundCheck" Style="{StaticResource ToggleSwitch}" Margin="0" VerticalAlignment="Center"
+                                                                  Click="DeckAppsBackground_Click"/>
+                                                    </StackPanel>
+                                                </controls:SettingRow>
+                                                <controls:SettingRow x:Name="DeckAppsTextureRow" Label="Texture du fond" Stacked="True"
+                                                                     Description="Donne l'aspect d'un vrai Stream Deck. « Ajouter… » copie une image dans tes textures.">
+                                                    <DockPanel>
+                                                        <Button DockPanel.Dock="Right" Content="Ajouter…" Margin="8,0,0,0" Click="DeckAppsTextureAdd_Click"/>
+                                                        <ComboBox x:Name="DeckAppsTextureBox" SelectionChanged="DeckAppsTexture_Changed"/>
+                                                    </DockPanel>
+                                                </controls:SettingRow>
+                                                <controls:SettingRow x:Name="DeckAppsWellsRow" Label="Boutons encastrés"
+                                                                     Description="Chaque bouton est enfoncé dans un creux du fond, comme sur un vrai Stream Deck.">
+                                                    <CheckBox x:Name="DeckAppsWellsCheck" Style="{StaticResource ToggleSwitch}" Margin="0" Click="DeckAppsWells_Click"/>
+                                                </controls:SettingRow>
+                                                <controls:SettingRow x:Name="DeckAppsBackgroundOpacityRow" Label="Opacité du fond du widget" Stacked="True">
+                                                    <DockPanel>
+                                                        <TextBlock DockPanel.Dock="Right" Style="{StaticResource FieldValue}" Text="{Binding Value, ElementName=DeckAppsBackgroundOpacitySlider, Converter={StaticResource Percent}}"/>
+                                                        <Slider x:Name="DeckAppsBackgroundOpacitySlider" Minimum="0" Maximum="1" SmallChange="0.05" LargeChange="0.1"
+                                                                IsSnapToTickEnabled="True" TickFrequency="0.05" ValueChanged="DeckSlider_Changed"/>
                                                     </DockPanel>
                                                 </controls:SettingRow>
                                             </StackPanel>

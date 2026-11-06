@@ -53,6 +53,18 @@ public partial class SettingsWindow
                 Deck.ApplyBackground();
                 ScheduleSave();
             });
+        DependencyPropertyDescriptor.FromProperty(ColorSwatch.HexProperty, typeof(ColorSwatch))
+            .AddValueChanged(DeckAppsBackgroundSwatch, (_, _) =>
+            {
+                if (!_deckPageReady) return;
+                settings.AppsBackgroundColor = DeckAppsBackgroundSwatch.Hex;
+                // Couleur choisie : le fond s'affiche (sinon le choix n'aurait aucun effet visible).
+                settings.AppsBackgroundEnabled = true;
+                DeckAppsBackgroundCheck.IsChecked = true;
+                UpdateAppsBackgroundRows();
+                Deck.Screen.ApplyAppsBackground();
+                ScheduleSave();
+            });
 
         ShowDeckStatus(Deck.Status);
         Deck.StatusChanged += ShowDeckStatus;
@@ -177,6 +189,11 @@ public partial class SettingsWindow
             settings.AppsOpacity = e.NewValue;
             Deck.ApplyAppsOpacity();
         }
+        else if (sender == DeckAppsBackgroundOpacitySlider)
+        {
+            settings.AppsBackgroundOpacity = e.NewValue;
+            Deck.Screen.ApplyAppsBackground();
+        }
         else if (sender == DeckIconScaleSlider)
         {
             settings.TileIconScale = DeckSettings.ClampIconScale(e.NewValue) ?? 0.5;
@@ -208,6 +225,12 @@ public partial class SettingsWindow
             DeckIconScaleSlider.Value = settings.TileIconScale;
             DeckShowNamesCheck.IsChecked = settings.ShowTileNames;
             DeckAppsOpacitySlider.Value = settings.AppsOpacity;
+            DeckAppsBackgroundCheck.IsChecked = settings.AppsBackgroundEnabled;
+            DeckAppsBackgroundSwatch.Hex = settings.AppsBackgroundColor;
+            DeckAppsBackgroundOpacitySlider.Value = settings.AppsBackgroundOpacity;
+            FillAppsTextureBox();
+            DeckAppsWellsCheck.IsChecked = settings.AppsWells;
+            UpdateAppsBackgroundRows();
             DeckBackgroundSwatch.Hex = settings.BackgroundColor;
             DeckDimSlider.Value = settings.BackgroundDim;
             DeckClockOpacitySlider.Value = settings.ClockOpacity;
@@ -477,6 +500,8 @@ public partial class SettingsWindow
         app.IconColor = choice.IconColor;
         app.TileColor = choice.TileColor;
         app.IconScale = choice.IconScale;
+        // « Masquer le nom » coché ou décoché dans le choix d'icône : il remplace le choix propre fait dans l'inspecteur.
+        if (choice.HideName is { } hide && hide != app.HideName) app.ShowName = hide ? false : null;
         app.HideName = choice.HideName ?? app.HideName;
         app.ImageTint = choice.ImageTint;
         var previousActiveImage = app.ActiveIconPath;
@@ -535,6 +560,74 @@ public partial class SettingsWindow
         Deck.RemoveApp(app);
         DeleteTileImages(app);
         RefreshDeckApps();
+        ScheduleSave();
+    }
+
+    private void DeckAppsBackground_Click(object sender, RoutedEventArgs e)
+    {
+        if (!_deckPageReady) return;
+        Deck.Settings.AppsBackgroundEnabled = DeckAppsBackgroundCheck.IsChecked == true;
+        UpdateAppsBackgroundRows();
+        Deck.Screen.ApplyAppsBackground();
+        ScheduleSave();
+    }
+
+    private void UpdateAppsBackgroundRows()
+        => DeckAppsBackgroundOpacityRow.Visibility = DeckAppsTextureRow.Visibility = DeckAppsWellsRow.Visibility =
+            DeckAppsBackgroundCheck.IsChecked == true ? Visibility.Visible : Visibility.Collapsed;
+
+    /// <summary>Liste des textures (aucune, intégrées, ajoutées), sélection sur celle de la page.</summary>
+    private void FillAppsTextureBox()
+    {
+        var ready = _deckPageReady;
+        _deckPageReady = false;
+        DeckAppsTextureBox.Items.Clear();
+        DeckAppsTextureBox.Items.Add(new ComboBoxItem { Content = "Aucune (couleur unie)", Tag = null });
+        foreach (var (id, label) in DeckTextures.All())
+            DeckAppsTextureBox.Items.Add(new ComboBoxItem { Content = label, Tag = id });
+        var current = Deck.Settings.AppsBackgroundTexture;
+        DeckAppsTextureBox.SelectedItem = DeckAppsTextureBox.Items.Cast<ComboBoxItem>()
+            .FirstOrDefault(item => string.Equals(item.Tag as string, current, StringComparison.OrdinalIgnoreCase))
+            ?? DeckAppsTextureBox.Items[0];
+        _deckPageReady = ready;
+    }
+
+    private void DeckAppsWells_Click(object sender, RoutedEventArgs e)
+    {
+        if (!_deckPageReady) return;
+        Deck.Settings.AppsWells = DeckAppsWellsCheck.IsChecked == true;
+        Deck.Screen.ApplyAppsBackground();
+        ScheduleSave();
+    }
+
+    private void DeckAppsTexture_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (!_deckPageReady || DeckAppsTextureBox.SelectedItem is not ComboBoxItem item) return;
+        Deck.Settings.AppsBackgroundTexture = item.Tag as string;
+        Deck.Screen.ApplyAppsBackground();
+        ScheduleSave();
+    }
+
+    private void DeckAppsTextureAdd_Click(object sender, RoutedEventArgs e)
+    {
+        var dialog = new OpenFileDialog
+        {
+            Title = "Ajouter une texture pour le fond des tuiles",
+            Filter = "Images (*.png;*.jpg;*.jpeg;*.bmp)|*.png;*.jpg;*.jpeg;*.bmp"
+        };
+        if (dialog.ShowDialog(this) != true) return;
+        try
+        {
+            Deck.Settings.AppsBackgroundTexture = DeckTextures.Add(dialog.FileName);
+        }
+        catch (Exception ex) when (ex is System.IO.IOException or UnauthorizedAccessException)
+        {
+            Log.Warn("Ajout d'une texture impossible", ex);
+            MessageBox.Show(this, $"Impossible d'ajouter cette texture :\n{ex.Message}", "SysDeck", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+        FillAppsTextureBox();
+        Deck.Screen.ApplyAppsBackground();
         ScheduleSave();
     }
 

@@ -65,14 +65,14 @@ public sealed partial class DeckLayoutEditor
             _selectMark.Visibility = Visibility.Collapsed;
             return;
         }
-        var size = TileGrid.CellSize(TileSizeNow);
+        var layout = GridLayout(element);
         const double outset = 4;
         if (!_overlay.Children.Contains(_selectMark)) _overlay.Children.Add(_selectMark);
         _selectMark.Width = TileSizeNow + 2 * outset;
         _selectMark.Height = TileSizeNow + 2 * outset;
         _selectMark.CornerRadius = new CornerRadius(TileSizeNow * 0.2);
-        Canvas.SetLeft(_selectMark, element.X + cell.Col * size + TileGrid.TileMargin - outset);
-        Canvas.SetTop(_selectMark, element.Y + cell.Row * size + TileGrid.TileMargin - outset);
+        Canvas.SetLeft(_selectMark, element.X + layout.Left(cell.Col) + TileGrid.TileMargin - outset);
+        Canvas.SetTop(_selectMark, element.Y + layout.Top(cell.Row) + TileGrid.TileMargin - outset);
         Panel.SetZIndex(_selectMark, 900);
         _selectMark.Visibility = Visibility.Visible;
     }
@@ -91,9 +91,9 @@ public sealed partial class DeckLayoutEditor
     private (int Col, int Row)? CellAt(Point point)
     {
         if (_deck?.Settings.Find("apps") is not { Visible: true } element) return null;
-        var size = TileGrid.CellSize(TileSizeNow);
-        var col = (int)Math.Floor((point.X - element.X) / size);
-        var row = (int)Math.Floor((point.Y - element.Y) / size);
+        var layout = GridLayout(element);
+        var col = layout.ColAt(point.X - element.X);
+        var row = layout.RowAt(point.Y - element.Y);
         var (columns, rows) = _deck.AppsGrid();
         return col < 0 || row < 0 || col >= columns || row >= rows ? null : (col, row);
     }
@@ -110,8 +110,9 @@ public sealed partial class DeckLayoutEditor
             _dropMark.Width = size - 2 * TileGrid.TileMargin;
             _dropMark.Height = size - 2 * TileGrid.TileMargin;
             _dropMark.CornerRadius = new CornerRadius(TileSizeNow * 0.16);
-            Canvas.SetLeft(_dropMark, element.X + cell.Col * size + TileGrid.TileMargin);
-            Canvas.SetTop(_dropMark, element.Y + cell.Row * size + TileGrid.TileMargin);
+            var layout = GridLayout(element);
+            Canvas.SetLeft(_dropMark, element.X + layout.Left(cell.Col) + TileGrid.TileMargin);
+            Canvas.SetTop(_dropMark, element.Y + layout.Top(cell.Row) + TileGrid.TileMargin);
             Panel.SetZIndex(_dropMark, 1000);
             _dropMark.Visibility = Visibility.Visible;
         }

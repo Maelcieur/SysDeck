@@ -31,7 +31,14 @@ public sealed partial class DeckLayoutEditor
     /// <summary>Ajoute la grille visible sous le cadre du bloc d'applications.</summary>
     private void AddGridLines(DeckElement element)
     {
-        _overlay.Children.Add(new TileGridLines(() => TileSizeNow) { Tag = element });
+        _overlay.Children.Add(new TileGridLines(() => TileSizeNow, () => _deck?.AppsGrid()) { Tag = element });
+    }
+
+    /// <summary>Cases du bloc d'applications, calculées comme sur l'écran de la Switch.</summary>
+    private TileLayout GridLayout(DeckElement element)
+    {
+        var (columns, rows) = _deck!.AppsGrid();
+        return TileGrid.Layout(Math.Max(MinSize, element.Width), Math.Max(MinSize, element.Height), columns, rows, TileSizeNow);
     }
 
     /// <summary>Redessine la grille (taille des tuiles modifiée).</summary>
@@ -56,9 +63,9 @@ public sealed partial class DeckLayoutEditor
     private bool TryBeginTileDrag(DeckElement element, Point overlayPoint)
     {
         if (_deck is null || element.Id != "apps") return false;
-        var cell = TileGrid.CellSize(TileSizeNow);
-        var col = (int)Math.Floor((overlayPoint.X - element.X) / cell);
-        var row = (int)Math.Floor((overlayPoint.Y - element.Y) / cell);
+        var layout = GridLayout(element);
+        var col = layout.ColAt(overlayPoint.X - element.X);
+        var row = layout.RowAt(overlayPoint.Y - element.Y);
         var (columns, rows) = _deck.AppsGrid();
         if (col < 0 || row < 0 || col >= columns || row >= rows) return false;
         var item = TileGrid.Arrange(_deck.CurrentAppsSubpage(), columns, rows).At(col, row);
@@ -79,8 +86,9 @@ public sealed partial class DeckLayoutEditor
         _tileMoved = true;
 
         var cell = TileGrid.CellSize(TileSizeNow);
-        var col = (int)Math.Floor((overlayPoint.X - _tileElement.X) / cell);
-        var row = (int)Math.Floor((overlayPoint.Y - _tileElement.Y) / cell);
+        var layout = GridLayout(_tileElement);
+        var col = layout.ColAt(overlayPoint.X - _tileElement.X);
+        var row = layout.RowAt(overlayPoint.Y - _tileElement.Y);
         var (columns, rows) = _deck.AppsGrid();
         if (col < 0 || row < 0 || col >= columns || row >= rows)
         {
@@ -93,8 +101,8 @@ public sealed partial class DeckLayoutEditor
         _dropMark.Width = cell - 2 * TileGrid.TileMargin;
         _dropMark.Height = cell - 2 * TileGrid.TileMargin;
         _dropMark.CornerRadius = new CornerRadius(TileSizeNow * 0.16);
-        Canvas.SetLeft(_dropMark, _tileElement.X + col * cell + TileGrid.TileMargin);
-        Canvas.SetTop(_dropMark, _tileElement.Y + row * cell + TileGrid.TileMargin);
+        Canvas.SetLeft(_dropMark, _tileElement.X + layout.Left(col) + TileGrid.TileMargin);
+        Canvas.SetTop(_dropMark, _tileElement.Y + layout.Top(row) + TileGrid.TileMargin);
         Panel.SetZIndex(_dropMark, 1000);
         _dropMark.Visibility = Visibility.Visible;
     }
@@ -123,9 +131,13 @@ internal sealed class TileGridLines : FrameworkElement
     private readonly Func<double> _tileSize;
     private static readonly Pen LinePen = CreatePen();
 
-    public TileGridLines(Func<double> tileSize)
+    private readonly Func<(int Columns, int Rows)?> _grid;
+
+    /// <param name="grid">Colonnes et lignes réelles de la grille (colonnes choisies comprises) ; null = d'après la taille.</param>
+    public TileGridLines(Func<double> tileSize, Func<(int Columns, int Rows)?> grid)
     {
         _tileSize = tileSize;
+        _grid = grid;
         IsHitTestVisible = false;
     }
 
@@ -140,11 +152,11 @@ internal sealed class TileGridLines : FrameworkElement
     {
         var tile = Math.Clamp(_tileSize(), 60, 300);
         var cell = TileGrid.CellSize(tile);
-        var columns = TileGrid.Columns(ActualWidth, tile);
-        var rows = TileGrid.Rows(ActualHeight, tile);
+        var (columns, rows) = _grid() ?? (TileGrid.Columns(ActualWidth, tile), TileGrid.Rows(ActualHeight, tile));
+        var layout = TileGrid.Layout(ActualWidth, ActualHeight, columns, rows, tile);
         for (var r = 0; r < rows; r++)
             for (var c = 0; c < columns; c++)
                 dc.DrawRoundedRectangle(null, LinePen,
-                    new Rect(c * cell + TileGrid.TileMargin, r * cell + TileGrid.TileMargin, tile, tile), tile * 0.16, tile * 0.16);
+                    new Rect(layout.Left(c) + TileGrid.TileMargin, layout.Top(r) + TileGrid.TileMargin, tile, tile), tile * 0.16, tile * 0.16);
     }
 }

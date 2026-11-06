@@ -36,6 +36,9 @@ public sealed class ShortcutItem
     /// <summary>Masque le nom sous la tuile de la Switch (utile avec une image qui remplit la tuile).</summary>
     public bool HideName { get; set; }
 
+    /// <summary>Nom de la tuile de la Switch affiché (vrai) ou masqué (faux) quel que soit le réglage de la page ; null = suit la page.</summary>
+    public bool? ShowName { get; set; }
+
     // ---------- Tuile active (micro coupé, stream OBS en cours, mode Twitch, voix Voicemod, état 1 d'un plugin…) ----------
 
     /// <summary>Fond de la tuile quand elle est active ; null = rouge (coupé, en cours) ou accent du thème (scène, mode actif).</summary>

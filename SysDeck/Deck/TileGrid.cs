@@ -30,14 +30,27 @@ public sealed class TileArrangement
     }
 }
 
+/// <summary>Cases de la grille dans le bloc : décalage, pas entre deux cases, côté d'une case (tuile + marges).</summary>
+public readonly record struct TileLayout(double OffsetX, double OffsetY, double PitchX, double PitchY, double Cell)
+{
+    /// <summary>Bord gauche de la case (tuile + marges) de la colonne, dans le repère du bloc.</summary>
+    public double Left(int col) => OffsetX + col * PitchX + (PitchX - Cell) / 2;
+
+    /// <summary>Bord haut de la case de la ligne, dans le repère du bloc.</summary>
+    public double Top(int row) => OffsetY + row * PitchY + (PitchY - Cell) / 2;
+
+    public int ColAt(double x) => (int)Math.Floor((x - OffsetX) / PitchX);
+    public int RowAt(double y) => (int)Math.Floor((y - OffsetY) / PitchY);
+}
+
 /// <summary>
 /// Grille des tuiles d'applications de la Switch (logique pure, sans WPF) : nombre de colonnes et de lignes
 /// selon la taille du bloc, placement, échange, première case libre.
 /// </summary>
 public static class TileGrid
 {
-    public const int MaxColumns = 8;
-    public const int MaxRows = 4;
+    public const int MaxColumns = 16;
+    public const int MaxRows = 9;
 
     /// <summary>Marge de chaque côté d'une tuile (espacement entre tuiles = 2 x cette valeur).</summary>
     public const double TileMargin = 6;
@@ -53,6 +66,20 @@ public static class TileGrid
 
     public static int Rows(double height, double tileSize)
         => Math.Clamp((int)Math.Floor(height / CellSize(tileSize) + 1e-6), 1, MaxRows);
+
+    /// <summary>
+    /// Position des cases dans le bloc : la place restante est répartie entre les cases (écart ajouté plafonné
+    /// à la moitié d'une tuile), le surplus éventuel est centré. Plus de grand vide à droite ni en bas.
+    /// </summary>
+    public static TileLayout Layout(double width, double height, int columns, int rows, double tileSize)
+    {
+        var cell = CellSize(tileSize);
+        var maxPitch = cell + tileSize * 0.5;
+        double Pitch(double length, int count) => count <= 0 ? cell : Math.Clamp(length / count, cell, maxPitch);
+        var pitchX = Pitch(width, columns);
+        var pitchY = Pitch(height, rows);
+        return new TileLayout(Math.Max(0, (width - columns * pitchX) / 2), Math.Max(0, (height - rows * pitchY) / 2), pitchX, pitchY, cell);
+    }
 
     /// <summary>
     /// Place les tuiles : celles dont la case enregistrée est dans la grille et libre la gardent ; les autres

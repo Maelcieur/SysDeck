@@ -49,6 +49,11 @@ public partial class SettingsWindow
     private void InitSwitchLayout()
     {
         DeckEditor.TileSelected += InspectTile;
+        DeckEditor.ElementSelected += InspectElement;
+        DeckEditor.ModuleElementSelected += InspectModuleElement;
+        // Widget ou éléments déplacés dans l'aperçu : l'aperçu du widget inspecté suit (cadrage, zones cliquables).
+        DeckEditor.ElementLayoutChanged += id => { if (id == _inspectedWidget) SchedulePreviewRefresh(); };
+        DeckEditor.LayoutChanged += () => { if (_inspectedWidget is not null) SchedulePreviewRefresh(); };
         DeckEditor.TileActivated += EditDeckTile;
         DeckEditor.ActionDropped += (data, cell) =>
         {
@@ -158,8 +163,12 @@ public partial class SettingsWindow
         if (item is not null && !Deck.Settings.Page.Apps.Contains(item)) item = null; // retirée, ou sur une autre page
         _inspected = item;
         if (!ReferenceEquals(DeckEditor.SelectedTile, item)) DeckEditor.SelectedTile = item;
+        // Tuile choisie, ou widget retiré de la page affichée : l'inspecteur de widget se ferme ; sinon il reste ouvert.
+        if (item is not null || _inspectedWidget is { } widget && !Deck.IsShown(widget)) HideWidgetInspector();
+        if (item is null) DeckInspectorEmpty.Text = DefaultInspectorEmptyText;
         DeckInspector.Visibility = item is null ? Visibility.Collapsed : Visibility.Visible;
-        DeckInspectorEmpty.Visibility = item is null ? Visibility.Visible : Visibility.Collapsed;
+        DeckInspectorEmpty.Visibility = item is null && _inspectedWidget is null ? Visibility.Visible : Visibility.Collapsed;
+        if (item is null && _inspectedWidget is not null) UpdateWidgetScale(); // cadre redimensionné dans l'aperçu
         ShowPluginPage(item); // plugin Stream Deck : sa page de réglages sous la tuile
         if (item is null) return;
 
@@ -169,6 +178,8 @@ public partial class SettingsWindow
         BuildJoyConMapSelector(item);
         DeckInspectorConfirm.IsEnabled = item.Kind is not (TileKind.SwitchAction or TileKind.TilePageNavigation);
         DeckInspectorConfirm.IsChecked = item.Kind == TileKind.SwitchAction || item.Kind != TileKind.TilePageNavigation && item.ConfirmTap;
+        LoadTileIconSize(item);
+        LoadTileShowName(item);
         _inspectorLoading = false;
         DeckInspectorKind.Text = KindLabel(item).ToUpperInvariant();
         var detail = item.Kind == TileKind.App ? string.Join(" ", new[] { item.Path, item.Arguments }.Where(s => !string.IsNullOrWhiteSpace(s))) : TileDetail(item);

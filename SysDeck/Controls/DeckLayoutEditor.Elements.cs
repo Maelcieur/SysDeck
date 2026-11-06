@@ -46,6 +46,9 @@ public sealed partial class DeckLayoutEditor
     /// <summary>Un élément d'un module a été modifié sur l'aperçu (module concerné).</summary>
     public event Action<string>? ElementLayoutChanged;
 
+    /// <summary>Élément d'un module cliqué dans l'aperçu (module, clé de l'élément), annoncé au relâchement.</summary>
+    public event Action<string, string>? ModuleElementSelected;
+
     private void InitElementMode()
     {
         _elementRefresh.Tick += (_, _) =>
@@ -218,6 +221,7 @@ public sealed partial class DeckLayoutEditor
         _elementDrag = null;
         if (_elementOverlay.IsMouseCaptured) _elementOverlay.ReleaseMouseCapture();
         ApplyElement(box);
+        ModuleElementSelected?.Invoke(box.Card.ModuleId, box.Key);
     }
 
     private void ElementBox_MouseWheel(object sender, MouseWheelEventArgs e)

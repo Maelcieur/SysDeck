@@ -10,7 +10,8 @@ public class TileGridTests
         => Enumerable.Range(0, count).Select(i => new ShortcutItem { Name = "T" + i }).ToList();
 
     [Theory]
-    [InlineData(1240, 120, 8)]   // 1240 / 132 = 9 -> borné à 8
+    [InlineData(1240, 120, 9)]   // 1240 / 132 = 9
+    [InlineData(2400, 60, 16)]   // 33 -> borné à 16
     [InlineData(400, 120, 3)]
     [InlineData(10, 120, 1)]     // au moins 1
     [InlineData(132, 120, 1)]
@@ -21,17 +22,39 @@ public class TileGridTests
     [Theory]
     [InlineData(1240, 120, 4, 4)]
     [InlineData(400, 120, 5, 3)]
-    [InlineData(1240, 120, 0, 8)]
+    [InlineData(1240, 120, 0, 9)]
     public void Colonnes_preferees_respectent_la_largeur_disponible(double width, double tile, int preferred, int expected)
         => Assert.Equal(expected, TileGrid.Columns(width, tile, preferred));
 
     [Theory]
-    [InlineData(720, 120, 4)]    // 5 -> borné à 4
+    [InlineData(720, 120, 5)]
+    [InlineData(1000, 60, 9)]    // 13 -> borné à 9
     [InlineData(160, 120, 1)]
     [InlineData(300, 120, 2)]
     [InlineData(1, 120, 1)]
     public void Rows_sont_bornees(double height, double tile, int expected)
         => Assert.Equal(expected, TileGrid.Rows(height, tile));
+
+    [Fact]
+    public void Layout_repartit_la_place_restante_entre_les_cases()
+    {
+        // 1220 / 109 = 11 colonnes (reste 21 px), 610 / 109 = 5 lignes (reste 65 px) : plus de vide d'un seul côté.
+        var layout = TileGrid.Layout(1220, 610, 11, 5, 97);
+        Assert.Equal(1220 / 11.0, layout.PitchX, 3);
+        Assert.Equal(610 / 5.0, layout.PitchY, 3);
+        Assert.Equal(0, layout.OffsetX, 3);
+        Assert.Equal(10, layout.ColAt(1219));
+        Assert.Equal(4, layout.RowAt(609));
+    }
+
+    [Fact]
+    public void Layout_centre_quand_l_ecart_serait_trop_grand()
+    {
+        // 2 colonnes imposées dans un bloc de 1000 px : écart plafonné, grille centrée.
+        var layout = TileGrid.Layout(1000, 132, 2, 1, 120);
+        Assert.Equal(132 + 60, layout.PitchX, 3);
+        Assert.Equal((1000 - 2 * 192) / 2.0, layout.OffsetX, 3);
+    }
 
     [Fact]
     public void Ancienne_liste_sans_position_est_placee_de_gauche_a_droite_puis_de_haut_en_bas()

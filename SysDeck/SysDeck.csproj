@@ -15,7 +15,7 @@
     <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
 
     <!-- Version unique de l'application : reprise dans le journal ; à garder alignée avec installer\SysDeck.iss. -->
-    <Version>1.11.0</Version>
+    <Version>1.12.0</Version>
     <Product>SysDeck</Product>
     <Company>Fenix</Company>
     <Description>Widgets de bureau : surveillance matérielle, audio, médias, consommation et raccourcis.</Description>
@@ -40,6 +40,7 @@
     <EmbeddedResource Include="Assets\brand-icons.json" LogicalName="brand-icons.json" />
     <!-- Boutons en verre des tuiles de la Switch (relâché / appuyé ; face et bord séparés), lus une fois par TileGlass. -->
     <EmbeddedResource Include="Assets\Tiles\*.png" LogicalName="%(Filename)%(Extension)" />
+    <EmbeddedResource Include="Assets\Tiles\*.jpg" LogicalName="%(Filename)%(Extension)" />
     <EmbeddedResource Include="Assets\Moon\moon.png" LogicalName="moon.png" />
     <!-- Clé de la Control API Voicemod, brouillée (Secrets\ est exclu de git) : absente, l'intégration Voicemod l'indique. -->
     <EmbeddedResource Include="Secrets\voicemod.key" LogicalName="voicemod.key" Condition="Exists('Secrets\voicemod.key')" />

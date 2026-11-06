@@ -76,6 +76,20 @@ public sealed class DeckSettings
     [JsonIgnore]
     public bool ShowTileNames { get => PageOrNull?.ShowTileNames ?? DefaultLook.ShowTileNames; set => LookToEdit.ShowTileNames = value; }
 
+    /// <summary>Fond du widget des tuiles de la page (rectangle arrondi derrière la grille) : activé, couleur, opacité.</summary>
+    [JsonIgnore]
+    public bool AppsBackgroundEnabled { get => PageOrNull?.AppsBackgroundEnabled ?? DefaultLook.AppsBackgroundEnabled; set => LookToEdit.AppsBackgroundEnabled = value; }
+    [JsonIgnore]
+    public string AppsBackgroundColor { get => PageOrNull?.AppsBackgroundColor ?? DefaultLook.AppsBackgroundColor; set => LookToEdit.AppsBackgroundColor = value; }
+    [JsonIgnore]
+    public double AppsBackgroundOpacity { get => PageOrNull?.AppsBackgroundOpacity ?? DefaultLook.AppsBackgroundOpacity; set => LookToEdit.AppsBackgroundOpacity = value; }
+    /// <summary>Texture du fond du widget des tuiles (voir <see cref="DeckTextures"/>), null = couleur unie.</summary>
+    [JsonIgnore]
+    public string? AppsBackgroundTexture { get => PageOrNull?.AppsBackgroundTexture ?? DefaultLook.AppsBackgroundTexture; set => LookToEdit.AppsBackgroundTexture = value; }
+    /// <summary>Boutons encastrés : chaque case est un logement creusé dans le fond du widget, comme un vrai Stream Deck.</summary>
+    [JsonIgnore]
+    public bool AppsWells { get => PageOrNull?.AppsWells ?? DefaultLook.AppsWells; set => LookToEdit.AppsWells = value; }
+
     /// <summary>Anciens réglages communs à toutes les pages (mêmes noms dans le fichier) : modèle des pages qui n'ont pas encore les leurs.</summary>
     [JsonPropertyName("BackgroundColor")] public string DefaultBackgroundColor { get => DefaultLook.BackgroundColor; set => DefaultLook.BackgroundColor = value; }
     [JsonPropertyName("BackgroundImage")] public string? DefaultBackgroundImage { get => DefaultLook.BackgroundImage; set => DefaultLook.BackgroundImage = value; }
@@ -268,6 +282,11 @@ public sealed class DeckPage : INotifyPropertyChanged
     public string? BackgroundImage { get; set; }
     public double BackgroundDim { get; set; } = 0.35;
     public double ClockOpacity { get; set; } = 1;
+    public bool AppsBackgroundEnabled { get; set; }
+    public string AppsBackgroundColor { get; set; } = "#FF1E2130";
+    public double AppsBackgroundOpacity { get; set; } = 0.6;
+    public string? AppsBackgroundTexture { get; set; }
+    public bool AppsWells { get; set; } = true;
 
     /// <summary>Reprend l'apparence (tuiles, fond, horloge) d'une autre page ; ni le nom, ni les éléments, ni les tuiles.</summary>
     public void CopyLookFrom(DeckPage other)
@@ -281,6 +300,11 @@ public sealed class DeckPage : INotifyPropertyChanged
         BackgroundImage = other.BackgroundImage;
         BackgroundDim = other.BackgroundDim;
         ClockOpacity = other.ClockOpacity;
+        AppsBackgroundEnabled = other.AppsBackgroundEnabled;
+        AppsBackgroundColor = other.AppsBackgroundColor;
+        AppsBackgroundOpacity = other.AppsBackgroundOpacity;
+        AppsBackgroundTexture = other.AppsBackgroundTexture;
+        AppsWells = other.AppsWells;
     }
 
     /// <summary>Valeurs hors plage (fichier modifié à la main) ramenées dans les bornes.</summary>
@@ -298,6 +322,8 @@ public sealed class DeckPage : INotifyPropertyChanged
         BackgroundDim = double.IsNaN(BackgroundDim) ? 0.35 : Math.Clamp(BackgroundDim, 0, 0.9);
         ClockOpacity = double.IsNaN(ClockOpacity) ? 1 : Math.Clamp(ClockOpacity, 0, 1);
         if (string.IsNullOrWhiteSpace(BackgroundColor)) BackgroundColor = "#0B0C10";
+        AppsBackgroundOpacity = double.IsNaN(AppsBackgroundOpacity) ? 0.6 : Math.Clamp(AppsBackgroundOpacity, 0, 1);
+        if (string.IsNullOrWhiteSpace(AppsBackgroundColor)) AppsBackgroundColor = "#FF1E2130";
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

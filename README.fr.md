@@ -197,11 +197,16 @@ s'atténuent quand l'application n'est pas connectée.
 Jouer aux jeux du PC sur une TV branchée en HDMI, avec une interface de salon pilotée à la manette. Réglages dans
 **Paramètres → Mode console**.
 
+| | |
+|---|---|
+| ![Mode console sur la TV](docs/console-zelda.jpg)<br><sub>L'interface TV : jaquettes, onglets par plateforme, temps de jeu et aide manette</sub> | ![Thème rouge](docs/console-rouge.jpg)<br><sub>Description du jeu et thème avec fond animé</sub> |
+| ![Thème or](docs/console-or.jpg)<br><sub>Chaque thème change les couleurs, le fond et les images du jeu</sub> | ![Réglages du mode console](docs/parametres-console.png)<br><sub>Réglages : 21 thèmes, style d'intro, bruitages, vibrations et jeux</sub> |
+
 - **Bascule** : les écrans du PC s'éteignent, seule la TV reste active, le son part sur la TV. Au retour, la
   disposition des écrans, les icônes du bureau, les widgets et les applications (réduites pendant le mode) reviennent
   comme avant. Après un plantage, tout est remis au démarrage suivant. Raccourci de secours : **Ctrl+Alt+Fin**.
-- **Interface TV** : jaquettes, fond animé, description, temps de jeu, batterie de la manette, 10 thèmes avec aperçu
-  en direct (bouton Menu ≡), intro animée de 10 s (ou vos propres images, sons et vidéos).
+- **Interface TV** : jaquettes, fond animé, description, temps de jeu, batterie de la manette, 21 thèmes avec aperçu
+  en direct (bouton Menu ≡), intro animée élégante ou cyberpunk (ou vos propres images, sons et vidéos).
 - **Jeux** : programme `.exe`, raccourci `.lnk` / `.url`, lien `steam://`, ou émulateur + ROM (préréglages Dolphin,
   PCSX2, DuckStation, PPSSPP, RPCS3, Cemu, Ryujinx, Eden / yuzu, Xemu, mGBA, RetroArch). Jaquettes et descriptions
   depuis Steam, ou SteamGridDB avec une clé gratuite. Le jeu s'ouvre au premier plan ; le menu revient dès qu'il se

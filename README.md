@@ -193,11 +193,16 @@ connected.
 Play your PC games on a TV connected over HDMI, with a living-room interface driven by a gamepad. Settings in
 **Settings → Console mode**.
 
+| | |
+|---|---|
+| ![Console mode on the TV](docs/console-zelda.jpg)<br><sub>The TV interface: covers, platform tabs, play time and gamepad hints</sub> | ![Red theme](docs/console-rouge.jpg)<br><sub>Game description and a theme with an animated background</sub> |
+| ![Gold theme](docs/console-or.jpg)<br><sub>Each theme changes the colors, the background and the game artwork</sub> | ![Console mode settings](docs/parametres-console.png)<br><sub>Settings: 21 themes, intro style, sounds, vibration and games</sub> |
+
 - **Switching**: the PC screens turn off, only the TV stays active and the sound goes to the TV. On the way back, the
   screen layout, desktop icons, widgets and apps (minimized during the mode) come back as they were. After a crash,
   everything is restored on the next start. Emergency shortcut: **Ctrl+Alt+End**.
-- **TV interface**: covers, animated background, description, play time, gamepad battery, 10 themes with live
-  preview (Menu ≡ button), 10-second animated intro (or your own images, sounds and videos).
+- **TV interface**: covers, animated background, description, play time, gamepad battery, 21 themes with live
+  preview (Menu ≡ button), animated intro in an elegant or cyberpunk style (or your own images, sounds and videos).
 - **Games**: `.exe` program, `.lnk` / `.url` shortcut, `steam://` link, or emulator + ROM (presets for Dolphin, PCSX2,
   DuckStation, PPSSPP, RPCS3, Cemu, Ryujinx, Eden / yuzu, Xemu, mGBA, RetroArch). Covers and descriptions from Steam,
   or SteamGridDB with a free key. The game opens in the foreground; the menu comes back as soon as it closes.

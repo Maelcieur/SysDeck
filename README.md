@@ -48,6 +48,7 @@ The Joy-Con attached to the Switch can trigger SysDeck actions too.
 - [Compatibility](#compatibility)
 - [Switch module (SwitchDeck)](#switch-module-switchdeck)
 - [Connected apps (stream deck)](#connected-apps-stream-deck)
+- [Console mode](#console-mode)
 - [Building](#building)
 - [Repository layout](#repository-layout)
 - [Data](#data)
@@ -187,6 +188,52 @@ connected.
 - **Voicemod**: voices and sounds are picked from Voicemod's own lists and use their picture as the tile icon.
   Sounds are grouped by soundboard, your own first.
 
+## Console mode
+
+Play your PC games on a TV connected over HDMI, with a living-room interface driven by a gamepad. Settings in
+**Settings → Console mode**.
+
+- **Switching**: the PC screens turn off, only the TV stays active and the sound goes to the TV. On the way back, the
+  screen layout, desktop icons, widgets and apps (minimized during the mode) come back as they were. After a crash,
+  everything is restored on the next start. Emergency shortcut: **Ctrl+Alt+End**.
+- **TV interface**: covers, animated background, description, play time, gamepad battery, 10 themes with live
+  preview (Menu ≡ button), 10-second animated intro (or your own images, sounds and videos).
+- **Games**: `.exe` program, `.lnk` / `.url` shortcut, `steam://` link, or emulator + ROM (presets for Dolphin, PCSX2,
+  DuckStation, PPSSPP, RPCS3, Cemu, Ryujinx, Eden / yuzu, Xemu, mGBA, RetroArch). Covers and descriptions from Steam,
+  or SteamGridDB with a free key. The game opens in the foreground; the menu comes back as soon as it closes.
+  **Quit** (X) closes the game (immediate end task for an emulator).
+- **Xbox controller**:
+
+| Action | Buttons |
+|---|---|
+| Start console mode from the PC | **View ⧉ + Menu ≡** (can be changed: LB+RB+Menu, LB+RB+View) |
+| Volume (menu and games) | **View ⧉ + RT** / **View ⧉ + LT** |
+| Navigate, play, back | D-pad or stick, **A**, **B** |
+| Platforms / themes / info / quit the game | **LB RB** / **Menu ≡** / **Y** / **X** |
+| Back to the menu during a game | Hold the Xbox button |
+
+### TV over the network (optional)
+
+With a **Google TV / Android TV** on the same network, SysDeck can **turn it on** when console mode starts, switch it
+to the **PC's HDMI input**, change its **real volume**, and **put it on standby** on the way back (two separate
+options). **TV and gamepad** section: *Search*, *Pair* (a code appears on the TV), then choose the PC's HDMI input and
+*Test*.
+
+| TV | Turn on / off | TV volume | PC's HDMI input |
+|---|---|---|---|
+| Google TV / Android TV (Sony, TCL, Hisense, Philips, Xiaomi…) | Yes (*) | Yes | Yes: *Test*, otherwise *Find the method* |
+| Samsung (Tizen), LG (webOS), non-Android Philips | No | Windows volume | No |
+| TV not on the network | No | Windows volume | No |
+
+(*) To turn the TV on from standby, enable network wake-up on the TV: *Wake on Wireless LAN* (Wi-Fi) or
+*Wake-on-LAN* (cable), sometimes *Turn on with Chromecast*. Each brand switches inputs its own way:
+**Find the method** tries the known methods one by one (the TV goes back to its home screen between tries) and keeps
+the one that shows the PC's input.
+
+**Troubleshooting**: the TV does not turn on (network wake-up not enabled, or TV on a "guest" Wi-Fi isolated from the
+PC); the TV blinks a few seconds after switching (a DisplayPort screen of the PC goes to deep sleep and disconnects:
+disable its deep sleep); an emulator closes right away (see `%AppData%\SysDeck\logs\sysdeck.log`).
+
 ## Plugins and icon packs
 
 - **Plugins**: a plugin is a small program (exe, Node.js, Python or PowerShell) talking to SysDeck over a local
@@ -300,6 +347,8 @@ one instance runs per data folder.
 - **A module stays empty**: check `%AppData%\SysDeck\logs\sysdeck.log`.
 - **No CPU temperature**: Memory Integrity blocks the LibreHardwareMonitor driver; enable the
   "CPU temperature" option in the installer (requires the AMD Ryzen Master SDK).
+- **CPU temperature stopped updating (AMD)**: read `C:\ProgramData\SysDeck\cputemp-bridge.log`, which shows the
+  AMD tool's error (for example "Platform init failed"). When the AMD driver itself is stuck, restarting the PC fixes it.
 - **Ctrl+Space does nothing**: another application owns the hotkey (see the log).
 - **Switch not detected**: make sure the payload shows "En attente du PC" and use a USB-C data cable.
 - **Joy-Con do nothing**: copy the latest `switchdeck.bin` (protocol v6) to the SD card; the Joy-Con tab warns when the

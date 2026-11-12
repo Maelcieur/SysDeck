@@ -338,6 +338,7 @@
                                 <RadioButton Style="{StaticResource NavButton}" Tag="&#xE77B;" Content="Profils" x:Name="NavProfiles" GroupName="SettingsNav" Checked="Nav_Checked"/>
                                 <TextBlock Text="APPAREILS" Style="{StaticResource NavSection}"/>
                                 <RadioButton Style="{StaticResource NavButton}" Tag="&#xE7FC;" Content="Switch" x:Name="NavSwitch" GroupName="SettingsNav" Checked="Nav_Checked"/>
+                                <RadioButton Style="{StaticResource NavButton}" Tag="&#xE7F4;" Content="Mode console" x:Name="NavConsole" GroupName="SettingsNav" Checked="Nav_Checked"/>
                                 <TextBlock Text="APPLICATIONS" Style="{StaticResource NavSection}"/>
                                 <RadioButton Style="{StaticResource NavButton}" Tag="&#xE71B;" Content="Applications connectées" x:Name="NavIntegrations" GroupName="SettingsNav" Checked="Nav_Checked"/>
                                 <RadioButton Style="{StaticResource NavButton}" Tag="&#xEA86;" Content="Plugins" x:Name="NavPlugins" GroupName="SettingsNav" Checked="Nav_Checked"/>
@@ -2497,6 +2498,221 @@
                                 <Border Style="{StaticResource RowBorder}" BorderThickness="0">
                                     <TextBlock x:Name="VoicemodStatusText" Style="{StaticResource FieldLabel}" TextWrapping="Wrap" Margin="0"/>
                                 </Border>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- ===== Page : Mode console (TV, audio, bibliothèque de jeux et émulateurs) ===== -->
+                <ScrollViewer x:Name="PageConsole" Grid.Row="1" Style="{StaticResource PageScroller}" Visibility="Collapsed">
+                    <StackPanel>
+                        <TextBlock Text="Mode console" Style="{StaticResource PageTitle}"/>
+                        <TextBlock Text="Bascule le PC sur la TV avec une interface manette : seule la TV reste affichée, le son suit, et tout est remis à la sortie."
+                                   Style="{StaticResource PageSubtitle}"/>
+
+                        <ContentControl Style="{StaticResource SectionHeader}" Content="Télévision"/>
+                        <Border Style="{StaticResource RowCard}" local:SettingsSearch.Title="Télévision et son"
+                                local:SettingsSearch.Keywords="mode console tv télévision écran hdmi sortie audio son désactiver actualiser">
+                            <StackPanel Style="{StaticResource RowsPanel}">
+                                <controls:SettingRow Label="Écran de la TV"
+                                                     Description="Les écrans inactifs (TV éteinte ou désactivée dans Windows) sont listés aussi.">
+                                    <StackPanel Orientation="Horizontal">
+                                        <ComboBox x:Name="ConsoleTvCombo" Width="280" SelectionChanged="ConsoleTv_Changed"/>
+                                        <Button x:Name="ConsoleTvRefreshButton" Content="Actualiser" Margin="8,0,0,0" Click="ConsoleTvRefresh_Click"/>
+                                    </StackPanel>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Sortie audio de la TV"
+                                                     Description="Devient la sortie par défaut pendant le mode console, puis l'ancienne est rétablie.">
+                                    <ComboBox x:Name="ConsoleAudioCombo" Width="280" SelectionChanged="ConsoleAudio_Changed"/>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Désactiver la TV hors mode console"
+                                                     Description="La TV disparaît de Windows (plus de fenêtres perdues dessus) et revient à l'entrée du mode.">
+                                    <CheckBox x:Name="ConsoleDisableTvCheck" Style="{StaticResource ToggleSwitch}" Margin="0"
+                                              Checked="ConsoleDisableTv_Changed" Unchecked="ConsoleDisableTv_Changed"/>
+                                </controls:SettingRow>
+                                <Border Style="{StaticResource RowBorder}" BorderThickness="0">
+                                    <TextBlock x:Name="ConsoleTvStatus" Style="{StaticResource FieldLabel}" TextWrapping="Wrap" Margin="0"/>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+
+                        <ContentControl Style="{StaticResource SectionHeader}" Content="TV et manette"/>
+                        <Border Style="{StaticResource RowCard}" local:SettingsSearch.Title="Allumer la TV et volume par le réseau"
+                                local:SettingsSearch.Keywords="mode console tv allumer éteindre veille volume réseau google tv appairer appairage manette combinaison">
+                            <StackPanel Style="{StaticResource RowsPanel}">
+                                <controls:SettingRow Label="TV Google TV sur le réseau"
+                                                     Description="Pour allumer, éteindre et régler le volume de la TV. Allume la TV, clique sur « Rechercher », puis « Appairer » : un code s'affiche sur la TV.">
+                                    <StackPanel Orientation="Horizontal">
+                                        <ComboBox x:Name="ConsoleTvHostBox" Width="220" IsEditable="True"/>
+                                        <Button x:Name="ConsoleTvFindButton" Content="Rechercher" Margin="8,0,0,0" Click="ConsoleTvFind_Click"/>
+                                        <Button x:Name="ConsoleTvPairButton" Content="Appairer" Margin="8,0,0,0" Click="ConsoleTvPair_Click"/>
+                                    </StackPanel>
+                                </controls:SettingRow>
+                                <Border x:Name="ConsoleTvCodePanel" Style="{StaticResource RowBorder}" Visibility="Collapsed">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="Code affiché sur la TV :" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                        <TextBox x:Name="ConsoleTvCodeBox" Width="110" MaxLength="6" CharacterCasing="Upper" FontFamily="Consolas" FontSize="16"/>
+                                        <Button Content="Valider" Style="{StaticResource PrimaryButton}" Margin="8,0,0,0" Click="ConsoleTvCode_Click"/>
+                                        <Button Content="Annuler" Margin="8,0,0,0" Click="ConsoleTvCodeCancel_Click"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Style="{StaticResource RowBorder}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock x:Name="ConsoleTvRemoteStatus" Style="{StaticResource FieldLabel}" TextWrapping="Wrap" Margin="0" VerticalAlignment="Center"/>
+                                        <Button x:Name="ConsoleTvForgetButton" Content="Oublier" Style="{StaticResource LinkButton}" Margin="10,0,0,0" Click="ConsoleTvForget_Click"/>
+                                    </StackPanel>
+                                </Border>
+                                <controls:SettingRow Label="Entrée HDMI du PC"
+                                                     Description="Le port HDMI de la TV où est branché le PC : la TV y passe toute seule en mode console. Si « Tester » ne change pas d'entrée, utilise « Trouver la méthode » (chaque marque de TV a la sienne).">
+                                    <StackPanel Orientation="Horizontal">
+                                        <ComboBox x:Name="ConsoleTvHdmiBox" Width="140" SelectionChanged="ConsoleTvHdmi_Changed">
+                                            <ComboBoxItem Content="Ne pas changer" Tag="0"/>
+                                            <ComboBoxItem Content="HDMI 1" Tag="1"/>
+                                            <ComboBoxItem Content="HDMI 2" Tag="2"/>
+                                            <ComboBoxItem Content="HDMI 3" Tag="3"/>
+                                            <ComboBoxItem Content="HDMI 4" Tag="4"/>
+                                        </ComboBox>
+                                        <Button Content="Tester" Margin="8,0,0,0" Click="ConsoleTvHdmiTest_Click"/>
+                                        <Button Content="Trouver la méthode…" Margin="8,0,0,0" Click="ConsoleTvWizard_Click"/>
+                                    </StackPanel>
+                                </controls:SettingRow>
+                                <Border x:Name="ConsoleTvWizardPanel" Style="{StaticResource RowBorder}" Visibility="Collapsed">
+                                    <StackPanel>
+                                        <TextBlock x:Name="ConsoleTvWizardText" TextWrapping="Wrap" Margin="0,0,0,10"/>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Button x:Name="ConsoleTvWizardYes" Content="Oui, c'est la bonne" Style="{StaticResource PrimaryButton}" Click="ConsoleTvWizardYes_Click"/>
+                                            <Button x:Name="ConsoleTvWizardNo" Content="Non, essai suivant" Margin="8,0,0,0" Click="ConsoleTvWizardNo_Click"/>
+                                            <Button Content="Annuler" Margin="8,0,0,0" Click="ConsoleTvWizardCancel_Click"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                                <controls:SettingRow Label="Allumer la TV en entrant en mode console"
+                                                     Description="La TV s'allume toute seule (TV appairée, « Wake on Wireless LAN » activé sur la TV).">
+                                    <CheckBox x:Name="ConsoleTvAutoPowerCheck" Style="{StaticResource ToggleSwitch}" Margin="0"
+                                              Checked="ConsoleTvAutoPower_Changed" Unchecked="ConsoleTvAutoPower_Changed"/>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Éteindre la TV en revenant au PC"
+                                                     Description="La TV se met en veille quand tu quittes le mode console (TV appairée).">
+                                    <CheckBox x:Name="ConsoleTvAutoOffCheck" Style="{StaticResource ToggleSwitch}" Margin="0"
+                                              Checked="ConsoleTvAutoOff_Changed" Unchecked="ConsoleTvAutoOff_Changed"/>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Lancer le mode console avec la manette"
+                                                     Description="Appuie en même temps sur ces boutons de la manette Xbox, depuis le PC. En mode console (menu et jeux), View ⧉ + LT / RT règlent le volume.">
+                                    <ComboBox x:Name="ConsoleComboBox" Width="300" SelectionChanged="ConsoleCombo_Changed"/>
+                                </controls:SettingRow>
+                            </StackPanel>
+                        </Border>
+
+                        <ContentControl Style="{StaticResource SectionHeader}" Content="Lancement"/>
+                        <Border Style="{StaticResource RowCard}" local:SettingsSearch.Title="Lancer le mode console"
+                                local:SettingsSearch.Keywords="mode console lancer quitter raccourci de secours urgence tv manette">
+                            <StackPanel Style="{StaticResource RowsPanel}">
+                                <controls:SettingRow Label="Mode console"
+                                                     Description="Tu peux aussi ajouter la tuile « Mode console » à la Switch (Switch › Système).">
+                                    <Button x:Name="ConsoleLaunchButton" Content="Lancer le mode console" Style="{StaticResource PrimaryButton}"
+                                            Click="ConsoleLaunch_Click"/>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Raccourci de secours"
+                                                     Description="Quitte le mode console depuis n'importe où (clavier). Clique dans la zone puis appuie sur la combinaison.">
+                                    <StackPanel Orientation="Horizontal">
+                                        <controls:HotkeyBox x:Name="ConsoleHotkeyBox" Width="200" Style="{StaticResource {x:Type TextBox}}"
+                                                            GestureCaptured="ConsoleHotkeyBox_GestureCaptured" CaptureStateChanged="ConsoleHotkeyBox_CaptureStateChanged"/>
+                                        <Button Content="Par défaut" Margin="8,0,0,0" Click="ConsoleHotkeyReset_Click"/>
+                                    </StackPanel>
+                                </controls:SettingRow>
+                                <Border Style="{StaticResource RowBorder}" BorderThickness="0">
+                                    <TextBlock x:Name="ConsoleHotkeyStatus" Style="{StaticResource FieldLabel}" TextWrapping="Wrap" Margin="0"/>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+
+                        <ContentControl Style="{StaticResource SectionHeader}" Content="Apparence de la console"/>
+                        <Border Style="{StaticResource RowCard}" local:SettingsSearch.Title="Thème et intro du mode console"
+                                local:SettingsSearch.Keywords="mode console thème apparence couleurs intro animation lancement logo son aperçu">
+                            <StackPanel Style="{StaticResource RowsPanel}">
+                                <Border Style="{StaticResource RowBorder}">
+                                    <StackPanel>
+                                        <TextBlock Text="Thème de l'interface TV" Style="{StaticResource FieldLabel}" Margin="0,0,0,4"/>
+                                        <TextBlock x:Name="ConsoleThemeName" Style="{StaticResource PageSubtitle}" Margin="0,0,0,10" TextWrapping="Wrap"/>
+                                        <WrapPanel x:Name="ConsoleThemeGallery"/>
+                                    </StackPanel>
+                                </Border>
+                                <controls:SettingRow Label="Aperçu"
+                                                     Description="Ouvre l'interface ou l'intro sur cet écran (Échap ou « Retour au PC » pour fermer). Dans la console, le bouton Menu ☰ ouvre aussi les thèmes.">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button Content="Aperçu de l'interface" Click="ConsolePreviewUi_Click"/>
+                                        <Button Content="Voir l'intro" Margin="8,0,0,0" Click="ConsolePreviewIntro_Click"/>
+                                    </StackPanel>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Style de l'intro et des bruitages"
+                                                     Description="Cyberpunk par défaut. Automatique : cyberpunk avec le thème Néon glitch, élégant avec les autres thèmes.">
+                                    <ComboBox x:Name="ConsoleIntroStyleBox" Width="200" SelectionChanged="ConsoleIntroStyle_Changed">
+                                        <ComboBoxItem Content="Automatique" Tag="auto"/>
+                                        <ComboBoxItem Content="Élégant" Tag="elegant"/>
+                                        <ComboBoxItem Content="Cyberpunk" Tag="cyber"/>
+                                    </ComboBox>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Bruitages"
+                                                     Description="Petits sons quand tu te déplaces, valides, reviens en arrière ou lances un jeu (sur la sortie son de la TV).">
+                                    <CheckBox x:Name="ConsoleSoundsCheck" Style="{StaticResource ToggleSwitch}" Margin="0"
+                                              Checked="ConsoleSounds_Changed" Unchecked="ConsoleSounds_Changed"/>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Vibrations de la manette"
+                                                     Description="Légère en te déplaçant, plus marquée en validant, forte au lancement d'un jeu (manette Xbox).">
+                                    <CheckBox x:Name="ConsoleVibrationCheck" Style="{StaticResource ToggleSwitch}" Margin="0"
+                                              Checked="ConsoleVibration_Changed" Unchecked="ConsoleVibration_Changed"/>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Animation de lancement"
+                                                     Description="Intro de 10 s avec son à l'entrée en mode console (A ou Entrée pour la passer).">
+                                    <CheckBox x:Name="ConsoleIntroCheck" Style="{StaticResource ToggleSwitch}" Margin="0"
+                                              Checked="ConsoleIntro_Changed" Unchecked="ConsoleIntro_Changed"/>
+                                </controls:SettingRow>
+                                <controls:SettingRow Label="Intro personnalisée (facultatif)"
+                                                     Description="Dossier d'images et de vidéos jouées dans l'ordre du nom : image + son du même nom (01.png + 01.wav) ou vidéo avec son son (02.mp4). Vide = intro SysDeck.">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBox x:Name="ConsoleIntroFolderBox" Width="220" IsReadOnly="True"/>
+                                        <Button Content="Parcourir…" Margin="8,0,0,0" Click="ConsoleIntroBrowse_Click"/>
+                                        <Button Content="Effacer" Margin="8,0,0,0" Click="ConsoleIntroClear_Click"/>
+                                    </StackPanel>
+                                </controls:SettingRow>
+                            </StackPanel>
+                        </Border>
+
+                        <ContentControl Style="{StaticResource SectionHeader}" Content="Jaquettes"/>
+                        <Border Style="{StaticResource RowCard}" local:SettingsSearch.Title="Clé SteamGridDB"
+                                local:SettingsSearch.Keywords="steamgriddb clé api jaquette fond logo images recherche émulateur">
+                            <StackPanel Style="{StaticResource RowsPanel}">
+                                <controls:SettingRow Label="Clé SteamGridDB (facultative)"
+                                                     Description="Améliore la recherche d'images, nécessaire pour les jeux d'émulateur. Enregistrée chiffrée pour ton compte Windows.">
+                                    <StackPanel Orientation="Horizontal">
+                                        <PasswordBox x:Name="ConsoleGridKeyBox" Width="240" LostFocus="ConsoleGridKey_LostFocus"/>
+                                        <Button Content="Obtenir une clé" Style="{StaticResource LinkButton}" Margin="8,0,0,0" Click="ConsoleGridKeyLink_Click"/>
+                                    </StackPanel>
+                                </controls:SettingRow>
+                            </StackPanel>
+                        </Border>
+
+                        <ContentControl Style="{StaticResource SectionHeader}" Content="Jeux"/>
+                        <Border Style="{StaticResource RowCard}" local:SettingsSearch.Title="Jeux du mode console"
+                                local:SettingsSearch.Keywords="jeux bibliothèque ajouter modifier supprimer steam exécutable lien émulateur rom jaquette plateforme">
+                            <StackPanel Style="{StaticResource RowsPanel}">
+                                <Border Style="{StaticResource RowBorder}">
+                                    <Button Content="+ Ajouter un jeu" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left" Click="ConsoleGameAdd_Click"/>
+                                </Border>
+                                <TextBlock x:Name="ConsoleGamesEmpty" Style="{StaticResource PageSubtitle}" Margin="0,12" Text="Aucun jeu pour le moment."/>
+                                <StackPanel x:Name="ConsoleGamesList"/>
+                            </StackPanel>
+                        </Border>
+
+                        <ContentControl Style="{StaticResource SectionHeader}" Content="Émulateurs"/>
+                        <Border Style="{StaticResource RowCard}" local:SettingsSearch.Title="Émulateurs"
+                                local:SettingsSearch.Keywords="émulateurs retroarch dolphin pcsx2 duckstation ppsspp rpcs3 cemu ryujinx yuzu xemu mgba arguments core">
+                            <StackPanel Style="{StaticResource RowsPanel}">
+                                <Border Style="{StaticResource RowBorder}">
+                                    <Button Content="+ Ajouter un émulateur" Style="{StaticResource PrimaryButton}" HorizontalAlignment="Left" Click="ConsoleEmulatorAdd_Click"/>
+                                </Border>
+                                <TextBlock x:Name="ConsoleEmulatorsEmpty" Style="{StaticResource PageSubtitle}" Margin="0,12" Text="Aucun émulateur configuré."/>
+                                <StackPanel x:Name="ConsoleEmulatorsList"/>
                             </StackPanel>
                         </Border>
                     </StackPanel>

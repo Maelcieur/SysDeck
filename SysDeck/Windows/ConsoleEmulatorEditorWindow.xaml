@@ -1,0 +1,70 @@
+<Window x:Class="SysDeck.ConsoleEmulatorEditorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="SysDeck — Émulateur"
+        Width="520" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize" ShowInTaskbar="False"
+        FontFamily="Segoe UI" Foreground="#E7E8EB" Background="#1A1B1F">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Themes/SettingsStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+    <StackPanel Margin="20">
+        <TextBlock x:Name="TitleText" Text="Modifier l'émulateur" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,12"/>
+
+        <TextBlock Text="Nom" Style="{StaticResource FieldLabel}"/>
+        <TextBox x:Name="NameBox" Margin="0,0,0,14" MaxLength="60"/>
+
+        <TextBlock Text="Programme de l'émulateur" Style="{StaticResource FieldLabel}"/>
+        <DockPanel Margin="0,0,0,14">
+            <Button DockPanel.Dock="Right" Content="Parcourir…" Margin="8,0,0,0" Click="BrowseExe_Click"/>
+            <TextBox x:Name="ExeBox"/>
+        </DockPanel>
+
+        <TextBlock Text="Console émulée (affichée sur les jaquettes)" Style="{StaticResource FieldLabel}"/>
+        <TextBox x:Name="PlatformBox" Margin="0,0,0,14" MaxLength="40"/>
+
+        <!-- Réglages simples -->
+        <DockPanel Margin="0,0,0,4">
+            <CheckBox x:Name="FullscreenCheck" DockPanel.Dock="Right" Style="{StaticResource ToggleSwitch}" Margin="12,0,0,0" VerticalAlignment="Center"/>
+            <StackPanel>
+                <TextBlock Text="Démarrer les jeux en plein écran" FontWeight="SemiBold"/>
+                <TextBlock x:Name="FullscreenInfo" FontSize="11.5" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,2,0,0"/>
+            </StackPanel>
+        </DockPanel>
+
+        <StackPanel x:Name="CorePanel" Margin="0,12,0,0">
+            <TextBlock Text="Cœur par défaut (le « moteur » de RetroArch pour cette console)" Style="{StaticResource FieldLabel}"/>
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Content="Parcourir…" Margin="8,0,0,0" Click="BrowseCore_Click"/>
+                <TextBox x:Name="CoreBox"/>
+            </DockPanel>
+        </StackPanel>
+
+        <TextBlock x:Name="HintText" FontSize="11.5" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,12,0,0" Visibility="Collapsed"/>
+
+        <!-- Réglages avancés (ligne de commande) -->
+        <Expander Header="Avancé (ligne de commande)" Margin="0,16,0,0" Foreground="{StaticResource Muted}">
+            <StackPanel Margin="0,10,0,0">
+                <TextBlock Text="Ce que SysDeck envoie à l'émulateur" Style="{StaticResource FieldLabel}"/>
+                <TextBox x:Name="ArgsBox" FontFamily="Consolas" Margin="0,0,0,4"/>
+                <TextBlock FontSize="11" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,12"
+                           Text="{}{rom} est remplacé par le fichier du jeu, {romDir} par son dossier, {romName} par son nom, {core} par le cœur RetroArch. Le reste dépend de l'émulateur."/>
+                <TextBlock Text="Option plein écran de cet émulateur" Style="{StaticResource FieldLabel}"/>
+                <TextBox x:Name="FlagBox" FontFamily="Consolas" Margin="0,0,0,4"/>
+                <TextBlock FontSize="11" Foreground="{StaticResource Muted}" TextWrapping="Wrap"
+                           Text="Ajoutée ou retirée automatiquement par la case « plein écran ». Laisse vide si l'émulateur n'en a pas."/>
+            </StackPanel>
+        </Expander>
+
+        <TextBlock x:Name="ErrorText" FontSize="12" Foreground="{StaticResource UiDanger}" TextWrapping="Wrap" Margin="0,8,0,0" Visibility="Collapsed"/>
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+            <Button Content="Annuler" Margin="0,0,8,0" IsCancel="True" Click="Cancel_Click"/>
+            <Button Content="Enregistrer" Style="{StaticResource PrimaryButton}" Click="Save_Click"/>
+        </StackPanel>
+    </StackPanel>
+</Window>

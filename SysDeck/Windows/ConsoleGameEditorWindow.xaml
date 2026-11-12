@@ -1,0 +1,177 @@
+<Window x:Class="SysDeck.ConsoleGameEditorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="SysDeck — Jeu du mode console"
+        Width="600" Height="760" MinHeight="520"
+        WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
+        FontFamily="Segoe UI" Foreground="#E7E8EB" Background="#1A1B1F">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Themes/SettingsStyles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+    <DockPanel Margin="20">
+        <StackPanel DockPanel.Dock="Bottom" Margin="0,12,0,0">
+            <TextBlock x:Name="ErrorText" FontSize="12" Foreground="{StaticResource UiDanger}" TextWrapping="Wrap" Margin="0,0,0,8" Visibility="Collapsed"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="Annuler" Margin="0,0,8,0" IsCancel="True" Click="Cancel_Click"/>
+                <Button x:Name="SaveButton" Content="Enregistrer" Style="{StaticResource PrimaryButton}" Click="Save_Click"/>
+            </StackPanel>
+        </StackPanel>
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel Margin="0,0,12,0">
+                <TextBlock x:Name="TitleText" Text="Ajouter un jeu" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,12"/>
+
+                <TextBlock Text="Titre" Style="{StaticResource FieldLabel}"/>
+                <TextBox x:Name="TitleBox" Margin="0,0,0,14" MaxLength="120"/>
+
+                <TextBlock Text="Type de lancement" Style="{StaticResource FieldLabel}"/>
+                <ComboBox x:Name="TypeBox" Margin="0,0,0,14" SelectionChanged="Type_Changed">
+                    <ComboBoxItem Content="Exécutable (.exe)"/>
+                    <ComboBoxItem Content="Lien (steam:// ou autre adresse)"/>
+                    <ComboBoxItem Content="Émulateur"/>
+                </ComboBox>
+
+                <StackPanel x:Name="ExePanel">
+                    <TextBlock Text="Programme" Style="{StaticResource FieldLabel}"/>
+                    <DockPanel Margin="0,0,0,14">
+                        <Button DockPanel.Dock="Right" Content="Parcourir…" Margin="8,0,0,0" Click="BrowseExe_Click"/>
+                        <TextBox x:Name="ExeBox"/>
+                    </DockPanel>
+                    <TextBlock Text="Arguments (facultatif)" Style="{StaticResource FieldLabel}"/>
+                    <TextBox x:Name="ArgsBox" Margin="0,0,0,14"/>
+                    <TextBlock Text="Dossier de travail (facultatif)" Style="{StaticResource FieldLabel}"/>
+                    <DockPanel Margin="0,0,0,14">
+                        <Button DockPanel.Dock="Right" Content="Parcourir…" Margin="8,0,0,0" Click="BrowseDir_Click"/>
+                        <TextBox x:Name="DirBox"/>
+                    </DockPanel>
+                </StackPanel>
+
+                <StackPanel x:Name="UriPanel" Visibility="Collapsed">
+                    <TextBlock Text="Adresse" Style="{StaticResource FieldLabel}"/>
+                    <TextBox x:Name="UriBox" Margin="0,0,0,4"/>
+                    <TextBlock Text="Par exemple steam://rungameid/620 (l'identifiant Steam sert à retrouver les images)."
+                               FontSize="11" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,14"/>
+                </StackPanel>
+
+                <StackPanel x:Name="EmuPanel" Visibility="Collapsed">
+                    <TextBlock Text="Émulateur" Style="{StaticResource FieldLabel}"/>
+                    <ComboBox x:Name="EmulatorBox" Margin="0,0,0,4" DisplayMemberPath="Name" SelectionChanged="Emulator_Changed"/>
+                    <TextBlock x:Name="EmulatorHint" FontSize="11" Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,14"/>
+                    <TextBlock Text="Fichier du jeu (ROM, image disque)" Style="{StaticResource FieldLabel}"/>
+                    <DockPanel Margin="0,0,0,14">
+                        <Button DockPanel.Dock="Right" Content="Parcourir…" Margin="8,0,0,0" Click="BrowseRom_Click"/>
+                        <TextBox x:Name="RomBox"/>
+                    </DockPanel>
+                    <TextBlock Text="Cœur RetroArch (facultatif)" Style="{StaticResource FieldLabel}"/>
+                    <TextBox x:Name="CoreBox" Margin="0,0,0,14"/>
+                </StackPanel>
+
+                <TextBlock Text="Plateforme (facultatif)" Style="{StaticResource FieldLabel}"/>
+                <TextBox x:Name="PlatformBox" Margin="0,0,0,14" MaxLength="40"/>
+
+                <TextBlock Text="Description (facultatif)" Style="{StaticResource FieldLabel}"/>
+                <TextBox x:Name="DescriptionBox" Margin="0,0,0,18" AcceptsReturn="True" TextWrapping="Wrap"
+                         VerticalScrollBarVisibility="Auto" MinHeight="70" MaxHeight="130"/>
+
+                <TextBlock Text="Images" FontSize="14" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                    <Button x:Name="SearchButton" Content="Chercher les images" Click="Search_Click"/>
+                    <TextBlock x:Name="SearchStatus" FontSize="11.5" Foreground="{StaticResource Muted}" VerticalAlignment="Center"
+                               Margin="12,0,0,0" TextWrapping="Wrap"/>
+                </StackPanel>
+                <StackPanel x:Name="CandidatesPanel" Visibility="Collapsed" Margin="0,0,0,12">
+                    <ListBox x:Name="CandidatesList" Height="150" DisplayMemberPath="Label" MouseDoubleClick="Candidates_DoubleClick"
+                             Background="{StaticResource CardBg}" BorderBrush="{StaticResource CardBorder}" BorderThickness="1"
+                             Foreground="#FFE7E8EB" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Foreground" Value="#FFE7E8EB"/>
+                                <Setter Property="Padding" Value="8,5"/>
+                                <Setter Property="Cursor" Value="Hand"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ListBoxItem">
+                                            <Border x:Name="Bg" Background="Transparent" CornerRadius="4" Padding="{TemplateBinding Padding}">
+                                                <ContentPresenter/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="Bg" Property="Background" Value="#FF2C2E34"/>
+                                                </Trigger>
+                                                <Trigger Property="IsSelected" Value="True">
+                                                    <Setter TargetName="Bg" Property="Background" Value="#665B8DEF"/>
+                                                    <Setter Property="Foreground" Value="#FFFFFFFF"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                    </ListBox>
+                    <Button x:Name="UseCandidateButton" Content="Télécharger les images de ce résultat" Margin="0,8,0,0"
+                            HorizontalAlignment="Left" Click="UseCandidate_Click"/>
+                </StackPanel>
+
+                <Grid Margin="0,0,0,6">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="90"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Border Width="60" Height="90" CornerRadius="4" Background="#262831" HorizontalAlignment="Left">
+                        <Image x:Name="CoverImage" Stretch="UniformToFill"/>
+                    </Border>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock Text="Jaquette (portrait)" FontWeight="SemiBold"/>
+                        <TextBlock x:Name="CoverPathText" FontSize="11" Foreground="{StaticResource Muted}" TextTrimming="CharacterEllipsis"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Content="Parcourir…" Tag="cover" Click="BrowseImage_Click"/>
+                        <Button Content="Retirer" Tag="cover" Margin="6,0,0,0" Click="ClearImage_Click"/>
+                    </StackPanel>
+                </Grid>
+                <Grid Margin="0,0,0,6">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="90"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Border Width="80" Height="45" CornerRadius="4" Background="#262831" HorizontalAlignment="Left">
+                        <Image x:Name="HeroImage" Stretch="UniformToFill"/>
+                    </Border>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock Text="Fond (large)" FontWeight="SemiBold"/>
+                        <TextBlock x:Name="HeroPathText" FontSize="11" Foreground="{StaticResource Muted}" TextTrimming="CharacterEllipsis"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Content="Parcourir…" Tag="hero" Click="BrowseImage_Click"/>
+                        <Button Content="Retirer" Tag="hero" Margin="6,0,0,0" Click="ClearImage_Click"/>
+                    </StackPanel>
+                </Grid>
+                <Grid Margin="0,0,0,6">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="90"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Border Width="80" Height="45" CornerRadius="4" Background="#262831" HorizontalAlignment="Left">
+                        <Image x:Name="LogoImage" Stretch="Uniform" Margin="4"/>
+                    </Border>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock Text="Logo (facultatif)" FontWeight="SemiBold"/>
+                        <TextBlock x:Name="LogoPathText" FontSize="11" Foreground="{StaticResource Muted}" TextTrimming="CharacterEllipsis"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Content="Parcourir…" Tag="logo" Click="BrowseImage_Click"/>
+                        <Button Content="Retirer" Tag="logo" Margin="6,0,0,0" Click="ClearImage_Click"/>
+                    </StackPanel>
+                </Grid>
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</Window>

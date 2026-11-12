@@ -112,6 +112,83 @@ public sealed class VoicemodSettings
     public bool Enabled { get; set; }
 }
 
+/// <summary>Mode console : écran de la TV, sortie audio, clé SteamGridDB (chiffrée) et raccourci de secours.</summary>
+public sealed class ConsoleSettings
+{
+    public const string DefaultEmergencyHotkey = "Ctrl+Alt+End";
+
+    /// <summary>Identifiant stable de l'écran de la TV (vide = non configuré).</summary>
+    public string TvTargetId { get; set; } = "";
+
+    /// <summary>Sortie audio de la TV (vide = ne pas toucher à l'audio).</summary>
+    public string TvAudioDeviceId { get; set; } = "";
+
+    /// <summary>Désactive la TV dans Windows quand le mode console n'est pas actif.</summary>
+    public bool DisableTvWhenIdle { get; set; }
+
+    /// <summary>Clé API SteamGridDB (facultative), chiffrée DPAPI.</summary>
+    public string? SteamGridDbKeyProtected { get; set; }
+
+    [JsonIgnore]
+    public string SteamGridDbKey
+    {
+        get => Secrets.Unprotect(SteamGridDbKeyProtected, "steamgriddb-key", "Clé SteamGridDB illisible (copiée depuis un autre compte ou PC ?) : à ressaisir.") ?? "";
+        set => SteamGridDbKeyProtected = Secrets.Protect(value?.Trim());
+    }
+
+    /// <summary>Raccourci global qui quitte le mode console (secours).</summary>
+    public string EmergencyHotkey { get; set; } = DefaultEmergencyHotkey;
+
+    /// <summary>Adresse IP de la TV Google TV appairée (vide = pas de commande réseau).</summary>
+    public string TvRemoteHost { get; set; } = "";
+
+    /// <summary>Adresse MAC de la TV (réveil Wake-on-LAN / WoWLAN quand son réseau dort).</summary>
+    public string TvRemoteMac { get; set; } = "";
+
+    /// <summary>Certificat d'appairage avec la TV (PFX en base64), chiffré DPAPI.</summary>
+    public string? TvRemoteCertificateProtected { get; set; }
+
+    [JsonIgnore]
+    public string TvRemoteCertificate
+    {
+        get => Secrets.Unprotect(TvRemoteCertificateProtected, "tv-remote-cert", "Appairage de la TV illisible (copié depuis un autre compte ou PC ?) : à refaire.") ?? "";
+        set => TvRemoteCertificateProtected = Secrets.Protect(value);
+    }
+
+    /// <summary>Entrée HDMI de la TV où est branché le PC (1 à 4) ; 0 = ne pas changer d'entrée.</summary>
+    public int TvHdmiInput { get; set; }
+
+    /// <summary>Méthode qui passe la TV sur l'entrée du PC, trouvée par l'assistant (« key:243 » ou « link:content://... ») ; vide = méthode par défaut.</summary>
+    public string TvInputCommand { get; set; } = "";
+
+    /// <summary>Allumer la TV en entrant en mode console (TV appairée).</summary>
+    public bool TvAutoPower { get; set; } = true;
+
+    /// <summary>Mettre la TV en veille en revenant au PC (TV appairée).</summary>
+    public bool TvAutoOff { get; set; } = true;
+
+    /// <summary>Combinaison de la manette qui lance le mode console depuis le PC : ViewMenu, LbRbMenu, LbRbView, ou Off.</summary>
+    public string StartCombo { get; set; } = "ViewMenu";
+
+    /// <summary>Thème de l'interface TV (identifiant de ConsoleThemes).</summary>
+    public string ThemeId { get; set; } = "nuit";
+
+    /// <summary>Style de l'intro et des bruitages : « cyber » (par défaut), « elegant », ou « auto » (cyberpunk avec le thème Néon glitch).</summary>
+    public string IntroStyle { get; set; } = "cyber";
+
+    /// <summary>Bruitages du menu de la console.</summary>
+    public bool UiSounds { get; set; } = true;
+
+    /// <summary>Vibrations de la manette dans le menu de la console.</summary>
+    public bool Vibration { get; set; } = true;
+
+    /// <summary>Animation de lancement (10 s) à l'entrée en mode console.</summary>
+    public bool IntroEnabled { get; set; } = true;
+
+    /// <summary>Dossier d'intro personnalisée (images + sons du même nom, ou vidéos, joués dans l'ordre alphabétique). Vide = intro intégrée.</summary>
+    public string IntroFolder { get; set; } = "";
+}
+
 /// <summary>Réglages des plugins : ceux que l'utilisateur a désactivés, et les réglages globaux que chacun enregistre (<c>setGlobalSettings</c>).</summary>
 public sealed class PluginsConfig
 {
@@ -293,6 +370,9 @@ public sealed class AppConfig
     /// <summary>Intégration Voicemod (désactivée par défaut).</summary>
     public VoicemodSettings Voicemod { get; set; } = new();
 
+    /// <summary>Mode console (TV, audio, SteamGridDB, raccourci de secours).</summary>
+    public ConsoleSettings Console { get; set; } = new();
+
     /// <summary>Plugins désactivés et réglages globaux de chaque plugin.</summary>
     public PluginsConfig Plugins { get; set; } = new();
 
@@ -328,6 +408,10 @@ public sealed class AppConfig
         Obs ??= new();
         Twitch ??= new();
         Voicemod ??= new();
+        Console ??= new();
+        Console.TvTargetId ??= "";
+        Console.TvAudioDeviceId ??= "";
+        if (string.IsNullOrWhiteSpace(Console.EmergencyHotkey)) Console.EmergencyHotkey = ConsoleSettings.DefaultEmergencyHotkey;
         Plugins ??= new();
         Plugins.Disabled ??= new();
         Plugins.Global ??= new();

@@ -220,7 +220,9 @@ public enum TileKind
     /// <summary>Action d'alimentation ou de démarrage de la Nintendo Switch.</summary>
     SwitchAction,
     /// <summary>Navigation entre les sous-pages du widget des tuiles.</summary>
-    TilePageNavigation
+    TilePageNavigation,
+    /// <summary>Bascule du Mode console (TV seule, interface manette) ; allumée tant que le mode est actif.</summary>
+    ConsoleMode
 }
 
 /// <summary>Navigation relative dans le widget des tuiles.</summary>

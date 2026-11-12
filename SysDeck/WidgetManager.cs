@@ -8,6 +8,7 @@ using SysDeck.Infrastructure;
 using SysDeck.Interop;
 using SysDeck.Models;
 using SysDeck.Services;
+using SysDeck.Services.ConsoleMode;
 using SysDeck.Widgets;
 using SysDeck.Controls;
 
@@ -98,8 +99,9 @@ public sealed partial class WidgetManager : IDisposable, IProfileHost
     private readonly uint _taskbarCreatedMessage = RegisterWindowMessage("TaskbarCreated");
     private DispatcherTimer? _recreateTimer;
 
-    public WidgetManager()
+    public WidgetManager(ConsoleModeService? consoleService = null)
     {
+        _consoleService = consoleService ?? new ConsoleModeService();
         _config = _configStore.Load();
         _power = new PowerUsageService(_config.Power);
 
@@ -180,6 +182,8 @@ public sealed partial class WidgetManager : IDisposable, IProfileHost
             _emojiHotkey.Pressed += ShowEmojiPicker;
             if (HotkeyGesture.Parse(_config.EmojiHotkey) is { } emojiGesture && !_emojiHotkey.Register(emojiGesture))
                 Log.Warn($"Raccourci des émojis ({emojiGesture}) déjà utilisé par une autre application.");
+
+            InitConsoleHotkey();
         };
         // force la création du handle natif sans jamais afficher la fenêtre
         new WindowInteropHelper(_hiddenOwner).EnsureHandle();
@@ -219,6 +223,7 @@ public sealed partial class WidgetManager : IDisposable, IProfileHost
         StartPlugins();
         StartTileTimers();
         RefreshMouseBattery();
+        StartConsoleMode();
     }
 
     // ---------- Fenêtres des modules ----------
@@ -312,6 +317,12 @@ public sealed partial class WidgetManager : IDisposable, IProfileHost
         window.Closed += (_, _) => OnWidgetClosed(id, window);
         _windows[id] = window;
         window.Show();
+        if (_desktopWidgetsHidden)
+        {
+            // créé pendant le Mode console : reste caché jusqu'à la sortie
+            window.Hide();
+            _widgetsHiddenForConsole.Add(window);
+        }
     }
 
     /// <summary>
@@ -644,6 +655,9 @@ public sealed partial class WidgetManager : IDisposable, IProfileHost
             case TileKind.Plugin:
                 RunPluginTile(item);
                 return true;
+            case TileKind.ConsoleMode:
+                _ = ToggleConsoleModeAsync();
+                return true;
             default:
                 return false;
         }
@@ -801,10 +815,12 @@ public sealed partial class WidgetManager : IDisposable, IProfileHost
         {
             _correctionHotkey?.Unregister();
             _emojiHotkey?.Unregister();
+            _consoleHotkey?.Unregister();
             return;
         }
         _correctionHotkey?.Register(HotkeyGesture.CtrlSpace);
         if (HotkeyGesture.Parse(_config.EmojiHotkey) is { } gesture) _emojiHotkey?.Register(gesture);
+        if (HotkeyGesture.Parse(_config.Console.EmergencyHotkey) is { } consoleGesture) _consoleHotkey?.Register(consoleGesture);
     }
 
     public void ClearRecentEmojis()
@@ -975,7 +991,7 @@ public sealed partial class WidgetManager : IDisposable, IProfileHost
             }
 
             _mouseFailureCount = 0;
-            if (_windows.TryGetValue("mouse", out var w) && !w.IsVisible)
+            if (!_desktopWidgetsHidden && _windows.TryGetValue("mouse", out var w) && !w.IsVisible)
                 w.Show();
 
             foreach (var mouse in Live<MouseWidgetContent>()) mouse.Update(info.Percent, info.Charging);
@@ -1274,6 +1290,7 @@ public sealed partial class WidgetManager : IDisposable, IProfileHost
     public void Dispose()
     {
         _disposed = true; // les lectures de fond encore en cours n'écrivent plus dans l'interface
+        StopConsoleMode(); // quitte le Mode console (écrans, icônes, audio) avant de fermer
         if (_desktopSaveTimer is { IsEnabled: true }) SaveConfig(); // taille changée à la molette juste avant de quitter
         CloseToasts();
         _hardwareTimer.Stop();
@@ -1289,6 +1306,7 @@ public sealed partial class WidgetManager : IDisposable, IProfileHost
             _recreateTimer?.Stop();
             _correctionHotkey?.Dispose();
             _emojiHotkey?.Dispose();
+            _consoleHotkey?.Dispose();
             _emojiPicker?.Close();
             _hardware.Dispose();
             _claude.Dispose();

@@ -116,7 +116,7 @@ public sealed partial class WidgetManager
 
     /// <summary>Résumé de ce qui s'affiche sur les tuiles OBS, Twitch et Voicemod (atténuation, mise en valeur, symbole) : sert à ne rafraîchir que sur un vrai changement.</summary>
     private string IntegrationSignature()
-        => string.Join("|", AllTiles().Where(t => t.Kind is TileKind.Obs or TileKind.Twitch or TileKind.Voicemod)
+        => string.Join("|", AllTiles().Where(t => t.Kind is TileKind.Obs or TileKind.Twitch or TileKind.Voicemod or TileKind.ConsoleMode)
             .Select(t => $"{TileRuntime.IntegrationOffline(t)}{TileRuntime.IntegrationLookOf(t)}{TileRuntime.IntegrationGlyph(t)}"));
 
     private void OnObsStateChanged()
@@ -192,7 +192,7 @@ public sealed partial class WidgetManager
             }
             if (item.AsksTwitchText)
             {
-                AskTwitchText(item, action, fromDesktop);
+                AskTwitchText(action, fromDesktop);
                 return;
             }
             var result = await _twitch.ExecuteAsync(action, item.TwitchText, item.TwitchId);
@@ -216,7 +216,7 @@ public sealed partial class WidgetManager
     /// Saisie au moment de l'appui : clavier sur la Switch si l'appui vient d'elle, petite fenêtre sur le PC sinon.
     /// L'action part avec le texte saisi (ou la catégorie choisie) ; l'erreur éventuelle reste affichée dans la saisie.
     /// </summary>
-    private void AskTwitchText(ShortcutItem item, TwitchAction action, bool fromDesktop)
+    private void AskTwitchText(TwitchAction action, bool fromDesktop)
     {
         var kind = action switch
         {

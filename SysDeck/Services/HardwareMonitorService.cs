@@ -281,8 +281,12 @@ public sealed class HardwareMonitorService : IDisposable
         try
         {
             var info = new FileInfo(BridgeFilePath);
-            if (!info.Exists || DateTime.UtcNow - info.LastWriteTimeUtc > BridgeFileMaxAge)
+            if (!info.Exists) return null;
+            if (DateTime.UtcNow - info.LastWriteTimeUtc > BridgeFileMaxAge)
+            {
+                RestartBridgeIfStale(info.LastWriteTimeUtc);
                 return null;
+            }
 
             // Le dossier est dans ProgramData, donc potentiellement modifiable par un autre compte :
             // on n'en fait pas confiance. Un fichier démesuré n'est même pas lu.
@@ -303,6 +307,39 @@ public sealed class HardwareMonitorService : IDisposable
         catch
         {
             return null;
+        }
+    }
+
+    private static DateTime _lastBridgeRestart = DateTime.MinValue;
+    private static int _bridgeRestarts;
+
+    /// <summary>
+    /// Le pont n'écrit plus depuis 30 s (tâche arrêtée à l'ouverture de session, boucle tuée...) : on relance la tâche
+    /// planifiée « SysDeck-CpuTempBridge » (possible sans droits administrateur). Au plus toutes les 2 minutes au début,
+    /// puis toutes les 30 minutes après 5 essais (inutile d'insister si c'est l'outil AMD qui échoue).
+    /// </summary>
+    private static void RestartBridgeIfStale(DateTime lastWriteUtc)
+    {
+        var now = DateTime.UtcNow;
+        if (now - lastWriteUtc < TimeSpan.FromSeconds(30)) return;
+        var wait = _bridgeRestarts < 5 ? TimeSpan.FromMinutes(2) : TimeSpan.FromMinutes(30);
+        if (now - _lastBridgeRestart < wait) return;
+        _lastBridgeRestart = now;
+        _bridgeRestarts++;
+        try
+        {
+            var psi = new System.Diagnostics.ProcessStartInfo("schtasks.exe", "/Run /TN \"SysDeck-CpuTempBridge\"")
+            {
+                UseShellExecute = false, CreateNoWindow = true,
+                RedirectStandardOutput = true, RedirectStandardError = true,
+            };
+            using var p = System.Diagnostics.Process.Start(psi);
+            p?.WaitForExit(5000);
+            Log.Info($"Température CPU : le pont n'écrit plus depuis {(now - lastWriteUtc).TotalMinutes:0} min, tâche relancée (code {p?.ExitCode}).");
+        }
+        catch (Exception ex)
+        {
+            Log.WarnOnce("bridge-restart", "Température CPU : relance du pont impossible", ex);
         }
     }
 

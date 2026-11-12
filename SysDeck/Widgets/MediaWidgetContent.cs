@@ -84,7 +84,7 @@ public sealed class MediaWidgetContent : UserControl, ITickingWidget
 
     private IconSet _icons = IconSets["Classic"];
     private string _layout = "", _progressStyle = "Line";
-    private bool _buttonBackground = true, _isPlaying, _isSpotify;
+    private bool _buttonBackground = true, _isPlaying;
     private MediaTimeline _timeline = MediaTimeline.Empty;
     private ImageSource? _thumbnail;
     private string _source = "", _albumTitle = "";
@@ -186,7 +186,6 @@ public sealed class MediaWidgetContent : UserControl, ITickingWidget
         foreach (var brush in _covers) brush.ImageSource = _thumbnail;
         var playingChanged = _isPlaying != info.IsPlaying;
         _isPlaying = info.IsPlaying;
-        _isSpotify = info.IsSpotify;
         if (playingChanged)
         {
             ApplyIcons();

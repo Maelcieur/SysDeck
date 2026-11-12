@@ -46,6 +46,7 @@ Les Joy-Con fixés sur la Switch peuvent aussi lancer des actions de SysDeck.
 - [Compatibilité](#compatibilité)
 - [Module Switch (SwitchDeck)](#module-switch-switchdeck)
 - [Applications connectées (stream deck)](#applications-connectées-stream-deck)
+- [Mode console](#mode-console)
 - [Compiler](#compiler)
 - [Organisation du dépôt](#organisation-du-dépôt)
 - [Données](#données)
@@ -191,6 +192,52 @@ s'atténuent quand l'application n'est pas connectée.
 - **Voicemod** : voix et sons choisis dans les listes de Voicemod, avec leur image comme icône. Les sons
   sont classés par soundboard, les vôtres en tête.
 
+## Mode console
+
+Jouer aux jeux du PC sur une TV branchée en HDMI, avec une interface de salon pilotée à la manette. Réglages dans
+**Paramètres → Mode console**.
+
+- **Bascule** : les écrans du PC s'éteignent, seule la TV reste active, le son part sur la TV. Au retour, la
+  disposition des écrans, les icônes du bureau, les widgets et les applications (réduites pendant le mode) reviennent
+  comme avant. Après un plantage, tout est remis au démarrage suivant. Raccourci de secours : **Ctrl+Alt+Fin**.
+- **Interface TV** : jaquettes, fond animé, description, temps de jeu, batterie de la manette, 10 thèmes avec aperçu
+  en direct (bouton Menu ≡), intro animée de 10 s (ou vos propres images, sons et vidéos).
+- **Jeux** : programme `.exe`, raccourci `.lnk` / `.url`, lien `steam://`, ou émulateur + ROM (préréglages Dolphin,
+  PCSX2, DuckStation, PPSSPP, RPCS3, Cemu, Ryujinx, Eden / yuzu, Xemu, mGBA, RetroArch). Jaquettes et descriptions
+  depuis Steam, ou SteamGridDB avec une clé gratuite. Le jeu s'ouvre au premier plan ; le menu revient dès qu'il se
+  ferme. **Quitter** (X) ferme le jeu (fin de tâche immédiate pour un émulateur).
+- **Manette Xbox** :
+
+| Action | Boutons |
+|---|---|
+| Lancer le mode console depuis le PC | **View ⧉ + Menu ≡** (modifiable : LB+RB+Menu, LB+RB+View) |
+| Volume (menu et jeux) | **View ⧉ + RT** / **View ⧉ + LT** |
+| Naviguer, jouer, retour | Croix ou stick, **A**, **B** |
+| Plateformes / thèmes / infos / quitter le jeu | **LB RB** / **Menu ≡** / **Y** / **X** |
+| Revenir au menu pendant un jeu | Appui long sur le bouton Xbox |
+
+### TV par le réseau (facultatif)
+
+Avec une TV **Google TV / Android TV** sur le même réseau, SysDeck peut l'**allumer** en entrant en mode console, la
+passer sur l'**entrée HDMI du PC**, régler son **vrai volume**, et la **mettre en veille** au retour (deux options
+séparées). Section **TV et manette** : *Rechercher*, *Appairer* (un code s'affiche sur la TV), puis choisir l'entrée
+HDMI du PC et *Tester*.
+
+| TV | Allumer / éteindre | Volume de la TV | Entrée HDMI du PC |
+|---|---|---|---|
+| Google TV / Android TV (Sony, TCL, Hisense, Philips, Xiaomi…) | Oui (*) | Oui | Oui : *Tester*, sinon *Trouver la méthode* |
+| Samsung (Tizen), LG (webOS), Philips non Android | Non | Volume Windows | Non |
+| TV non connectée au réseau | Non | Volume Windows | Non |
+
+(*) Pour l'allumage depuis la veille, activer le réveil par le réseau sur la TV : *Wake on Wireless LAN* (Wi-Fi) ou
+*Wake-on-LAN* (câble), parfois *Allumer avec Chromecast*. Chaque marque change d'entrée à sa façon :
+**Trouver la méthode** essaie les méthodes connues une par une (la TV revient à l'accueil entre deux essais) et
+retient celle qui affiche l'entrée du PC.
+
+**Dépannage** : la TV ne s'allume pas (réveil réseau non activé, ou TV sur un Wi-Fi « invité » isolé du PC) ; la
+TV clignote quelques secondes après la bascule (un écran DisplayPort du PC se met en veille et se déconnecte :
+désactiver sa veille profonde) ; un émulateur se ferme tout de suite (voir `%AppData%\SysDeck\logs\sysdeck.log`).
+
 ## Plugins et packs d'icônes
 
 - **Plugins** : un plugin est un petit programme (exe, Node.js, Python ou PowerShell) relié à SysDeck par un
@@ -306,6 +353,8 @@ portable) ; une instance par dossier de données.
 - **Un module reste vide** : consulter `%AppData%\SysDeck\logs\sysdeck.log`.
 - **Température CPU absente** : l'Intégrité de la mémoire bloque le pilote de LibreHardwareMonitor ;
   activer l'option « Température du processeur » de l'installateur (SDK AMD Ryzen Master requis).
+- **La température CPU ne se met plus à jour (AMD)** : lire `C:\ProgramData\SysDeck\cputemp-bridge.log`, qui indique
+  l'erreur de l'outil AMD (par exemple « Platform init failed »). Si le pilote AMD lui-même est bloqué, redémarrer le PC.
 - **Ctrl+Espace sans effet** : le raccourci est pris par une autre application (voir le journal).
 - **Switch non détectée** : vérifier que le payload affiche « En attente du PC » et utiliser un câble USB-C de données.
 - **Joy-Con sans effet** : copier le dernier `switchdeck.bin` (protocole v6) sur la carte SD ; l'onglet Manettes prévient

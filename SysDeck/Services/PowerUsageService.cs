@@ -289,7 +289,7 @@ public sealed class PowerUsageService
 
     public PowerLifetime? ComputeLifetime()
     {
-        if (FirstPowerOn is not { } firstLocal || _history.TrackedSinceUtc is not { } trackedSince) return null;
+        if (FirstPowerOn is not { } firstLocal || _history.TrackedSinceUtc is null) return null;
         var firstUtc = firstLocal.ToUniversalTime();
 
         // Heures d'allumage avant SysDeck : journal Windows sur la période qu'il couvre, et avant lui

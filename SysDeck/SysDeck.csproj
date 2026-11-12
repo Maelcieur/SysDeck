@@ -15,7 +15,7 @@
     <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
 
     <!-- Version unique de l'application : reprise dans le journal ; à garder alignée avec installer\SysDeck.iss. -->
-    <Version>1.12.0</Version>
+    <Version>1.13.0</Version>
     <Product>SysDeck</Product>
     <Company>Fenix</Company>
     <Description>Widgets de bureau : surveillance matérielle, audio, médias, consommation et raccourcis.</Description>

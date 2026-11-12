@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Threading;
 using SysDeck.Infrastructure;
+using SysDeck.Services.ConsoleMode;
 
 namespace SysDeck;
 
@@ -63,9 +64,20 @@ public partial class App : Application
 
         Log.Info($"Démarrage de SysDeck {typeof(App).Assembly.GetName().Version} (données : {AppPaths.DataDir})");
 
+        // Mode console interrompu (plantage, coupure) : écrans, icônes et audio sont remis AVANT de créer les modules.
+        var consoleService = new ConsoleModeService();
         try
         {
-            _widgetManager = new WidgetManager();
+            if (consoleService.RecoverIfNeeded()) Log.Info("Mode console : configuration d'avant le plantage restaurée.");
+        }
+        catch (Exception ex)
+        {
+            Log.Warn("Mode console : reprise au démarrage en échec", ex);
+        }
+
+        try
+        {
+            _widgetManager = new WidgetManager(consoleService);
         }
         catch (Exception ex)
         {
@@ -94,6 +106,8 @@ public partial class App : Application
         // « --edit-layout » démarre en mode édition de la disposition des modules.
         if (e.Args.Contains("--edit-layout", StringComparer.OrdinalIgnoreCase))
             _widgetManager.SetLayoutEditMode(true);
+
+        _widgetManager.EnsureTvDisabledIfConfigured();
 
         _startupComplete = true;
     }

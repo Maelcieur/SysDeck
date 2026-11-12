@@ -119,6 +119,7 @@ public partial class SettingsWindow : Window
         InitProfilesPage();
         InitIntegrationsPage();
         InitPluginsPage();
+        InitConsolePage();
 
         // Divers
         GeminiApiKeyBox.Password = config.GeminiApiKey ?? "";
@@ -148,6 +149,7 @@ public partial class SettingsWindow : Window
             _widgetManager.Config.Alerts.PropertyChanged -= OnAlertSettingsChanged;
             _widgetManager.SuspendHotkeys(false); // fermeture en pleine saisie : les raccourcis reviennent
             _integrationsTimer.Stop();
+            CloseConsolePage();
             _twitchLoginCts?.Cancel();
             _widgetManager.Obs.StateChanged -= UpdateObsStatus;
             _widgetManager.Twitch.StateChanged -= UpdateTwitchStatus;
@@ -232,6 +234,7 @@ public partial class SettingsWindow : Window
             [NavProfiles] = PageProfiles,
             [NavDock] = PageDock,
             [NavSwitch] = PageSwitch,
+            [NavConsole] = PageConsole,
             [NavIntegrations] = PageIntegrations,
             [NavPlugins] = PagePlugins,
             [NavCorrection] = PageCorrection,
@@ -248,6 +251,7 @@ public partial class SettingsWindow : Window
         if (target == PageEnergy) UpdateLifetimeDetails();
         if (target == PageGeneral) UpdateFpsStatus();
         if (target == PagePlugins) RefreshPluginsList();
+        if (target == PageConsole) RefreshConsolePage();
         if (target == PageCustomize)
         {
             ReturnModuleEditor(); // éditeur prêté à l'inspecteur de la page Switch

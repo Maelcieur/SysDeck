@@ -332,7 +332,7 @@ public partial class SettingsWindow
 
     private void ShowBackgroundOptions()
     {
-        if (_widgetOptions is not { } options) return;
+        if (_widgetOptions is null) return;
         StyleCardSection.Visibility = Visibility.Visible;
         MoveToPanel(StyleCardSection, SelectedElementAdvancedHost);
         if (SelectedModule is not { } module) return;

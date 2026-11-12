@@ -187,8 +187,8 @@ public partial class SettingsWindow
         DeckInspectorDetail.Visibility = string.IsNullOrWhiteSpace(detail) ? Visibility.Collapsed : Visibility.Visible;
         foreach (var button in new[] { DeckInspectorEdit, DeckInspectorIconButton, DeckInspectorLeft, DeckInspectorRight, DeckInspectorRemove })
             button.Tag = item;
-        DeckInspectorEdit.IsEnabled = item.Kind is not (TileKind.SwitchAction or TileKind.TilePageNavigation);
-        DeckInspectorEdit.ToolTip = item.Kind is TileKind.SwitchAction or TileKind.TilePageNavigation
+        DeckInspectorEdit.IsEnabled = item.Kind is not (TileKind.SwitchAction or TileKind.TilePageNavigation or TileKind.ConsoleMode);
+        DeckInspectorEdit.ToolTip = item.Kind is TileKind.SwitchAction or TileKind.TilePageNavigation or TileKind.ConsoleMode
             ? "Cette action est fixe ; son nom et son icône restent personnalisables." : null;
 
         DeckInspectorIcon.Content = ShortcutIcons.Create(TileRuntime.ForDisplay(item), 40);
@@ -261,6 +261,7 @@ public partial class SettingsWindow
         TileKind.Command => "Commande",
         TileKind.SwitchAction => "Système Switch",
         TileKind.TilePageNavigation => "Navigation des tuiles",
+        TileKind.ConsoleMode => "Mode console",
         TileKind.MicMute => "Micro muet",
         TileKind.OutputMute => "Son muet",
         TileKind.Obs => "OBS Studio",
@@ -390,6 +391,10 @@ public partial class SettingsWindow
                 ConfirmTap = true,
                 IconGlyph = "🚀"
             }));
+
+        yield return new(system, systemIcon, "Mode console", TileRuntime.ConsoleGlyph,
+            "Bascule le PC sur la TV avec une interface manette ; la tuile s'allume tant que le mode est actif. Configuration dans Paramètres › Mode console.",
+            () => One(new ShortcutItem { Kind = TileKind.ConsoleMode, Name = "Mode console", IconGlyph = TileRuntime.ConsoleGlyph }));
 
         yield return new(keyboard, keyboardIcon, "Raccourci clavier", "", "Envoie une combinaison de touches au PC.",
             () => null, Editor: () => new AddHotkeyShortcutWindow(this, CreateEmojiPickerForChoice));
@@ -549,15 +554,15 @@ public partial class SettingsWindow
             ShowInlineEditor(editor, accepted =>
             {
                 if (accepted)
-                    AddDeckActionItems(action, cell, One(editor.Result));
+                    AddDeckActionItems(cell, One(editor.Result));
             });
             return;
         }
 
-        AddDeckActionItems(action, cell, action.Create());
+        AddDeckActionItems(cell, action.Create());
     }
 
-    private void AddDeckActionItems(DeckAction action, (int Col, int Row)? cell, IReadOnlyList<ShortcutItem>? items)
+    private void AddDeckActionItems((int Col, int Row)? cell, IReadOnlyList<ShortcutItem>? items)
     {
         if (items is null || items.Count == 0) return;
 

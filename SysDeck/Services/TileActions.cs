@@ -123,9 +123,15 @@ public static class TileRuntime
         return item.TwitchAction == TwitchAction.ShieldMode ? IntegrationLook.Alert : IntegrationLook.Highlight;
     }
 
+    /// <summary>Vrai tant que le Mode console est actif (renseigné par <c>WidgetManager</c>) : la tuile Mode console est allumée.</summary>
+    public static bool ConsoleActive { get; set; }
+
+    public const string ConsoleGlyph = ""; // manette
+
     /// <summary>Mise en valeur d'une tuile d'intégration (OBS, Twitch ou Voicemod).</summary>
     public static IntegrationLook IntegrationLookOf(ShortcutItem item) => item.Kind switch
     {
+        TileKind.ConsoleMode => ConsoleActive ? IntegrationLook.Highlight : IntegrationLook.Normal,
         TileKind.Twitch => TwitchLookOf(item),
         TileKind.Voicemod => VoicemodLookOf(item),
         TileKind.Plugin => PluginLookOf(item),
@@ -152,6 +158,7 @@ public static class TileRuntime
     /// <summary>Symbole par défaut d'une tuile d'intégration (OBS, Twitch ou Voicemod).</summary>
     public static string IntegrationGlyph(ShortcutItem item) => item.Kind switch
     {
+        TileKind.ConsoleMode => ConsoleGlyph,
         TileKind.Twitch => TwitchGlyph(item),
         TileKind.Voicemod => VoicemodGlyph(item),
         _ => ObsGlyph(item)
@@ -209,6 +216,7 @@ public static class TileRuntime
             TileKind.MicMute => IsMuted(item) ? MicOffGlyph : MicGlyph,
             TileKind.OutputMute => IsMuted(item) ? SpeakerOffGlyph : SpeakerGlyph,
             TileKind.Command => CommandGlyph,
+            TileKind.ConsoleMode => ConsoleGlyph,
             TileKind.SwitchAction => item.SwitchAction == SwitchActionKind.LaunchHekate ? "" : "",
             TileKind.TilePageNavigation => item.PageNavigation == Models.TilePageNavigation.Next ? "\uE76C" : "\uE76B",
             TileKind.Obs => ObsGlyph(item),

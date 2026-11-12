@@ -374,6 +374,7 @@ public partial class SettingsWindow
             ? "Afficher la sous-page suivante du widget des tuiles"
             : "Afficher la sous-page précédente du widget des tuiles")
             + (tile.MappedJoyConButton is { } button ? $" · Joy-Con {JoyConInfo.Label(button)}" : ""),
+        TileKind.ConsoleMode => "Entrer dans le mode console ou le quitter (réglages dans Paramètres › Mode console)",
         TileKind.MicMute => string.IsNullOrEmpty(tile.DeviceId) ? "micro par défaut" : "micro choisi",
         TileKind.OutputMute => string.IsNullOrEmpty(tile.DeviceId) ? "sortie par défaut" : "sortie choisie",
         TileKind.Obs => AddObsTileWindow.Describe(tile),
@@ -419,6 +420,7 @@ public partial class SettingsWindow
 
     private void EditDeckTile(ShortcutItem app)
     {
+        if (app.Kind == TileKind.ConsoleMode) return; // action fixe : rien à configurer
         TileEditorWindow editor = app.Kind switch
         {
             TileKind.Hotkey => new AddHotkeyShortcutWindow(this, CreateEmojiPickerForChoice, app),
